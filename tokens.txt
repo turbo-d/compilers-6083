@@ -1,0 +1,51 @@
+number ::= [0-9][0-9]*[.[0-9]*]
+string ::= "[^"]*"
+identifier ::= [a-zA-Z][a-zA-Z0-9_]*
+
+. ::= .
+; ::= ;
+: ::= :
+( ::= (
+) ::= )
+, ::= ,
+[ ::= [
+] ::= ]
+:= ::= :=
+
+program ::= program
+is ::= is
+global ::= global
+procedure ::= procedure
+variable ::= variable
+begin ::= begin
+end program ::= end program
+end procedure ::= end procedure
+end if ::= end if
+end for ::= end for
+if ::= if
+then ::= then
+else ::= else
+for ::= for
+return ::= return
+
+integer ::= integer
+float ::= float
+string ::= string
+bool ::= bool
+
+& ::= &
+| ::= |
+not ::= not
++ ::= +
+- ::= -
+< ::= <
+>= ::= >=
+<= ::= <=
+> ::= >
+== ::= ==
+!= ::= !=
+* ::= *
+/ ::= /
+
+true ::= true
+false ::= false
