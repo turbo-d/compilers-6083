@@ -6,8 +6,13 @@ use std::fmt;
 enum Token {
     EOF,
     Identifier,
+    Number,
     Colon,
     Semicolon,
+    LeftParen,
+    RightParen,
+    LeftSquare,
+    RightSquare,
 }
 
 impl fmt::Display for Token {
@@ -15,8 +20,13 @@ impl fmt::Display for Token {
        match self {
            Token::EOF => write!(f, "EOF"),
            Token::Identifier => write!(f, "Identifier"),
+           Token::Number => write!(f, "Number"),
            Token::Colon => write!(f, "Colon"),
            Token::Semicolon => write!(f, "Semicolon"),
+           Token::LeftParen => write!(f, "LeftParen"),
+           Token::RightParen => write!(f, "RightParen"),
+           Token::LeftSquare => write!(f, "LeftSquare"),
+           Token::RightSquare => write!(f, "RightSquare"),
        }
     }
 }
@@ -28,9 +38,25 @@ struct Scanner {
 
 impl Scanner {
     fn scan(&mut self) -> Token {
-        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n') {
+        // Ignore spaces, tabs, and newlines
+        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t') {
             self.i += 1;
+
+            // Ignore single-line comments
+            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+                self.i += 1;
+                if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+                    self.i += 1;
+                    while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() != '\n') {
+                        self.i += 1;
+                    }
+                }
+            }
         }
+
+
+
+
         let start = self.i;
         if self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z')) {
             self.i += 1;
@@ -41,6 +67,20 @@ impl Scanner {
             println!("{}", slice);
             return Token::Identifier;
         }
+        else if self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
+            while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
+                self.i += 1;
+            }
+            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '.' {
+                self.i += 1;
+                while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
+                    self.i += 1;
+                }
+            }
+            let slice = &self.stream[start..self.i];
+            println!("{}", slice);
+            return Token::Number;
+        }
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ':' {
             self.i += 1;
             println!(":");
@@ -48,8 +88,28 @@ impl Scanner {
         }
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ';' {
             self.i += 1;
-            println!(":");
+            println!(";");
             return Token::Semicolon;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '(' {
+            self.i += 1;
+            println!("(");
+            return Token::LeftParen;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ')' {
+            self.i += 1;
+            println!(")");
+            return Token::RightParen;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '[' {
+            self.i += 1;
+            println!("[");
+            return Token::LeftSquare;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ']' {
+            self.i += 1;
+            println!("]");
+            return Token::RightSquare;
         }
 
         println!("EOF");
