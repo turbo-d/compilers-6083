@@ -2,26 +2,57 @@ use std::env;
 use std::fs;
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 enum Token {
     EOF,
+    Identifier,
+    Colon,
+    Semicolon,
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
        match self {
            Token::EOF => write!(f, "EOF"),
+           Token::Identifier => write!(f, "Identifier"),
+           Token::Colon => write!(f, "Colon"),
+           Token::Semicolon => write!(f, "Semicolon"),
        }
     }
 }
 
 struct Scanner {
     stream: String,
-    i: i32,
+    i: usize,
 }
 
 impl Scanner {
     fn scan(&mut self) -> Token {
+        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n') {
+            self.i += 1;
+        }
+        let start = self.i;
+        if self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z')) {
+            self.i += 1;
+            while self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z')) {
+                self.i += 1;
+            }
+            let slice = &self.stream[start..self.i];
+            println!("{}", slice);
+            return Token::Identifier;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ':' {
+            self.i += 1;
+            println!(":");
+            return Token::Colon;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ';' {
+            self.i += 1;
+            println!(":");
+            return Token::Semicolon;
+        }
+
+        println!("EOF");
         return Token::EOF;
     }
 }
@@ -38,9 +69,9 @@ fn main() {
         i: 0,
     };
     let mut tok = s.scan();
-    println!("{}", tok);
+    //println!("{}", tok);
     while tok != Token::EOF {
-        println!("{}", tok);
         tok = s.scan();
+        //println!("{}", tok);
     }
 }
