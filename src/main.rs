@@ -10,6 +10,7 @@ enum Token {
     String,
     Colon,
     Semicolon,
+    Period,
     LeftParen,
     RightParen,
     LeftSquare,
@@ -165,6 +166,13 @@ impl Scanner {
             self.i += 1;
             println!(";");
             return Token::Semicolon;
+        }
+
+       // period
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '.' {
+            self.i += 1;
+            println!(".");
+            return Token::Period;
         }
 
         // left parenthesis
