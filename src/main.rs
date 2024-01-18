@@ -67,13 +67,12 @@ impl Scanner {
             }
         }
 
-
-
-
         let start = self.i;
+
+        // identifier
         if self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z')) {
             self.i += 1;
-            while self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z')) {
+            while self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z') || (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') || self.stream.chars().nth(self.i).unwrap() == '_') {
                 self.i += 1;
             }
             let slice = &self.stream[start..self.i];
