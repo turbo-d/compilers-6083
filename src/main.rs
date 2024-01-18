@@ -7,6 +7,7 @@ enum Token {
     EOF,
     Identifier,
     Number,
+    String,
     Colon,
     Semicolon,
     LeftParen,
@@ -92,6 +93,16 @@ impl Scanner {
             let slice = &self.stream[start..self.i];
             println!("{}", slice);
             return Token::Number;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '"' {
+            self.i += 1;
+            while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() != '"') {
+                self.i += 1;
+            }
+            self.i += 1;
+            let slice = &self.stream[start..self.i];
+            println!("{}", slice);
+            return Token::String;
         }
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ':' {
             self.i += 1;
