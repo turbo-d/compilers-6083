@@ -13,23 +13,35 @@ enum Token {
     RightParen,
     LeftSquare,
     RightSquare,
+    Plus,
+    Minus,
+    Assign,
+    LT,
+    LTE,
+    GT,
+    GTE,
+    Equal,
+    NotEqual,
 }
 
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-       match self {
-           Token::EOF => write!(f, "EOF"),
-           Token::Identifier => write!(f, "Identifier"),
-           Token::Number => write!(f, "Number"),
-           Token::Colon => write!(f, "Colon"),
-           Token::Semicolon => write!(f, "Semicolon"),
-           Token::LeftParen => write!(f, "LeftParen"),
-           Token::RightParen => write!(f, "RightParen"),
-           Token::LeftSquare => write!(f, "LeftSquare"),
-           Token::RightSquare => write!(f, "RightSquare"),
-       }
-    }
-}
+//impl fmt::Display for Token {
+//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//       match self {
+//           Token::EOF => write!(f, "EOF"),
+//           Token::Identifier => write!(f, "Identifier"),
+//           Token::Number => write!(f, "Number"),
+//           Token::Colon => write!(f, "Colon"),
+//           Token::Semicolon => write!(f, "Semicolon"),
+//           Token::LeftParen => write!(f, "LeftParen"),
+//           Token::RightParen => write!(f, "RightParen"),
+//           Token::LeftSquare => write!(f, "LeftSquare"),
+//           Token::RightSquare => write!(f, "RightSquare"),
+//           Token::Plus => write!(f, "Plus"),
+//           Token::Minus => write!(f, "Minus"),
+//           Token::Assign => write!(f, "Assign"),
+//       }
+//    }
+//}
 
 struct Scanner {
     stream: String,
@@ -83,6 +95,11 @@ impl Scanner {
         }
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ':' {
             self.i += 1;
+            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+                self.i += 1;
+                println!(":=");
+                return Token::Assign;
+            }
             println!(":");
             return Token::Colon;
         }
@@ -110,6 +127,52 @@ impl Scanner {
             self.i += 1;
             println!("]");
             return Token::RightSquare;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '+' {
+            self.i += 1;
+            println!("+");
+            return Token::Plus;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '-' {
+            self.i += 1;
+            println!("-");
+            return Token::Minus;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '<' {
+            self.i += 1;
+            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+                self.i += 1;
+                println!("<=");
+                return Token::LTE;
+            }
+            println!("<");
+            return Token::LT;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '>' {
+            self.i += 1;
+            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+                self.i += 1;
+                println!(">=");
+                return Token::GTE;
+            }
+            println!(">");
+            return Token::GT;
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+            self.i += 1;
+            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+                self.i += 1;
+                println!("==");
+                return Token::Equal;
+            }
+        }
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '!' {
+            self.i += 1;
+            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+                self.i += 1;
+                println!("!=");
+                return Token::NotEqual;
+            }
         }
 
         println!("EOF");
