@@ -55,13 +55,53 @@ impl Scanner {
         while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t') {
             self.i += 1;
 
-            // Ignore single-line comments
+            // Ignore comments
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
                 self.i += 1;
+
+                // Ignore single-line comments
                 if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
                     self.i += 1;
+
+                    // skip everything until newline
                     while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() != '\n') {
                         self.i += 1;
+                    }
+                }
+
+                // Ignore multi-line comments
+                else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+                    // start multi-line comment
+                    let mut nesting = 1;
+                    self.i += 1;
+
+                    while nesting > 0 {
+                        // skip everything in between
+                        while self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() != '/' && self.stream.chars().nth(self.i).unwrap() != '*' {
+                            self.i += 1;
+                        }
+
+                        // multi-line comment close
+                        if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+                            self.i += 1;
+                            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+                                // end multi-line comment
+                                nesting -= 1;
+
+                                self.i += 1;
+                            }
+                        }
+
+                        // multi-line comment open
+                        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+                            self.i += 1;
+                            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+                                // nested multi-line comment
+                                nesting += 1;
+
+                                self.i += 1;
+                            }
+                        }
                     }
                 }
             }
@@ -79,6 +119,8 @@ impl Scanner {
             println!("{}", slice);
             return Token::Identifier;
         }
+
+        // number
         else if self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
             while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
                 self.i += 1;
@@ -93,6 +135,8 @@ impl Scanner {
             println!("{}", slice);
             return Token::Number;
         }
+
+        // string
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '"' {
             self.i += 1;
             while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() != '"') {
@@ -103,6 +147,8 @@ impl Scanner {
             println!("{}", slice);
             return Token::String;
         }
+
+        // assignment and colon
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ':' {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
@@ -113,41 +159,57 @@ impl Scanner {
             println!(":");
             return Token::Colon;
         }
+
+        // semicolon
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ';' {
             self.i += 1;
             println!(";");
             return Token::Semicolon;
         }
+
+        // left parenthesis
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '(' {
             self.i += 1;
             println!("(");
             return Token::LeftParen;
         }
+
+        // right parenthesis
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ')' {
             self.i += 1;
             println!(")");
             return Token::RightParen;
         }
+
+        // left square bracket
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '[' {
             self.i += 1;
             println!("[");
             return Token::LeftSquare;
         }
+
+        // right square bracket
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ']' {
             self.i += 1;
             println!("]");
             return Token::RightSquare;
         }
+
+        // plus
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '+' {
             self.i += 1;
             println!("+");
             return Token::Plus;
         }
+
+        // minus
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '-' {
             self.i += 1;
             println!("-");
             return Token::Minus;
         }
+
+        // lt and lte
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '<' {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
@@ -158,6 +220,8 @@ impl Scanner {
             println!("<");
             return Token::LT;
         }
+
+        // gt and gte
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '>' {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
@@ -168,6 +232,8 @@ impl Scanner {
             println!(">");
             return Token::GT;
         }
+
+        // equality
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
@@ -176,6 +242,8 @@ impl Scanner {
                 return Token::Equal;
             }
         }
+
+        // not equal
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '!' {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
