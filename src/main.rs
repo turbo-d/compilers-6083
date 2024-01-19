@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::fmt;
+//use std::fmt;
 
 #[derive(PartialEq)]
 enum Token {
@@ -52,10 +52,17 @@ struct Scanner {
 }
 
 impl Scanner {
-    fn scan(&mut self) -> Token {
-        // Ignore spaces, tabs, and newlines
-        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t') {
+    // Ignore spaces, tabs, and newlines
+    fn skip_whitespace(&mut self) {
+        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t' || self.stream.chars().nth(self.i).unwrap() == '\r') {
             self.i += 1;
+        }
+    }
+
+    fn scan(&mut self) -> Token {
+        // skip comments and whitespace
+        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t' || self.stream.chars().nth(self.i).unwrap() == '/' || self.stream.chars().nth(self.i).unwrap() == '\r') {
+            self.skip_whitespace();
 
             // Ignore comments
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
