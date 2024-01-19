@@ -18,6 +18,9 @@ enum Token {
     RightSquare,
     Plus,
     Minus,
+    Multiply,
+    And,
+    Or,
     Assign,
     LT,
     LTE,
@@ -230,6 +233,27 @@ impl Scanner {
             self.i += 1;
             println!("-");
             return Token::Minus;
+        }
+
+        // multiply
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+            self.i += 1;
+            println!("*");
+            return Token::Multiply;
+        }
+
+        // and
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '&' {
+            self.i += 1;
+            println!("&");
+            return Token::And;
+        }
+
+        // or
+        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '|' {
+            self.i += 1;
+            println!("|");
+            return Token::Or;
         }
 
         // lt and lte
