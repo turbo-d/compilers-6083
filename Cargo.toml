@@ -7,6 +7,10 @@ edition = "2021"
 
 [dependencies]
 
+[lib]
+name = "compiler"
+path = "src/lib.rs"
+
 [[bin]]
 name = "compiler"
 path = "src/main.rs"
