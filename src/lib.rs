@@ -753,4 +753,324 @@ mod tests {
         let tok = s.scan();
         assert!(tok == Token::Comma);
     }
+
+    #[test]
+    fn scan_number_singledigit() {
+        let mut s = Scanner {
+            stream: String::from("9"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Number);
+    }
+
+    #[test]
+    fn scan_number_multidigit() {
+        let mut s = Scanner {
+            stream: String::from("23459"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Number);
+    }
+
+    #[test]
+    fn scan_number_multidigit_decimalpoint() {
+        let mut s = Scanner {
+            stream: String::from("15429."),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Number);
+    }
+
+    #[test]
+    fn scan_number_multidigit_decimalpoint_singledigit() {
+        let mut s = Scanner {
+            stream: String::from("92345.1"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Number);
+    }
+
+    #[test]
+    fn scan_number_multidigit_decimalpoint_multidigit() {
+        let mut s = Scanner {
+            stream: String::from("9345.23456"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Number);
+    }
+
+    #[test]
+    fn scan_string_empty() {
+        let mut s = Scanner {
+            stream: String::from("\"\""),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::String);
+    }
+
+    #[test]
+    fn scan_string_singlechar() {
+        let mut s = Scanner {
+            stream: String::from("\"a\""),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::String);
+    }
+
+    #[test]
+    fn scan_string_multichar() {
+        let mut s = Scanner {
+            stream: String::from("\"asdgqerygsh\""),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::String);
+    }
+
+    #[test]
+    fn scan_identifier_single_lower() {
+        let mut s = Scanner {
+            stream: String::from("a"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_identifier_single_upper() {
+        let mut s = Scanner {
+            stream: String::from("A"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_identifier_multi_lower() {
+        let mut s = Scanner {
+            stream: String::from("awerthsdf"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_identifier_multi_upper() {
+        let mut s = Scanner {
+            stream: String::from("ASGSDFIWERYHEHA"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_identifier_multi_alpha() {
+        let mut s = Scanner {
+            stream: String::from("aaGWErsGBHq"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_identifier_multi_alphanumeric() {
+        let mut s = Scanner {
+            stream: String::from("aa4GWErs467GBHq78"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_identifier_multi_all() {
+        let mut s = Scanner {
+            stream: String::from("aa4__GWErs467GBHq7_8"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_identifier_multi_underscores() {
+        let mut s = Scanner {
+            stream: String::from("a_____________"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_eof() {
+        let mut s = Scanner {
+            stream: String::from(""),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_whitespace_spaces() {
+        let mut s = Scanner {
+            stream: String::from("     a       "),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_whitespace_tabs() {
+        let mut s = Scanner {
+            stream: String::from("\t\t\t\ta\t\t\t\t"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_whitespace_linefeed() {
+        let mut s = Scanner {
+            stream: String::from("\n\n\na\n\n\n"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_whitespace_carriagereturn() {
+        let mut s = Scanner {
+            stream: String::from("\r\r\r\ra\r\r\r\r"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::Identifier);
+    }
+
+    #[test]
+    fn scan_comment_single_nolinefeed() {
+        let mut s = Scanner {
+            stream: String::from("// comment asdf"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_single_linefeed() {
+        let mut s = Scanner {
+            stream: String::from("// comment asdf\n"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_single_innermulti() {
+        let mut s = Scanner {
+            stream: String::from("// comment /* comment /* comment */"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_single_nonalphanumeric() {
+        let mut s = Scanner {
+            stream: String::from("// asdg256 ##&* 2@5 ab hao (())[]][{}} %*_~~????><"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_multi_nolinefeed() {
+        let mut s = Scanner {
+            stream: String::from("/* comment asdf*/"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_multi_linefeed() {
+        let mut s = Scanner {
+            stream: String::from("/* comment asdf\naasdb aagg\nasdgab eg*/"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_multi_innersingle() {
+        let mut s = Scanner {
+            stream: String::from("/* comment asdf // aasdb aagg // asdgab eg*/"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_multi_nonalphanumeric() {
+        let mut s = Scanner {
+            stream: String::from("/* asdg256 ##&* 2@5 ab hao (())[]][{}} %*_~~????><*/"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_nestedmulti_nolinefeed() {
+        let mut s = Scanner {
+            stream: String::from("/* level1 /* level2 /* level3a */ level2 /* level3b */ level 2*/ level1 */"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_comment_nestedmulti_linefeed() {
+        let mut s = Scanner {
+            stream: String::from("/* level1 \n /* level2 /* le\nvel3a */ level2 \n/* level3b */ level \n2*/ level1 */"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(tok == Token::EOF);
+    }
+
+    #[test]
+    fn scan_error_invalidchar() {
+        let mut s = Scanner {
+            stream: String::from("@"),
+            i: 0,
+        };
+        let tok = s.scan();
+        assert!(false);
+    }
 }
