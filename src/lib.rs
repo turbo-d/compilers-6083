@@ -641,7 +641,7 @@ mod tests {
 
     #[test]
     fn scan_leftparen() {
-        let mut s = Scanner::new(String::from(")"));
+        let mut s = Scanner::new(String::from("("));
         let tok = s.scan();
         assert!(tok == Token::LeftParen);
     }
