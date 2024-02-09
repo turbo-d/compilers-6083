@@ -10,10 +10,7 @@ fn main() {
     let contents = fs::read_to_string(file_path)
         .expect("Should have been able to read the file");
     //println!("{}", contents);
-    let mut s = Scanner {
-        stream: contents,
-        i: 0,
-    };
+    let mut s = Scanner::new(contents);
     let mut tok = s.scan();
     //println!("{}", tok);
     while tok != Token::EOF {
