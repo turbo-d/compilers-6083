@@ -1,26 +1,40 @@
 use std::collections::HashMap;
 
-#[derive(PartialEq)]
-pub enum Token {
-    Unknown,
-    EOF,
+pub enum TokenTag {
+    True,
+    False,
+    Integer,
+    Float,
+    String,
     Bool,
-    Type,
     Program,
     Is,
     Global,
     Procedure,
     Variable,
     Begin,
-    EndProgram,
-    EndProcedure,
-    EndIf,
-    EndFor,
     If,
     Then,
     Else,
     For,
     Return,
+    EndProgram,
+    EndProcedure,
+    EndIf,
+    EndFor,
+    Not,
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+}
+
+#[derive(Clone, PartialEq)]
+pub enum Token {
+    Unknown,
+    EOF,
+    Keyword,
+    Type,
     Identifier,
     Number,
     String,
@@ -32,13 +46,10 @@ pub enum Token {
     RightParen,
     LeftSquare,
     RightSquare,
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
+    AddOp,
+    MulOp,
     And,
     Or,
-    Not,
     Assign,
     LT,
     LTE,
@@ -77,7 +88,30 @@ pub struct Scanner {
 impl Scanner {
     pub fn new(contents: String) -> Scanner {
         let mut table = HashMap::new();
-        table.insert(String::from("if"), Token::If);
+
+        table.insert(String::from("program"), Token::Keyword);
+        table.insert(String::from("is"), Token::Keyword);
+        table.insert(String::from("global"), Token::Keyword);
+        table.insert(String::from("procedure"), Token::Keyword);
+        table.insert(String::from("variable"), Token::Keyword);
+        table.insert(String::from("begin"), Token::Keyword);
+        table.insert(String::from("if"), Token::Keyword);
+        table.insert(String::from("then"), Token::Keyword);
+        table.insert(String::from("else"), Token::Keyword);
+        table.insert(String::from("for"), Token::Keyword);
+        table.insert(String::from("return"), Token::Keyword);
+        table.insert(String::from("end program"), Token::Keyword);
+        table.insert(String::from("end procedure"), Token::Keyword);
+        table.insert(String::from("end if"), Token::Keyword);
+        table.insert(String::from("end for"), Token::Keyword);
+        table.insert(String::from("true"), Token::Keyword);
+        table.insert(String::from("false"), Token::Keyword);
+        table.insert(String::from("not"), Token::Keyword);
+        table.insert(String::from("integer"), Token::Type);
+        table.insert(String::from("float"), Token::Type);
+        table.insert(String::from("string"), Token::Type);
+        table.insert(String::from("bool"), Token::Type);
+
         Scanner {
             stream: contents,
             i: 0,
@@ -157,8 +191,15 @@ impl Scanner {
             while self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z') || (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') || self.stream.chars().nth(self.i).unwrap() == '_') {
                 self.i += 1;
             }
+
             let slice = &self.stream[start..self.i];
             println!("{}", slice);
+
+            match self.table.get(slice) {
+                Some(tok) => return tok.clone(),
+                _ => (),
+            }
+
             return Token::Identifier;
         }
 
@@ -255,21 +296,21 @@ impl Scanner {
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '+' {
             self.i += 1;
             println!("+");
-            return Token::Plus;
+            return Token::AddOp;
         }
 
         // minus
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '-' {
             self.i += 1;
             println!("-");
-            return Token::Minus;
+            return Token::AddOp;
         }
 
         // multiply
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
             self.i += 1;
             println!("*");
-            return Token::Multiply;
+            return Token::MulOp;
         }
 
         // and
@@ -343,28 +384,28 @@ mod tests {
     fn scan_add() {
         let mut s = Scanner::new(String::from("+"));
         let tok = s.scan();
-        assert!(tok == Token::Plus);
+        assert!(tok == Token::AddOp);
     }
 
     #[test]
     fn scan_sub() {
         let mut s = Scanner::new(String::from("-"));
         let tok = s.scan();
-        assert!(tok == Token::Minus);
+        assert!(tok == Token::AddOp);
     }
 
     #[test]
     fn scan_mul() {
         let mut s = Scanner::new(String::from("*"));
         let tok = s.scan();
-        assert!(tok == Token::Multiply);
+        assert!(tok == Token::MulOp);
     }
 
     #[test]
     fn scan_div() {
         let mut s = Scanner::new(String::from("/"));
         let tok = s.scan();
-        assert!(tok == Token::Divide);
+        assert!(tok == Token::MulOp);
     }
 
     #[test]
@@ -427,21 +468,21 @@ mod tests {
     fn scan_not() {
         let mut s = Scanner::new(String::from("not"));
         let tok = s.scan();
-        assert!(tok == Token::Not);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_bool_true() {
         let mut s = Scanner::new(String::from("true"));
         let tok = s.scan();
-        assert!(tok == Token::Bool);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_bool_false() {
         let mut s = Scanner::new(String::from("false"));
         let tok = s.scan();
-        assert!(tok == Token::Bool);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
@@ -476,105 +517,105 @@ mod tests {
     fn scan_program() {
         let mut s = Scanner::new(String::from("program"));
         let tok = s.scan();
-        assert!(tok == Token::Program);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_is() {
         let mut s = Scanner::new(String::from("is"));
         let tok = s.scan();
-        assert!(tok == Token::Is);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_global() {
         let mut s = Scanner::new(String::from("global"));
         let tok = s.scan();
-        assert!(tok == Token::Global);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_procedure() {
         let mut s = Scanner::new(String::from("procedure"));
         let tok = s.scan();
-        assert!(tok == Token::Procedure);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_variable() {
         let mut s = Scanner::new(String::from("variable"));
         let tok = s.scan();
-        assert!(tok == Token::Variable);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_begin() {
         let mut s = Scanner::new(String::from("begin"));
         let tok = s.scan();
-        assert!(tok == Token::Begin);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_endprogram() {
         let mut s = Scanner::new(String::from("end program"));
         let tok = s.scan();
-        assert!(tok == Token::EndProgram);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_endprocedure() {
         let mut s = Scanner::new(String::from("end procedure"));
         let tok = s.scan();
-        assert!(tok == Token::EndProcedure);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_endif() {
         let mut s = Scanner::new(String::from("end if"));
         let tok = s.scan();
-        assert!(tok == Token::EndIf);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_endfor() {
         let mut s = Scanner::new(String::from("end for"));
         let tok = s.scan();
-        assert!(tok == Token::EndFor);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_if() {
         let mut s = Scanner::new(String::from("if"));
         let tok = s.scan();
-        assert!(tok == Token::If);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_then() {
         let mut s = Scanner::new(String::from("then"));
         let tok = s.scan();
-        assert!(tok == Token::Then);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_else() {
         let mut s = Scanner::new(String::from("else"));
         let tok = s.scan();
-        assert!(tok == Token::Else);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_for() {
         let mut s = Scanner::new(String::from("for"));
         let tok = s.scan();
-        assert!(tok == Token::For);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
     fn scan_return() {
         let mut s = Scanner::new(String::from("return"));
         let tok = s.scan();
-        assert!(tok == Token::Return);
+        assert!(tok == Token::Keyword);
     }
 
     #[test]
