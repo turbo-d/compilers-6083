@@ -140,10 +140,23 @@ impl Scanner {
     }
 
     fn is_alphanumeric(&self, c: char) -> bool {
-        if is_digit(c) || is_alpha(c) {
+        if self.is_digit(c) || self.is_alpha(c) {
             return true;
         }
         return false;
+    }
+
+    fn read_ch(&mut self) -> Option<char> {
+        if self.i <= self.stream.len() {
+            return None;
+        }
+        let c = self.stream.chars().nth(self.i);
+        self.i += 1;
+        return c;
+    }
+
+    fn unread_ch(&mut self) {
+        self.i -= 1;
     }
 
     pub fn scan(&mut self) -> Token {
@@ -206,9 +219,9 @@ impl Scanner {
         let start = self.i;
 
         // identifier
-        if self.i < self.stream.len() && is_alpha(self.stream.chars().nth(self.i).unwrap()) {
+        if self.i < self.stream.len() && self.is_alpha(self.stream.chars().nth(self.i).unwrap()) {
             self.i += 1;
-            while self.i < self.stream.len() && is_alphanumeric(self.stream.chars().nth(self.i).unwrap()) || self.stream.chars().nth(self.i).unwrap() == '_') {
+            while self.i < self.stream.len() && (self.is_alphanumeric(self.stream.chars().nth(self.i).unwrap()) || self.stream.chars().nth(self.i).unwrap() == '_') {
                 self.i += 1;
             }
 
@@ -224,13 +237,13 @@ impl Scanner {
         }
 
         // number
-        else if self.i < self.stream.len() && is_digit(self.stream.chars().nth(self.i).unwrap()) {
-            while self.i < self.stream.len() && is_digit(self.stream.chars().nth(self.i).unwrap()) {
+        else if self.i < self.stream.len() && self.is_digit(self.stream.chars().nth(self.i).unwrap()) {
+            while self.i < self.stream.len() && self.is_digit(self.stream.chars().nth(self.i).unwrap()) {
                 self.i += 1;
             }
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '.' {
                 self.i += 1;
-                while self.i < self.stream.len() && is_digit(self.stream.chars().nth(self.i).unwrap()) {
+                while self.i < self.stream.len() && self.is_digit(self.stream.chars().nth(self.i).unwrap()) {
                     self.i += 1;
                 }
             }
