@@ -31,7 +31,6 @@ pub enum TokenTag {
 
 #[derive(Clone, PartialEq)]
 pub enum Token {
-    Unknown,
     EOF,
     Keyword,
     Type,
@@ -42,10 +41,10 @@ pub enum Token {
     Semicolon,
     Period,
     Comma,
-    LeftParen,
-    RightParen,
-    LeftSquare,
-    RightSquare,
+    LParen,
+    RParen,
+    LSquare,
+    RSquare,
     AddOp,
     MulOp,
     And,
@@ -55,8 +54,8 @@ pub enum Token {
     LTE,
     GT,
     GTE,
-    Equal,
-    NotEqual,
+    Eq,
+    NotEq,
 }
 
 //impl fmt::Display for Token {
@@ -67,10 +66,10 @@ pub enum Token {
 //           Token::Number => write!(f, "Number"),
 //           Token::Colon => write!(f, "Colon"),
 //           Token::Semicolon => write!(f, "Semicolon"),
-//           Token::LeftParen => write!(f, "LeftParen"),
-//           Token::RightParen => write!(f, "RightParen"),
-//           Token::LeftSquare => write!(f, "LeftSquare"),
-//           Token::RightSquare => write!(f, "RightSquare"),
+//           Token::LParen => write!(f, "LParen"),
+//           Token::RParen => write!(f, "RParen"),
+//           Token::LSquare => write!(f, "LSquare"),
+//           Token::RSquare => write!(f, "RSquare"),
 //           Token::Plus => write!(f, "Plus"),
 //           Token::Minus => write!(f, "Minus"),
 //           Token::Assign => write!(f, "Assign"),
@@ -80,9 +79,9 @@ pub enum Token {
 
 
 pub struct Scanner {
-    pub stream: String,
-    pub i: usize,
-    pub table: HashMap<String, Token>,
+    stream: String,
+    i: usize,
+    table: HashMap<String, Token>,
 }
 
 impl Scanner {
@@ -268,28 +267,28 @@ impl Scanner {
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '(' {
             self.i += 1;
             println!("(");
-            return Token::LeftParen;
+            return Token::LParen;
         }
 
         // right parenthesis
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ')' {
             self.i += 1;
             println!(")");
-            return Token::RightParen;
+            return Token::RParen;
         }
 
         // left square bracket
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '[' {
             self.i += 1;
             println!("[");
-            return Token::LeftSquare;
+            return Token::LSquare;
         }
 
         // right square bracket
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ']' {
             self.i += 1;
             println!("]");
-            return Token::RightSquare;
+            return Token::RSquare;
         }
 
         // plus
@@ -357,7 +356,7 @@ impl Scanner {
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
                 self.i += 1;
                 println!("==");
-                return Token::Equal;
+                return Token::Eq;
             }
         }
 
@@ -367,7 +366,7 @@ impl Scanner {
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
                 self.i += 1;
                 println!("!=");
-                return Token::NotEqual;
+                return Token::NotEq;
             }
         }
 
@@ -440,14 +439,14 @@ mod tests {
     fn scan_equal() {
         let mut s = Scanner::new(String::from("=="));
         let tok = s.scan();
-        assert!(tok == Token::Equal);
+        assert!(tok == Token::Eq);
     }
 
     #[test]
     fn scan_notequal() {
         let mut s = Scanner::new(String::from("!="));
         let tok = s.scan();
-        assert!(tok == Token::NotEqual);
+        assert!(tok == Token::NotEq);
     }
 
     #[test]
@@ -643,28 +642,28 @@ mod tests {
     fn scan_leftparen() {
         let mut s = Scanner::new(String::from("("));
         let tok = s.scan();
-        assert!(tok == Token::LeftParen);
+        assert!(tok == Token::LParen);
     }
 
     #[test]
     fn scan_rightparen() {
         let mut s = Scanner::new(String::from(")"));
         let tok = s.scan();
-        assert!(tok == Token::RightParen);
+        assert!(tok == Token::RParen);
     }
 
     #[test]
     fn scan_leftsquare() {
         let mut s = Scanner::new(String::from("["));
         let tok = s.scan();
-        assert!(tok == Token::LeftSquare);
+        assert!(tok == Token::LSquare);
     }
 
     #[test]
     fn scan_rightsquare() {
         let mut s = Scanner::new(String::from("]"));
         let tok = s.scan();
-        assert!(tok == Token::RightSquare);
+        assert!(tok == Token::RSquare);
     }
 
     #[test]
