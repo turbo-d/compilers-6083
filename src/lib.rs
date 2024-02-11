@@ -125,6 +125,27 @@ impl Scanner {
         }
     }
 
+    fn is_digit(&self, c: char) -> bool {
+        if c >= '0' && c <= '9' {
+            return true;
+        }
+        return false;
+    }
+
+    fn is_alpha(&self, c: char) -> bool {
+        if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' {
+            return true;
+        }
+        return false;
+    }
+
+    fn is_alphanumeric(&self, c: char) -> bool {
+        if is_digit(c) || is_alpha(c) {
+            return true;
+        }
+        return false;
+    }
+
     pub fn scan(&mut self) -> Token {
         // skip comments and whitespace
         while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t' || self.stream.chars().nth(self.i).unwrap() == '/' || self.stream.chars().nth(self.i).unwrap() == '\r') {
@@ -185,9 +206,9 @@ impl Scanner {
         let start = self.i;
 
         // identifier
-        if self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z')) {
+        if self.i < self.stream.len() && is_alpha(self.stream.chars().nth(self.i).unwrap()) {
             self.i += 1;
-            while self.i < self.stream.len() && ((self.stream.chars().nth(self.i).unwrap() >= 'a' && self.stream.chars().nth(self.i).unwrap() <= 'z') || (self.stream.chars().nth(self.i).unwrap() >= 'A' && self.stream.chars().nth(self.i).unwrap() <= 'Z') || (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') || self.stream.chars().nth(self.i).unwrap() == '_') {
+            while self.i < self.stream.len() && is_alphanumeric(self.stream.chars().nth(self.i).unwrap()) || self.stream.chars().nth(self.i).unwrap() == '_') {
                 self.i += 1;
             }
 
@@ -203,13 +224,13 @@ impl Scanner {
         }
 
         // number
-        else if self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
-            while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
+        else if self.i < self.stream.len() && is_digit(self.stream.chars().nth(self.i).unwrap()) {
+            while self.i < self.stream.len() && is_digit(self.stream.chars().nth(self.i).unwrap()) {
                 self.i += 1;
             }
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '.' {
                 self.i += 1;
-                while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() >= '0' && self.stream.chars().nth(self.i).unwrap() <= '9') {
+                while self.i < self.stream.len() && is_digit(self.stream.chars().nth(self.i).unwrap()) {
                     self.i += 1;
                 }
             }
