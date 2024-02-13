@@ -78,6 +78,145 @@ pub enum Token {
 //}
 
 
+pub struct LLParser {
+    s: Scanner,
+}
+
+impl LLParser {
+    pub fn new(s: Scanner) -> LLParser {
+        LLParser {
+            s
+        }
+    }
+
+    pub fn parse(&mut self) {
+        self.program()
+    }
+
+    fn program(&mut self) {
+        self.program_header();
+        self.program_body();
+        let tok = self.s.scan();
+        if tok != Token::Period { // .
+            // Probably want to warn here instead
+            panic!("Expected \".\"");
+        }
+    }
+
+    fn program_header(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // program keyword
+            panic!("Expected \"program\"");
+        }
+        let tok = self.s.scan();
+        if tok != Token::Identifier { // identifier
+            panic!("Expected \"identifier\"");
+        }
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // is keyword
+            panic!("Expected \"is\"");
+        }
+    }
+
+    // first: "global", "procedure", "variable", "begin"
+    fn program_body(&mut self) {
+        // peek next token
+        // get token string
+        // while token is global, procedure, or variable, expand production
+        self.declaration();
+        let tok = self.s.scan();
+        if tok != Token::Semicolon { // ;
+            panic!("Expected \";\"");
+        }
+        // consume ; at end of each declaration
+        // repeat until we see begin
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // begin keyword
+            panic!("Expected \"begin\"");
+        }
+        // statement first: "identifier", "if", "for", "return"
+        // if we find any of these expand production
+        // consume ; at end of each declaration
+        // repeat until we see end program
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // end program keyword
+            panic!("Expected \"end program\"");
+        }
+    }
+
+    fn declaration(&mut self) {
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::Keyword { // global
+            // consume global token
+            let tok = self.s.scan();
+        }
+
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::Keyword { // procedure keyword
+            self.procedure_declaration();
+        } else if tok == Token::Keyword { // variable keyword
+            self.variable_declaration();
+        } else {
+            panic!("Expected \"Procedure declaration or Variable declaration\"");
+        }
+    }
+
+    fn procedure_declaration(&mut self) {
+        self.procedure_header();
+        self.procedure_body();
+    }
+
+    fn procedure_header(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // procedure keyword
+            panic!("Expected \"procedure\"");
+        }
+        let tok = self.s.scan();
+        if tok != Token::Identifier { // identifier keyword
+            panic!("Expected \"identifier\"");
+        }
+        let tok = self.s.scan();
+        if tok != Token::Colon { // :
+            panic!("Expected \":\"");
+        }
+        self.type_mark();
+        let tok = self.s.scan();
+        if tok != Token::LParen { // :
+            panic!("Expected \"(\"");
+        }
+
+        // parameter_list start: "variable"
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::Keyword { // variable keyword
+            self.parameter_list();
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::RParen { // :
+            panic!("Expected \")\"");
+        }
+    }
+
+    fn type_mark(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Type {
+            panic!("Expected \"type\"");
+        }
+    }
+
+    fn parameter_list(&mut self) {
+    }
+
+    fn procedure_body(&mut self) {
+    }
+
+    fn variable_declaration(&mut self) {
+    }
+}
+
 pub struct Scanner {
     stream: String,
     i: usize,

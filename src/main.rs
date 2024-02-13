@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-use compiler::{Token, Scanner};
+use compiler::{Token, Scanner, LLParser};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -10,11 +10,12 @@ fn main() {
     let contents = fs::read_to_string(file_path)
         .expect("Should have been able to read the file");
     //println!("{}", contents);
-    let mut s = Scanner::new(contents);
-    let mut tok = s.scan();
+    let s = Scanner::new(contents);
+    //let mut tok = s.scan();
+    let p = LLParser::new(s);
     //println!("{}", tok);
-    while tok != Token::EOF {
-        tok = s.scan();
-        //println!("{}", tok);
-    }
+    //while tok != Token::EOF {
+    //    tok = s.scan();
+    //    //println!("{}", tok);
+    //}
 }
