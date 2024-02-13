@@ -336,15 +336,127 @@ impl LLParser {
     }
 
     fn assignment_statement(&mut self) {
+        self.destination();
+
+        let tok = self.s.scan();
+        if tok != Token::Assign {
+            panic!("Expected \":=\"");
+        }
+
+        self.expression();
+    }
+
+    fn destination(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Identifier {
+            panic!("Expected \"identifier\"");
+        }
+
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok != Token::LSquare { // :
+            return;
+        }
+
+        // consume LSquare
+        let tok = self.s.scan();
+
+        self.expression();
+
+        let tok = self.s.scan();
+        if tok != Token::RSquare { // :
+            panic!("Expected \"]\"");
+        }
     }
 
     fn if_statement(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // if
+            panic!("Expected \"if\"");
+        }
+
+        self.expression();
+
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // then
+            panic!("Expected \"then\"");
+        }
+
+        // TODO: peek
+        let tok = self.s.scan();
+        while tok == Token::Keyword { // else
+            let tok = self.s.scan();
+            if tok != Token::Keyword { // else
+                panic!("Expected \"else\"");
+            }
+
+            self.statement();
+
+            let tok = self.s.scan();
+            if tok != Token::Semicolon { // ;
+                panic!("Expected \";\"");
+            }
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // end if
+            panic!("Expected \"end if\"");
+        }
     }
 
     fn loop_statement(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // for
+            panic!("Expected \"for\"");
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::LParen {
+            panic!("Expected \"(\"");
+        }
+
+        self.assignment_statement();
+
+        let tok = self.s.scan();
+        if tok != Token::Semicolon {
+            panic!("Expected \";\"");
+        }
+
+        self.expression();
+
+        let tok = self.s.scan();
+        if tok != Token::RParen {
+            panic!("Expected \")\"");
+        }
+
+        // TODO: peek instead
+        let tok = self.s.scan();
+        while tok == Token::Identifier || tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // statement first: "identifier", "if", "for", "return"
+            self.statement();
+
+            let tok = self.s.scan();
+            if tok != Token::Semicolon {
+                panic!("Expected \";\"");
+            }
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // end for
+            panic!("Expected \"end for\"");
+        }
+
     }
 
     fn return_statement(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // return
+            panic!("Expected \"return\"");
+        }
+
+        self.expression();
+    }
+
+    fn expression(&mut self) {
     }
 }
 
