@@ -95,7 +95,9 @@ impl LLParser {
 
     fn program(&mut self) {
         self.program_header();
+
         self.program_body();
+
         let tok = self.s.scan();
         if tok != Token::Period { // .
             // Probably want to warn here instead
@@ -108,10 +110,12 @@ impl LLParser {
         if tok != Token::Keyword { // program keyword
             panic!("Expected \"program\"");
         }
+
         let tok = self.s.scan();
         if tok != Token::Identifier { // identifier
             panic!("Expected \"identifier\"");
         }
+
         let tok = self.s.scan();
         if tok != Token::Keyword { // is keyword
             panic!("Expected \"is\"");
@@ -120,24 +124,33 @@ impl LLParser {
 
     // first: "global", "procedure", "variable", "begin"
     fn program_body(&mut self) {
-        // peek next token
-        // get token string
-        // while token is global, procedure, or variable, expand production
-        self.declaration();
+        // TODO: peek next token
         let tok = self.s.scan();
-        if tok != Token::Semicolon { // ;
-            panic!("Expected \";\"");
+        while tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // declaration first: global, procedure, or variable
+            self.declaration();
+
+            let tok = self.s.scan();
+            if tok != Token::Semicolon { // ;
+                panic!("Expected \";\"");
+            }
         }
-        // consume ; at end of each declaration
-        // repeat until we see begin
+
         let tok = self.s.scan();
         if tok != Token::Keyword { // begin keyword
             panic!("Expected \"begin\"");
         }
-        // statement first: "identifier", "if", "for", "return"
-        // if we find any of these expand production
-        // consume ; at end of each declaration
-        // repeat until we see end program
+
+        // TODO: peek instead
+        let tok = self.s.scan();
+        while tok == Token::Identifier || tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // statement first: "identifier", "if", "for", "return"
+            self.statement();
+
+            let tok = self.s.scan();
+            if tok != Token::Semicolon { // ;
+                panic!("Expected \";\"");
+            }
+        }
+
         let tok = self.s.scan();
         if tok != Token::Keyword { // end program keyword
             panic!("Expected \"end program\"");
@@ -181,7 +194,9 @@ impl LLParser {
         if tok != Token::Colon { // :
             panic!("Expected \":\"");
         }
+
         self.type_mark();
+
         let tok = self.s.scan();
         if tok != Token::LParen { // :
             panic!("Expected \"(\"");
@@ -208,12 +223,128 @@ impl LLParser {
     }
 
     fn parameter_list(&mut self) {
+        self.parameter();
+
+        // TODO: peek token
+        let mut peek = self.s.scan();
+        while peek == Token::Comma {
+            //consume comma
+            self.s.scan();
+
+            self.parameter();
+
+            // TODO: peek instead
+            peek = self.s.scan();
+        }
+    }
+
+    fn parameter(&mut self) {
+        self.variable_declaration();
     }
 
     fn procedure_body(&mut self) {
+        // TODO: peek next token
+        let tok = self.s.scan();
+        while tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // declaration first: global, procedure, or variable
+            self.declaration();
+
+            let tok = self.s.scan();
+            if tok != Token::Semicolon { // ;
+                panic!("Expected \";\"");
+            }
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // begin keyword
+            panic!("Expected \"begin\"");
+        }
+
+        // TODO: peek instead
+        let tok = self.s.scan();
+        while tok == Token::Identifier || tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // statement first: "identifier", "if", "for", "return"
+            self.statement();
+
+            let tok = self.s.scan();
+            if tok != Token::Semicolon { // ;
+                panic!("Expected \";\"");
+            }
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // end program keyword
+            panic!("Expected \"end procedure\"");
+        }
     }
 
     fn variable_declaration(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Keyword { // variable keyword
+            panic!("Expected \"variable\"");
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::Identifier { // identifier keyword
+            panic!("Expected \"identifier\"");
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::Colon { // :
+            panic!("Expected \":\"");
+        }
+
+        self.type_mark();
+
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok != Token::LSquare { // :
+            return;
+        }
+
+        // consume LSquare
+        let tok = self.s.scan();
+
+        self.bound();
+
+        let tok = self.s.scan();
+        if tok != Token::RSquare { // :
+            panic!("Expected \"]\"");
+        }
+    }
+
+    fn bound(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Number {
+            panic!("Expected \"number\"");
+        }
+    }
+
+    fn statement(&mut self) {
+        // statement first: "identifier", "if", "for", "return"
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::Identifier {
+            self.assignment_statement();
+        } else if tok == Token::Keyword { // if keyword
+            self.if_statement();
+        } else if tok == Token::Keyword { // for keyword
+            self.loop_statement();
+        } else if tok == Token::Keyword { // return keyword
+            self.return_statement();
+        } else {
+            panic!("Expected \"statement\"");
+        }
+    }
+
+    fn assignment_statement(&mut self) {
+    }
+
+    fn if_statement(&mut self) {
+    }
+
+    fn loop_statement(&mut self) {
+    }
+
+    fn return_statement(&mut self) {
     }
 }
 
