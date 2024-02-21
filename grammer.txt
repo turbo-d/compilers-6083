@@ -1,0 +1,20 @@
+expr ::= [not] arith_op expr_prime
+expr_prime ::= & arith_op expr_prime |
+				| arith_op expr_prime |
+				null
+arith_op ::= relation arith_op_prime
+arith_op_prime ::= + relation arith_op_prime |
+					- relation arith_op_prime |
+					null
+relation ::= term relation_prime
+relation_prime ::= < term relation_prime |
+					>= term relation prime |
+					<= term relation prime |
+					> term relation prime |
+					== term relation prime |
+					!= term relation prime |
+					null
+term ::= factor term_prime |
+term_prime ::= * factor term_prime |
+				/ factor term_prime |
+				null

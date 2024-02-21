@@ -202,7 +202,7 @@ impl LLParser {
             panic!("Expected \"(\"");
         }
 
-        // parameter_list start: "variable"
+        // parameter_list first: "variable"
         // TODO: peek token
         let tok = self.s.scan();
         if tok == Token::Keyword { // variable keyword
@@ -343,7 +343,7 @@ impl LLParser {
             panic!("Expected \":=\"");
         }
 
-        self.expression();
+        self.expr();
     }
 
     fn destination(&mut self) {
@@ -361,7 +361,7 @@ impl LLParser {
         // consume LSquare
         let tok = self.s.scan();
 
-        self.expression();
+        self.expr();
 
         let tok = self.s.scan();
         if tok != Token::RSquare { // :
@@ -375,7 +375,7 @@ impl LLParser {
             panic!("Expected \"if\"");
         }
 
-        self.expression();
+        self.expr();
 
         let tok = self.s.scan();
         if tok != Token::Keyword { // then
@@ -422,7 +422,7 @@ impl LLParser {
             panic!("Expected \";\"");
         }
 
-        self.expression();
+        self.expr();
 
         let tok = self.s.scan();
         if tok != Token::RParen {
@@ -453,10 +453,225 @@ impl LLParser {
             panic!("Expected \"return\"");
         }
 
-        self.expression();
+        self.expr();
     }
 
-    fn expression(&mut self) {
+    fn expr(&mut self) {
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::Keyword { // not
+            // consume not token
+            let tok = self.s.scan();
+        }
+
+        self.arith_op();
+
+        self.expr_prime();
+    }
+
+    fn expr_prime(&mut self) {
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::And || tok == Token::Or {
+            // consume token
+            let tok = self.s.scan();
+
+            self.arith_op();
+        } else {
+            // null body production
+            return;
+        }
+
+        self.expr_prime();
+    }
+
+    fn arith_op(&mut self) {
+        self.relation();
+
+        self.arith_op_prime();
+    }
+
+    fn arith_op_prime(&mut self) {
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::AddOp || tok == Token::AddOp { // plus or minus
+            // consume token
+            let tok = self.s.scan();
+
+            self.relation();
+        } else {
+            // null body production
+            return;
+        }
+
+        self.arith_op_prime();
+    }
+
+    fn relation(&mut self) {
+        self.term();
+
+        self.relation_prime();
+    }
+
+    fn relation_prime(&mut self) {
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::LT ||
+            tok == Token::LTE ||
+            tok == Token::GT ||
+            tok == Token::GTE ||
+            tok == Token::Eq ||
+            tok == Token::NotEq {
+            // consume token
+            let tok = self.s.scan();
+
+            self.term();
+        } else {
+            // null body production
+            return;
+        }
+
+        self.relation_prime();
+    }
+
+    fn term(&mut self) {
+        self.factor();
+
+        self.term_prime();
+    }
+
+    fn term_prime(&mut self) {
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::MulOp || tok == Token::MulOp { // mul or div
+            // consume token
+            let tok = self.s.scan();
+
+            self.factor();
+        } else {
+            // null body production
+            return;
+        }
+
+        self.term_prime();
+    }
+
+    fn factor(&mut self) {
+        // factor first: "(", procedure_call first, "-", name first, "number", "string", "true", "false"
+        // procedure_call first: "identifier"
+        // name first: "identifier"
+
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::Identifier {
+            // TODO: how do we determine if it is a name or procedure call?
+            self.procedure_call();
+            //self.name();
+        } else if tok == Token::AddOp { // minus
+            // consume minus
+            self.s.scan();
+
+            // TODO: peek token
+            let tok = self.s.scan();
+            if tok == Token::Identifier {
+                self.name();
+            } else if tok == Token::Number {
+                // consume number
+                self.s.scan();
+            } else {
+                panic!("Expected \"identifier\" or \"number\" following \"-\"");
+            }
+        } else if tok == Token::Number {
+            // consume number
+            self.s.scan();
+        } else if tok == Token::LParen {
+            // consume left paren
+            self.s.scan();
+
+            self.expr();
+
+            let tok = self.s.scan();
+            if tok != Token::RParen { // :
+                panic!("Expected \")\"");
+            }
+        } else if tok == Token::String {
+            // consume number
+            self.s.scan();
+        } else if tok == Token::Keyword { // true
+            // consume true
+            self.s.scan();
+        } else if tok == Token::Keyword { // false
+            // consume true
+            self.s.scan();
+        } else {
+            panic!("Expected \"factor\"");
+        }
+    }
+
+    fn procedure_call(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Identifier {
+            panic!("Expected \"identifier\"");
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::LParen { // :
+            panic!("Expected \"(\"");
+        }
+
+        // argument_list first: "expr first"
+        // expr first: "not", "arith_op first"
+        // arith_op first: "relation first"
+        // relation first: "term first"
+        // term first: "factor first"
+        // factor first: ""
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok == Token::Keyword { // not
+        // TODO: factor first
+            self.argument_list();
+        }
+
+        let tok = self.s.scan();
+        if tok != Token::RParen { // :
+            panic!("Expected \")\"");
+        }
+    }
+
+    fn argument_list(&mut self) {
+        self.expr();
+
+        // TODO: peek token
+        let mut peek = self.s.scan();
+        if peek == Token::Comma {
+            //consume comma
+            self.s.scan();
+
+            self.argument_list();
+        }
+    }
+
+    fn name(&mut self) {
+        let tok = self.s.scan();
+        if tok != Token::Identifier {
+            panic!("Expected \"identifier\"");
+        }
+
+        // TODO: peek token
+        let tok = self.s.scan();
+        if tok != Token::LSquare { // :
+            return;
+        }
+
+        // consume LSquare
+        let tok = self.s.scan();
+
+        self.expr();
+
+        let tok = self.s.scan();
+        if tok != Token::RSquare { // :
+            panic!("Expected \"]\"");
+        }
     }
 }
 
