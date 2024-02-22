@@ -1,7 +1,9 @@
 use std::env;
 use std::fs;
 
-use compiler::{Token, Scanner, LLParser};
+use compiler::llparser::LLParser;
+use compiler::scanner::Scanner;
+//use compiler::token::Token;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

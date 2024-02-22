@@ -1,0 +1,77 @@
+pub enum TokenTag {
+    True,
+    False,
+    Integer,
+    Float,
+    String,
+    Bool,
+    Program,
+    Is,
+    Global,
+    Procedure,
+    Variable,
+    Begin,
+    If,
+    Then,
+    Else,
+    For,
+    Return,
+    EndProgram,
+    EndProcedure,
+    EndIf,
+    EndFor,
+    Not,
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+}
+
+#[derive(Clone, PartialEq)]
+pub enum Token {
+    EOF,
+    Keyword,
+    Type,
+    Identifier,
+    Number,
+    String,
+    Colon,
+    Semicolon,
+    Period,
+    Comma,
+    LParen,
+    RParen,
+    LSquare,
+    RSquare,
+    AddOp,
+    MulOp,
+    And,
+    Or,
+    Assign,
+    LT,
+    LTE,
+    GT,
+    GTE,
+    Eq,
+    NotEq,
+}
+
+//impl fmt::Display for Token {
+//    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//       match self {
+//           Token::EOF => write!(f, "EOF"),
+//           Token::Identifier => write!(f, "Identifier"),
+//           Token::Number => write!(f, "Number"),
+//           Token::Colon => write!(f, "Colon"),
+//           Token::Semicolon => write!(f, "Semicolon"),
+//           Token::LParen => write!(f, "LParen"),
+//           Token::RParen => write!(f, "RParen"),
+//           Token::LSquare => write!(f, "LSquare"),
+//           Token::RSquare => write!(f, "RSquare"),
+//           Token::Plus => write!(f, "Plus"),
+//           Token::Minus => write!(f, "Minus"),
+//           Token::Assign => write!(f, "Assign"),
+//       }
+//    }
+//}
+
