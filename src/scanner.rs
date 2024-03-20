@@ -137,6 +137,12 @@ impl Scanner {
                         }
                     }
                 }
+
+                // div
+                else {
+                    println!("/");
+                    return Token::MulOp;
+                }
             }
         }
 
