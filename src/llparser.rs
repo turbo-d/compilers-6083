@@ -3,17 +3,29 @@ use crate::token::Token;
 
 pub struct LLParser {
     s: Scanner,
+    tok: Token,
 }
 
 impl LLParser {
     pub fn new(s: Scanner) -> LLParser {
         LLParser {
-            s
+            s,
+            tok: Token::Unknown,
         }
     }
 
     pub fn parse(&mut self) {
-        self.program()
+        self.consume_tok();
+
+        self.program();
+
+        if self.tok != Token::EOF {
+            eprintln!("Extraneous trailing characters");
+        }
+    }
+
+    fn consume_tok(&mut self) {
+        self.tok = self.s.scan();
     }
 
     fn program(&mut self) {
@@ -21,78 +33,72 @@ impl LLParser {
 
         self.program_body();
 
-        let tok = self.s.scan();
-        if tok != Token::Period { // .
-            // Probably want to warn here instead
+        if self.tok != Token::Period {
+            // TODO: Probably want to warn here instead
             panic!("Expected \".\"");
         }
+        self.consume_tok();
     }
 
     fn program_header(&mut self) {
-        let tok = self.s.scan();
-        if tok != Token::Program {
+        if self.tok != Token::Program {
             panic!("Expected \"program\"");
         }
+        self.consume_tok();
 
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
+        if !matches!(self.tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
+        self.consume_tok();
 
-        let tok = self.s.scan();
-        if tok != Token::Is {
+        if self.tok != Token::Is {
             panic!("Expected \"is\"");
         }
+        self.consume_tok();
     }
 
-    // first: "global", "procedure", "variable", "begin"
+    // first(program_body): "global", "procedure", "variable", "begin"
     fn program_body(&mut self) {
-        // TODO: peek next token
-        let tok = self.s.scan();
-        while tok == Token::Global || tok == Token::Procedure || tok == Token::Variable { // declaration first: global, procedure, or variable
+        // first(declaration)
+        while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
             self.declaration();
 
-            let tok = self.s.scan();
-            if tok != Token::Semicolon { // ;
+            if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
             }
+            self.consume_tok();
         }
 
-        let tok = self.s.scan();
-        if tok != Token::Begin {
+        if self.tok != Token::Begin {
             panic!("Expected \"begin\"");
         }
+        self.consume_tok();
 
-        // TODO: peek instead
-        let tok = self.s.scan();
-        while matches!(tok, Token::Identifier(_)) || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
+        // first(statement)
+        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             self.statement();
 
-            let tok = self.s.scan();
-            if tok != Token::Semicolon { // ;
+            if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
             }
+            self.consume_tok();
         }
 
-        let tok = self.s.scan();
-        if tok != Token::EndProgram { // end program keyword
+        if self.tok != Token::EndProgram {
             panic!("Expected \"end program\"");
         }
+        self.consume_tok();
     }
 
+    // first(declaration): "global", "procedure", "variable"
     fn declaration(&mut self) {
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::Global {
-            // consume global token
-            let tok = self.s.scan();
+        if self.tok == Token::Global {
+            self.consume_tok();
         }
 
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::Procedure {
+        if self.tok == Token::Procedure {
             self.procedure_declaration();
-        } else if tok == Token::Variable {
+        } else if self.tok == Token::Variable {
             self.variable_declaration();
         } else {
             panic!("Expected \"Procedure declaration or Variable declaration\"");
@@ -105,59 +111,55 @@ impl LLParser {
     }
 
     fn procedure_header(&mut self) {
-        let tok = self.s.scan();
-        if tok != Token::Procedure {
+        if self.tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
+        self.consume_tok();
+
+        if !matches!(self.tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
-        let tok = self.s.scan();
-        if tok != Token::Colon { // :
+        self.consume_tok();
+
+        if self.tok != Token::Colon {
             panic!("Expected \":\"");
         }
+        self.consume_tok();
 
         self.type_mark();
 
-        let tok = self.s.scan();
-        if tok != Token::LParen { // :
+        if self.tok != Token::LParen {
             panic!("Expected \"(\"");
         }
+        self.consume_tok();
 
-        // parameter_list first: "variable"
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::Variable {
+        // first(parameter_list)
+        if self.tok == Token::Variable {
             self.parameter_list();
         }
 
-        let tok = self.s.scan();
-        if tok != Token::RParen { // :
+        if self.tok != Token::RParen {
             panic!("Expected \")\"");
         }
+        self.consume_tok();
     }
 
     fn type_mark(&mut self) {
-        let tok = self.s.scan();
-        if tok != Token::IntType || tok != Token::FloatType || tok != Token::StringType || tok != Token::BoolType {
+        if self.tok != Token::IntType && self.tok != Token::FloatType && self.tok != Token::StringType && self.tok != Token::BoolType {
             panic!("Expected \"type\"");
         }
+        self.consume_tok();
     }
 
+    // first(parameter_list): "variable"
     fn parameter_list(&mut self) {
         self.parameter();
 
-        // TODO: peek token
-        let mut peek = self.s.scan();
-        while peek == Token::Comma {
+        while self.tok == Token::Comma {
             //consume comma
-            self.s.scan();
+            self.consume_tok();
 
             self.parameter();
-
-            // TODO: peek instead
-            peek = self.s.scan();
         }
     }
 
@@ -165,93 +167,85 @@ impl LLParser {
         self.variable_declaration();
     }
 
+    // TODO: Almost the same as program_body
+    // first(procedure_body): "global", "procedure", "variable", "begin"
     fn procedure_body(&mut self) {
-        // TODO: peek next token
-        let tok = self.s.scan();
-        while tok == Token::Global || tok == Token::Procedure || tok == Token::Variable { // declaration first: global, procedure, or variable
+        // first(declaration)
+        while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
             self.declaration();
 
-            let tok = self.s.scan();
-            if tok != Token::Semicolon { // ;
+            if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
             }
+            self.consume_tok();
         }
 
-        let tok = self.s.scan();
-        if tok != Token::Begin {
+        if self.tok != Token::Begin {
             panic!("Expected \"begin\"");
         }
+        self.consume_tok();
 
-        // TODO: peek instead
-        let tok = self.s.scan();
-        while matches!(tok, Token::Identifier(_)) || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
+        // first(statement)
+        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             self.statement();
 
-            let tok = self.s.scan();
-            if tok != Token::Semicolon { // ;
+            if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
             }
+            self.consume_tok();
         }
 
-        let tok = self.s.scan();
-        if tok != Token::EndProgram {
+        if self.tok != Token::EndProcedure {
             panic!("Expected \"end procedure\"");
         }
+        self.consume_tok();
     }
 
     fn variable_declaration(&mut self) {
-        let tok = self.s.scan();
-        if tok != Token::Variable {
+        if self.tok != Token::Variable {
             panic!("Expected \"variable\"");
         }
+        self.consume_tok();
 
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
+        if !matches!(self.tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
+        self.consume_tok();
 
-        let tok = self.s.scan();
-        if tok != Token::Colon {
+        if self.tok != Token::Colon {
             panic!("Expected \":\"");
         }
+        self.consume_tok();
 
         self.type_mark();
 
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok != Token::LSquare {
+        if self.tok != Token::LSquare {
             return;
         }
-
         // consume LSquare
-        let tok = self.s.scan();
+        self.consume_tok();
 
-        self.bound();
-
-        let tok = self.s.scan();
-        if tok != Token::RSquare { // :
-            panic!("Expected \"]\"");
-        }
-    }
-
-    fn bound(&mut self) {
-        let tok = self.s.scan();
-        if matches!(tok, Token::Number(_)) {
+        // bound (inlined production expansion)
+        if !matches!(self.tok, Token::Number(_)) {
             panic!("Expected \"number\"");
         }
+        self.consume_tok();
+
+        if self.tok != Token::RSquare {
+            panic!("Expected \"]\"");
+        }
+        self.consume_tok();
     }
 
+    // first(statement): "identifier", "if", "for", "return"
     fn statement(&mut self) {
-        // statement first: "identifier", "if", "for", "return"
-        // TODO: peek token
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
+        if matches!(self.tok, Token::Identifier(_)) {
             self.assignment_statement();
-        } else if tok == Token::If {
+        } else if self.tok == Token::If {
             self.if_statement();
-        } else if tok == Token::For {
+        } else if self.tok == Token::For {
             self.loop_statement();
-        } else if tok == Token::Return {
+        } else if self.tok == Token::Return {
             self.return_statement();
         } else {
             panic!("Expected \"statement\"");
@@ -261,130 +255,143 @@ impl LLParser {
     fn assignment_statement(&mut self) {
         self.destination();
 
-        let tok = self.s.scan();
-        if tok != Token::Assign {
+        if self.tok != Token::Assign {
             panic!("Expected \":=\"");
         }
+        self.consume_tok();
 
         self.expr();
     }
 
     fn destination(&mut self) {
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
+        if !matches!(self.tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
+        self.consume_tok();
 
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok != Token::LSquare { // :
+        if self.tok != Token::LSquare {
             return;
         }
-
         // consume LSquare
-        let tok = self.s.scan();
+        self.consume_tok();
 
         self.expr();
 
-        let tok = self.s.scan();
-        if tok != Token::RSquare { // :
+        if self.tok != Token::RSquare {
             panic!("Expected \"]\"");
         }
+        self.consume_tok();
     }
 
     fn if_statement(&mut self) {
-        let tok = self.s.scan();
-        if tok != Token::If {
+        if self.tok != Token::If {
             panic!("Expected \"if\"");
         }
+        self.consume_tok();
+
+        if self.tok != Token::LParen {
+            panic!("Expected \"(\"");
+        }
+        self.consume_tok();
 
         self.expr();
 
-        let tok = self.s.scan();
-        if tok != Token::Then {
+        if self.tok != Token::RParen {
+            panic!("Expected \")\"");
+        }
+        self.consume_tok();
+
+        if self.tok != Token::Then {
             panic!("Expected \"then\"");
         }
+        self.consume_tok();
 
-        // TODO: peek
-        let tok = self.s.scan();
-        while tok == Token::Else {
-            let tok = self.s.scan();
-            if tok != Token::Else {
-                panic!("Expected \"else\"");
-            }
-
+        // first(statement)
+        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             self.statement();
 
-            let tok = self.s.scan();
-            if tok != Token::Semicolon {
+            if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
+            }
+            self.consume_tok();
+        }
+
+        if self.tok == Token::Else {
+            // consume else
+            self.consume_tok();
+
+            // first(statement)
+            while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
+                self.statement();
+
+                if self.tok != Token::Semicolon {
+                    panic!("Expected \";\"");
+                }
+                self.consume_tok();
             }
         }
 
-        let tok = self.s.scan();
-        if tok != Token::EndIf {
+        if self.tok != Token::EndIf {
             panic!("Expected \"end if\"");
         }
+        self.consume_tok();
     }
 
     fn loop_statement(&mut self) {
-        let tok = self.s.scan();
-        if tok != Token::For {
+        if self.tok != Token::For {
             panic!("Expected \"for\"");
         }
+        self.consume_tok();
 
-        let tok = self.s.scan();
-        if tok != Token::LParen {
+        if self.tok != Token::LParen {
             panic!("Expected \"(\"");
         }
+        self.consume_tok();
 
         self.assignment_statement();
 
-        let tok = self.s.scan();
-        if tok != Token::Semicolon {
+        if self.tok != Token::Semicolon {
             panic!("Expected \";\"");
         }
+        self.consume_tok();
 
         self.expr();
 
-        let tok = self.s.scan();
-        if tok != Token::RParen {
+        if self.tok != Token::RParen {
             panic!("Expected \")\"");
         }
+        self.consume_tok();
 
-        // TODO: peek instead
-        let tok = self.s.scan();
-        while matches!(tok, Token::Identifier(_)) || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
+        // first(statement)
+        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             self.statement();
 
-            let tok = self.s.scan();
-            if tok != Token::Semicolon {
+            if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
             }
+            self.consume_tok();
         }
 
-        let tok = self.s.scan();
-        if tok != Token::EndFor {
+        if self.tok != Token::EndFor {
             panic!("Expected \"end for\"");
         }
-
+        self.consume_tok();
     }
 
     fn return_statement(&mut self) {
-        let tok = self.s.scan();
-        if tok != Token::Return {
+        if self.tok != Token::Return {
             panic!("Expected \"return\"");
         }
+        self.consume_tok();
 
         self.expr();
     }
 
+    // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
     fn expr(&mut self) {
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::Not {
+        if self.tok == Token::Not {
             // consume not token
-            let tok = self.s.scan();
+            self.consume_tok();
         }
 
         self.arith_op();
@@ -393,21 +400,21 @@ impl LLParser {
     }
 
     fn expr_prime(&mut self) {
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::And || tok == Token::Or {
+        if self.tok == Token::And || self.tok == Token::Or {
             // consume token
-            let tok = self.s.scan();
+            self.consume_tok();
 
             self.arith_op();
         } else {
             // null body production
+            // TODO: check follow() for error checking
             return;
         }
 
         self.expr_prime();
     }
 
+    // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
     fn arith_op(&mut self) {
         self.relation();
 
@@ -415,21 +422,21 @@ impl LLParser {
     }
 
     fn arith_op_prime(&mut self) {
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::Add || tok == Token::Sub {
+        if self.tok == Token::Add || self.tok == Token::Sub {
             // consume token
-            let tok = self.s.scan();
+            self.consume_tok();
 
             self.relation();
         } else {
             // null body production
+            // TODO: check follow() for error checking
             return;
         }
 
         self.arith_op_prime();
     }
 
+    // first(relation): "(", "identifier", "-", "number", "string", "true", "false"
     fn relation(&mut self) {
         self.term();
 
@@ -437,26 +444,26 @@ impl LLParser {
     }
 
     fn relation_prime(&mut self) {
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::LT ||
-            tok == Token::LTE ||
-            tok == Token::GT ||
-            tok == Token::GTE ||
-            tok == Token::Eq ||
-            tok == Token::NotEq {
+        if self.tok == Token::LT ||
+            self.tok == Token::LTE ||
+            self.tok == Token::GT ||
+            self.tok == Token::GTE ||
+            self.tok == Token::Eq ||
+            self.tok == Token::NotEq {
             // consume token
-            let tok = self.s.scan();
+            self.consume_tok();
 
             self.term();
         } else {
             // null body production
+            // TODO: check follow() for error checking
             return;
         }
 
         self.relation_prime();
     }
 
+    // first(term): "(", "identifier", "-", "number", "string", "true", "false"
     fn term(&mut self) {
         self.factor();
 
@@ -464,137 +471,132 @@ impl LLParser {
     }
 
     fn term_prime(&mut self) {
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::Mul || tok == Token::Div {
+        if self.tok == Token::Mul || self.tok == Token::Div {
             // consume token
-            let tok = self.s.scan();
+            self.consume_tok();
 
             self.factor();
         } else {
             // null body production
+            // TODO: check follow() for error checking
             return;
         }
 
         self.term_prime();
     }
 
+    // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
     fn factor(&mut self) {
-        // factor first: "(", procedure_call first, "-", name first, "number", "string", "true", "false"
-        // procedure_call first: "identifier"
-        // name first: "identifier"
+        if matches!(self.tok, Token::Identifier(_)) {
+            // consume identifier
+            self.consume_tok();
 
-        // TODO: peek token
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
-            // TODO: how do we determine if it is a name or procedure call?
-            self.procedure_call();
-            //self.name();
-        } else if tok == Token::Sub {
+            if self.tok == Token::LParen {
+                self.procedure_call_prime();
+            } else {
+                self.name_prime();
+            }
+        } else if self.tok == Token::Sub {
             // consume minus
-            self.s.scan();
+            self.consume_tok();
 
-            // TODO: peek token
-            let tok = self.s.scan();
-            if matches!(tok, Token::Identifier(_)) {
+            if matches!(self.tok, Token::Identifier(_)) {
                 self.name();
-            } else if matches!(tok, Token::Number(_)) {
+            } else if matches!(self.tok, Token::Number(_)) {
                 // consume number
-                self.s.scan();
+                self.consume_tok();
             } else {
                 panic!("Expected \"identifier\" or \"number\" following \"-\"");
             }
-        } else if matches!(tok, Token::Number(_)) {
+        } else if matches!(self.tok, Token::Number(_)) {
             // consume number
-            self.s.scan();
-        } else if tok == Token::LParen {
+            self.consume_tok();
+        } else if self.tok == Token::LParen {
             // consume left paren
-            self.s.scan();
+            self.consume_tok();
 
             self.expr();
 
-            let tok = self.s.scan();
-            if tok != Token::RParen { // :
+            if self.tok != Token::RParen {
                 panic!("Expected \")\"");
             }
-        } else if matches!(tok, Token::String(_)) {
-            // consume number
-            self.s.scan();
-        } else if tok == Token::True {
+            self.consume_tok();
+        } else if matches!(self.tok, Token::String(_)) {
+            // consume string
+            self.consume_tok();
+        } else if self.tok == Token::True {
             // consume true
-            self.s.scan();
-        } else if tok == Token::False {
-            // consume true
-            self.s.scan();
+            self.consume_tok();
+        } else if self.tok == Token::False {
+            // consume false
+            self.consume_tok();
         } else {
             panic!("Expected \"factor\"");
         }
     }
 
-    fn procedure_call(&mut self) {
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
-            panic!("Expected \"identifier\"");
-        }
+    fn procedure_call_prime(&mut self) {
+        // identifier already consumed
 
-        let tok = self.s.scan();
-        if tok != Token::LParen { // :
+        if self.tok != Token::LParen {
             panic!("Expected \"(\"");
         }
+        self.consume_tok();
 
-        // argument_list first: "expr first"
-        // expr first: "not", "arith_op first"
-        // arith_op first: "relation first"
-        // relation first: "term first"
-        // term first: "factor first"
-        // factor first: ""
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok == Token::Not {
-        // TODO: factor first
+        // first(argument_list)
+        if matches!(self.tok, Token::Identifier(_)) ||
+            matches!(self.tok, Token::Number(_)) || 
+            matches!(self.tok, Token::String(_)) || 
+            self.tok == Token::Not ||
+            self.tok == Token::LParen ||
+            self.tok == Token::True ||
+            self.tok == Token::False ||
+            self.tok == Token::Sub {
             self.argument_list();
         }
 
-        let tok = self.s.scan();
-        if tok != Token::RParen { // :
+        if self.tok != Token::RParen {
             panic!("Expected \")\"");
         }
+        self.consume_tok();
     }
 
+    // first(argument_list): "not", "(", "identifier", "-", "number", "string", "true", "false"
     fn argument_list(&mut self) {
         self.expr();
 
-        // TODO: peek token
-        let mut peek = self.s.scan();
-        if peek == Token::Comma {
+        while self.tok == Token::Comma {
             //consume comma
-            self.s.scan();
+            self.consume_tok();
 
-            self.argument_list();
+            self.expr();
         }
     }
 
     fn name(&mut self) {
-        let tok = self.s.scan();
-        if matches!(tok, Token::Identifier(_)) {
+        if !matches!(self.tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
+        self.consume_tok();
 
-        // TODO: peek token
-        let tok = self.s.scan();
-        if tok != Token::LSquare { // :
+        self.name_prime();
+    }
+
+    fn name_prime(&mut self) {
+        // identifier already consumed
+
+        if self.tok != Token::LSquare {
             return;
         }
-
         // consume LSquare
-        let tok = self.s.scan();
+        self.consume_tok();
 
         self.expr();
 
-        let tok = self.s.scan();
-        if tok != Token::RSquare { // :
+        if self.tok != Token::RSquare {
             panic!("Expected \"]\"");
         }
+        self.consume_tok();
     }
 }
 

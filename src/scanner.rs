@@ -70,18 +70,18 @@ impl Scanner {
         return false;
     }
 
-    fn read_ch(&mut self) -> Option<char> {
-        if self.i <= self.stream.len() {
-            return None;
-        }
-        let c = self.stream.chars().nth(self.i);
-        self.i += 1;
-        return c;
-    }
+    //fn read_ch(&mut self) -> Option<char> {
+    //    if self.i <= self.stream.len() {
+    //        return None;
+    //    }
+    //    let c = self.stream.chars().nth(self.i);
+    //    self.i += 1;
+    //    return c;
+    //}
 
-    fn unread_ch(&mut self) {
-        self.i -= 1;
-    }
+    //fn unread_ch(&mut self) {
+    //    self.i -= 1;
+    //}
 
     pub fn scan(&mut self) -> Token {
         // skip comments and whitespace

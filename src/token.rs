@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(Clone, PartialEq)]
 pub enum Token {
+    Unknown,
     EOF,
     Program,
     Is,
@@ -54,6 +55,7 @@ pub enum Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Token::Unknown => write!(f, "<\"Unknown\", Token::Unknown>"),
             Token::EOF => write!(f, "<\"EOF\", Token::EOF>"),
             Token::Program => write!(f, "<\"program\", Token::Program>"),
             Token::Is => write!(f, "<\"is\", Token::Is>"),

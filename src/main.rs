@@ -3,7 +3,7 @@ use std::fs;
 
 use compiler::llparser::LLParser;
 use compiler::scanner::Scanner;
-use compiler::token::Token;
+//use compiler::token::Token;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -12,7 +12,7 @@ fn main() {
     let contents = fs::read_to_string(file_path)
         .expect("Should have been able to read the file");
     //println!("{}", contents);
-    let mut s = Scanner::new(contents);
+    let s = Scanner::new(contents);
 
     // test drive scanner
     //let mut tok = s.scan();
@@ -22,5 +22,8 @@ fn main() {
     //    println!("{}", tok);
     //}
 
-    let p = LLParser::new(s);
+    let mut p = LLParser::new(s);
+    p.parse();
+
+    println!("Parse completed!");
 }
