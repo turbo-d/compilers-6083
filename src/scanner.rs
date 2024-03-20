@@ -148,14 +148,52 @@ impl Scanner {
 
         let start = self.i;
 
-        // identifier
+        // identifier and keywords
         if self.i < self.stream.len() && self.is_alpha(self.stream.chars().nth(self.i).unwrap()) {
             self.i += 1;
             while self.i < self.stream.len() && (self.is_alphanumeric(self.stream.chars().nth(self.i).unwrap()) || self.stream.chars().nth(self.i).unwrap() == '_') {
                 self.i += 1;
             }
 
-            let slice = &self.stream[start..self.i];
+            let mut slice = &self.stream[start..self.i];
+            if slice == "end" {
+                let mut peek = self.i;
+                if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == ' ' {
+                    peek += 1;
+                    if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'f' {
+                        let end = self.i + 4;
+                        if end - 1 < self.stream.len() && &self.stream[start..end] == "end for" {
+                            slice = &self.stream[start..end];
+                            self.i = end;
+                        }
+                    }
+                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'i' {
+                        let end = self.i + 3;
+                        if end - 1 < self.stream.len() && &self.stream[start..end] == "end if" {
+                            slice = &self.stream[start..end];
+                            self.i = end;
+                        }
+                    }
+                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'p' {
+                        peek += 3;
+                        if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'c' {
+                            let end = self.i + 10;
+                            if end - 1 < self.stream.len() && &self.stream[start..end] == "end procedure" {
+                                slice = &self.stream[start..end];
+                                self.i = end;
+                            }
+                        }
+                        else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'g' {
+                            let end = self.i + 8;
+                            if end - 1 < self.stream.len() && &self.stream[start..end] == "end program" {
+                                slice = &self.stream[start..end];
+                                self.i = end;
+                            }
+                        }
+                    }
+                }
+            }
+
             println!("{}", slice);
 
             match self.table.get(slice) {
@@ -314,7 +352,7 @@ impl Scanner {
             return Token::GT;
         }
 
-        // equality
+        // assign and equality
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
