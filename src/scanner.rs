@@ -155,36 +155,36 @@ impl Scanner {
             }
 
             let mut slice = &self.stream[start..self.i];
-            if slice == "end" {
+            if slice.to_lowercase() == "end" {
                 let mut peek = self.i;
                 if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == ' ' {
                     peek += 1;
-                    if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'f' {
+                    if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'f' || self.stream.chars().nth(peek).unwrap() == 'F'{
                         let end = self.i + 4;
-                        if end - 1 < self.stream.len() && &self.stream[start..end] == "end for" {
+                        if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end for" {
                             slice = &self.stream[start..end];
                             self.i = end;
                         }
                     }
-                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'i' {
+                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'i' || self.stream.chars().nth(peek).unwrap() == 'I' {
                         let end = self.i + 3;
-                        if end - 1 < self.stream.len() && &self.stream[start..end] == "end if" {
+                        if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end if" {
                             slice = &self.stream[start..end];
                             self.i = end;
                         }
                     }
-                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'p' {
+                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'p' || self.stream.chars().nth(peek).unwrap() == 'P' {
                         peek += 3;
-                        if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'c' {
+                        if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'c' || self.stream.chars().nth(peek).unwrap() == 'C' {
                             let end = self.i + 10;
-                            if end - 1 < self.stream.len() && &self.stream[start..end] == "end procedure" {
+                            if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end procedure" {
                                 slice = &self.stream[start..end];
                                 self.i = end;
                             }
                         }
                         else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'g' {
                             let end = self.i + 8;
-                            if end - 1 < self.stream.len() && &self.stream[start..end] == "end program" {
+                            if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end program" {
                                 slice = &self.stream[start..end];
                                 self.i = end;
                             }
@@ -193,12 +193,12 @@ impl Scanner {
                 }
             }
 
-            match self.table.get(slice) {
+            match self.table.get(&slice.to_lowercase()) {
                 Some(tok) => return tok.clone(),
                 _ => (),
             }
 
-            return Token::Identifier(String::from(slice));
+            return Token::Identifier(String::from(slice.to_lowercase()));
         }
 
         // number
@@ -887,4 +887,8 @@ mod tests {
         let _tok = s.scan();
         assert!(false);
     }
+
+    // TODO: tests for error cases
+
+    // TODO: tests for case insensitivity
 }
