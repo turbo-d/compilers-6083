@@ -668,112 +668,112 @@ mod tests {
     fn scan_number_singledigit() {
         let mut s = Scanner::new(String::from("9"));
         let tok = s.scan();
-        assert!(tok == Token::Number);
+        assert!(matches!(tok, Token::Number(_)));
     }
 
     #[test]
     fn scan_number_multidigit() {
         let mut s = Scanner::new(String::from("23459"));
         let tok = s.scan();
-        assert!(tok == Token::Number);
+        assert!(matches!(tok, Token::Number(_)));
     }
 
     #[test]
     fn scan_number_multidigit_decimalpoint() {
         let mut s = Scanner::new(String::from("15429."));
         let tok = s.scan();
-        assert!(tok == Token::Number);
+        assert!(matches!(tok, Token::Number(_)));
     }
 
     #[test]
     fn scan_number_multidigit_decimalpoint_singledigit() {
         let mut s = Scanner::new(String::from("92345.1"));
         let tok = s.scan();
-        assert!(tok == Token::Number);
+        assert!(matches!(tok, Token::Number(_)));
     }
 
     #[test]
     fn scan_number_multidigit_decimalpoint_multidigit() {
         let mut s = Scanner::new(String::from("9345.23456"));
         let tok = s.scan();
-        assert!(tok == Token::Number);
+        assert!(matches!(tok, Token::Number(_)));
     }
 
     #[test]
     fn scan_string_empty() {
         let mut s = Scanner::new(String::from("\"\""));
         let tok = s.scan();
-        assert!(tok == Token::String);
+        assert!(matches!(tok, Token::String(_)));
     }
 
     #[test]
     fn scan_string_singlechar() {
         let mut s = Scanner::new(String::from("\"a\""));
         let tok = s.scan();
-        assert!(tok == Token::String);
+        assert!(matches!(tok, Token::String(_)));
     }
 
     #[test]
     fn scan_string_multichar() {
         let mut s = Scanner::new(String::from("\"asdgqerygsh\""));
         let tok = s.scan();
-        assert!(tok == Token::String);
+        assert!(matches!(tok, Token::String(_)));
     }
 
     #[test]
     fn scan_identifier_single_lower() {
         let mut s = Scanner::new(String::from("a"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_identifier_single_upper() {
         let mut s = Scanner::new(String::from("A"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_identifier_multi_lower() {
         let mut s = Scanner::new(String::from("awerthsdf"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_identifier_multi_upper() {
         let mut s = Scanner::new(String::from("ASGSDFIWERYHEHA"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_identifier_multi_alpha() {
         let mut s = Scanner::new(String::from("aaGWErsGBHq"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_identifier_multi_alphanumeric() {
         let mut s = Scanner::new(String::from("aa4GWErs467GBHq78"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_identifier_multi_all() {
         let mut s = Scanner::new(String::from("aa4__GWErs467GBHq7_8"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_identifier_multi_underscores() {
         let mut s = Scanner::new(String::from("a_____________"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
@@ -787,28 +787,28 @@ mod tests {
     fn scan_whitespace_spaces() {
         let mut s = Scanner::new(String::from("     a       "));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_whitespace_tabs() {
         let mut s = Scanner::new(String::from("\t\t\t\ta\t\t\t\t"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_whitespace_linefeed() {
         let mut s = Scanner::new(String::from("\n\n\na\n\n\n"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
     fn scan_whitespace_carriagereturn() {
         let mut s = Scanner::new(String::from("\r\r\r\ra\r\r\r\r"));
         let tok = s.scan();
-        assert!(tok == Token::Identifier);
+        assert!(matches!(tok, Token::Identifier(_)));
     }
 
     #[test]
