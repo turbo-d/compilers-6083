@@ -30,7 +30,7 @@ impl LLParser {
 
     fn program_header(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Keyword { // program keyword
+        if tok != Token::Program {
             panic!("Expected \"program\"");
         }
 
@@ -40,7 +40,7 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // is keyword
+        if tok != Token::Is {
             panic!("Expected \"is\"");
         }
     }
@@ -49,7 +49,7 @@ impl LLParser {
     fn program_body(&mut self) {
         // TODO: peek next token
         let tok = self.s.scan();
-        while tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // declaration first: global, procedure, or variable
+        while tok == Token::Global || tok == Token::Procedure || tok == Token::Variable { // declaration first: global, procedure, or variable
             self.declaration();
 
             let tok = self.s.scan();
@@ -59,13 +59,13 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // begin keyword
+        if tok != Token::Begin {
             panic!("Expected \"begin\"");
         }
 
         // TODO: peek instead
         let tok = self.s.scan();
-        while tok == Token::Identifier || tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // statement first: "identifier", "if", "for", "return"
+        while tok == Token::Identifier || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
             self.statement();
 
             let tok = self.s.scan();
@@ -75,7 +75,7 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // end program keyword
+        if tok != Token::EndProgram { // end program keyword
             panic!("Expected \"end program\"");
         }
     }
@@ -83,16 +83,16 @@ impl LLParser {
     fn declaration(&mut self) {
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::Keyword { // global
+        if tok == Token::Global {
             // consume global token
             let tok = self.s.scan();
         }
 
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::Keyword { // procedure keyword
+        if tok == Token::Procedure {
             self.procedure_declaration();
-        } else if tok == Token::Keyword { // variable keyword
+        } else if tok == Token::Variable {
             self.variable_declaration();
         } else {
             panic!("Expected \"Procedure declaration or Variable declaration\"");
@@ -106,11 +106,11 @@ impl LLParser {
 
     fn procedure_header(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Keyword { // procedure keyword
+        if tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
         let tok = self.s.scan();
-        if tok != Token::Identifier { // identifier keyword
+        if tok != Token::Identifier {
             panic!("Expected \"identifier\"");
         }
         let tok = self.s.scan();
@@ -128,7 +128,7 @@ impl LLParser {
         // parameter_list first: "variable"
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::Keyword { // variable keyword
+        if tok == Token::Variable {
             self.parameter_list();
         }
 
@@ -140,7 +140,7 @@ impl LLParser {
 
     fn type_mark(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Type {
+        if tok != Token::Int || tok != Token::Float || tok != Token::String || tok != Token::Bool {
             panic!("Expected \"type\"");
         }
     }
@@ -168,7 +168,7 @@ impl LLParser {
     fn procedure_body(&mut self) {
         // TODO: peek next token
         let tok = self.s.scan();
-        while tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // declaration first: global, procedure, or variable
+        while tok == Token::Global || tok == Token::Procedure || tok == Token::Variable { // declaration first: global, procedure, or variable
             self.declaration();
 
             let tok = self.s.scan();
@@ -178,13 +178,13 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // begin keyword
+        if tok != Token::Begin {
             panic!("Expected \"begin\"");
         }
 
         // TODO: peek instead
         let tok = self.s.scan();
-        while tok == Token::Identifier || tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // statement first: "identifier", "if", "for", "return"
+        while tok == Token::Identifier || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
             self.statement();
 
             let tok = self.s.scan();
@@ -194,24 +194,24 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // end program keyword
+        if tok != Token::EndProgram {
             panic!("Expected \"end procedure\"");
         }
     }
 
     fn variable_declaration(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Keyword { // variable keyword
+        if tok != Token::Variable {
             panic!("Expected \"variable\"");
         }
 
         let tok = self.s.scan();
-        if tok != Token::Identifier { // identifier keyword
+        if tok != Token::Identifier {
             panic!("Expected \"identifier\"");
         }
 
         let tok = self.s.scan();
-        if tok != Token::Colon { // :
+        if tok != Token::Colon {
             panic!("Expected \":\"");
         }
 
@@ -219,7 +219,7 @@ impl LLParser {
 
         // TODO: peek token
         let tok = self.s.scan();
-        if tok != Token::LSquare { // :
+        if tok != Token::LSquare {
             return;
         }
 
@@ -247,11 +247,11 @@ impl LLParser {
         let tok = self.s.scan();
         if tok == Token::Identifier {
             self.assignment_statement();
-        } else if tok == Token::Keyword { // if keyword
+        } else if tok == Token::If {
             self.if_statement();
-        } else if tok == Token::Keyword { // for keyword
+        } else if tok == Token::For {
             self.loop_statement();
-        } else if tok == Token::Keyword { // return keyword
+        } else if tok == Token::Return {
             self.return_statement();
         } else {
             panic!("Expected \"statement\"");
@@ -294,42 +294,42 @@ impl LLParser {
 
     fn if_statement(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Keyword { // if
+        if tok != Token::If {
             panic!("Expected \"if\"");
         }
 
         self.expr();
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // then
+        if tok != Token::Then {
             panic!("Expected \"then\"");
         }
 
         // TODO: peek
         let tok = self.s.scan();
-        while tok == Token::Keyword { // else
+        while tok == Token::Else {
             let tok = self.s.scan();
-            if tok != Token::Keyword { // else
+            if tok != Token::Else {
                 panic!("Expected \"else\"");
             }
 
             self.statement();
 
             let tok = self.s.scan();
-            if tok != Token::Semicolon { // ;
+            if tok != Token::Semicolon {
                 panic!("Expected \";\"");
             }
         }
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // end if
+        if tok != Token::EndIf {
             panic!("Expected \"end if\"");
         }
     }
 
     fn loop_statement(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Keyword { // for
+        if tok != Token::For {
             panic!("Expected \"for\"");
         }
 
@@ -354,7 +354,7 @@ impl LLParser {
 
         // TODO: peek instead
         let tok = self.s.scan();
-        while tok == Token::Identifier || tok == Token::Keyword || tok == Token::Keyword || tok == Token::Keyword { // statement first: "identifier", "if", "for", "return"
+        while tok == Token::Identifier || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
             self.statement();
 
             let tok = self.s.scan();
@@ -364,7 +364,7 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Keyword { // end for
+        if tok != Token::EndFor {
             panic!("Expected \"end for\"");
         }
 
@@ -372,7 +372,7 @@ impl LLParser {
 
     fn return_statement(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Keyword { // return
+        if tok != Token::Return {
             panic!("Expected \"return\"");
         }
 
@@ -382,7 +382,7 @@ impl LLParser {
     fn expr(&mut self) {
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::Keyword { // not
+        if tok == Token::Not {
             // consume not token
             let tok = self.s.scan();
         }
@@ -417,7 +417,7 @@ impl LLParser {
     fn arith_op_prime(&mut self) {
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::AddOp || tok == Token::AddOp { // plus or minus
+        if tok == Token::Add || tok == Token::Sub {
             // consume token
             let tok = self.s.scan();
 
@@ -466,7 +466,7 @@ impl LLParser {
     fn term_prime(&mut self) {
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::MulOp || tok == Token::MulOp { // mul or div
+        if tok == Token::Mul || tok == Token::Div {
             // consume token
             let tok = self.s.scan();
 
@@ -490,7 +490,7 @@ impl LLParser {
             // TODO: how do we determine if it is a name or procedure call?
             self.procedure_call();
             //self.name();
-        } else if tok == Token::AddOp { // minus
+        } else if tok == Token::Sub {
             // consume minus
             self.s.scan();
 
@@ -520,10 +520,10 @@ impl LLParser {
         } else if tok == Token::String {
             // consume number
             self.s.scan();
-        } else if tok == Token::Keyword { // true
+        } else if tok == Token::True {
             // consume true
             self.s.scan();
-        } else if tok == Token::Keyword { // false
+        } else if tok == Token::False {
             // consume true
             self.s.scan();
         } else {
@@ -550,7 +550,7 @@ impl LLParser {
         // factor first: ""
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::Keyword { // not
+        if tok == Token::Not {
         // TODO: factor first
             self.argument_list();
         }
