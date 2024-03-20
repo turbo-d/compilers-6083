@@ -35,7 +35,7 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Identifier { // identifier
+        if matches!(tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
 
@@ -65,7 +65,7 @@ impl LLParser {
 
         // TODO: peek instead
         let tok = self.s.scan();
-        while tok == Token::Identifier || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
+        while matches!(tok, Token::Identifier(_)) || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
             self.statement();
 
             let tok = self.s.scan();
@@ -110,7 +110,7 @@ impl LLParser {
             panic!("Expected \"procedure\"");
         }
         let tok = self.s.scan();
-        if tok != Token::Identifier {
+        if matches!(tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
         let tok = self.s.scan();
@@ -140,7 +140,7 @@ impl LLParser {
 
     fn type_mark(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Int || tok != Token::Float || tok != Token::String || tok != Token::Bool {
+        if tok != Token::IntType || tok != Token::FloatType || tok != Token::StringType || tok != Token::BoolType {
             panic!("Expected \"type\"");
         }
     }
@@ -184,7 +184,7 @@ impl LLParser {
 
         // TODO: peek instead
         let tok = self.s.scan();
-        while tok == Token::Identifier || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
+        while matches!(tok, Token::Identifier(_)) || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
             self.statement();
 
             let tok = self.s.scan();
@@ -206,7 +206,7 @@ impl LLParser {
         }
 
         let tok = self.s.scan();
-        if tok != Token::Identifier {
+        if matches!(tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
 
@@ -236,7 +236,7 @@ impl LLParser {
 
     fn bound(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Number {
+        if matches!(tok, Token::Number(_)) {
             panic!("Expected \"number\"");
         }
     }
@@ -245,7 +245,7 @@ impl LLParser {
         // statement first: "identifier", "if", "for", "return"
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::Identifier {
+        if matches!(tok, Token::Identifier(_)) {
             self.assignment_statement();
         } else if tok == Token::If {
             self.if_statement();
@@ -271,7 +271,7 @@ impl LLParser {
 
     fn destination(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Identifier {
+        if matches!(tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
 
@@ -354,7 +354,7 @@ impl LLParser {
 
         // TODO: peek instead
         let tok = self.s.scan();
-        while tok == Token::Identifier || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
+        while matches!(tok, Token::Identifier(_)) || tok == Token::If || tok == Token::For || tok == Token::Return { // statement first: "identifier", "if", "for", "return"
             self.statement();
 
             let tok = self.s.scan();
@@ -486,7 +486,7 @@ impl LLParser {
 
         // TODO: peek token
         let tok = self.s.scan();
-        if tok == Token::Identifier {
+        if matches!(tok, Token::Identifier(_)) {
             // TODO: how do we determine if it is a name or procedure call?
             self.procedure_call();
             //self.name();
@@ -496,15 +496,15 @@ impl LLParser {
 
             // TODO: peek token
             let tok = self.s.scan();
-            if tok == Token::Identifier {
+            if matches!(tok, Token::Identifier(_)) {
                 self.name();
-            } else if tok == Token::Number {
+            } else if matches!(tok, Token::Number(_)) {
                 // consume number
                 self.s.scan();
             } else {
                 panic!("Expected \"identifier\" or \"number\" following \"-\"");
             }
-        } else if tok == Token::Number {
+        } else if matches!(tok, Token::Number(_)) {
             // consume number
             self.s.scan();
         } else if tok == Token::LParen {
@@ -517,7 +517,7 @@ impl LLParser {
             if tok != Token::RParen { // :
                 panic!("Expected \")\"");
             }
-        } else if tok == Token::String {
+        } else if matches!(tok, Token::String(_)) {
             // consume number
             self.s.scan();
         } else if tok == Token::True {
@@ -533,7 +533,7 @@ impl LLParser {
 
     fn procedure_call(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Identifier {
+        if matches!(tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
 
@@ -576,7 +576,7 @@ impl LLParser {
 
     fn name(&mut self) {
         let tok = self.s.scan();
-        if tok != Token::Identifier {
+        if matches!(tok, Token::Identifier(_)) {
             panic!("Expected \"identifier\"");
         }
 

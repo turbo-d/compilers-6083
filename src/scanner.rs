@@ -30,10 +30,10 @@ impl Scanner {
         table.insert(String::from("true"), Token::True);
         table.insert(String::from("false"), Token::False);
         table.insert(String::from("not"), Token::Not);
-        table.insert(String::from("integer"), Token::Int);
-        table.insert(String::from("float"), Token::Float);
-        table.insert(String::from("string"), Token::String);
-        table.insert(String::from("bool"), Token::Bool);
+        table.insert(String::from("integer"), Token::IntType);
+        table.insert(String::from("float"), Token::FloatType);
+        table.insert(String::from("string"), Token::StringType);
+        table.insert(String::from("bool"), Token::BoolType);
 
         Scanner {
             stream: contents,
@@ -140,7 +140,6 @@ impl Scanner {
 
                 // div
                 else {
-                    println!("/");
                     return Token::Div;
                 }
             }
@@ -194,14 +193,12 @@ impl Scanner {
                 }
             }
 
-            println!("{}", slice);
-
             match self.table.get(slice) {
                 Some(tok) => return tok.clone(),
                 _ => (),
             }
 
-            return Token::Identifier;
+            return Token::Identifier(String::from(slice));
         }
 
         // number
@@ -216,8 +213,7 @@ impl Scanner {
                 }
             }
             let slice = &self.stream[start..self.i];
-            println!("{}", slice);
-            return Token::Number;
+            return Token::Number(String::from(slice));
         }
 
         // string
@@ -228,8 +224,7 @@ impl Scanner {
             }
             self.i += 1;
             let slice = &self.stream[start..self.i];
-            println!("{}", slice);
-            return Token::String;
+            return Token::String(String::from(slice));
         }
 
         // assignment and colon
@@ -237,94 +232,80 @@ impl Scanner {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
                 self.i += 1;
-                println!(":=");
                 return Token::Assign;
             }
-            println!(":");
             return Token::Colon;
         }
 
         // semicolon
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ';' {
             self.i += 1;
-            println!(";");
             return Token::Semicolon;
         }
 
        // period
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '.' {
             self.i += 1;
-            println!(".");
             return Token::Period;
         }
 
        // comma
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ',' {
             self.i += 1;
-            println!(",");
             return Token::Comma;
         }
 
         // left parenthesis
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '(' {
             self.i += 1;
-            println!("(");
             return Token::LParen;
         }
 
         // right parenthesis
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ')' {
             self.i += 1;
-            println!(")");
             return Token::RParen;
         }
 
         // left square bracket
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '[' {
             self.i += 1;
-            println!("[");
             return Token::LSquare;
         }
 
         // right square bracket
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ']' {
             self.i += 1;
-            println!("]");
             return Token::RSquare;
         }
 
         // plus
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '+' {
             self.i += 1;
-            println!("+");
             return Token::Add;
         }
 
         // minus
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '-' {
             self.i += 1;
-            println!("-");
             return Token::Sub;
         }
 
         // multiply
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
             self.i += 1;
-            println!("*");
             return Token::Mul;
         }
 
         // and
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '&' {
             self.i += 1;
-            println!("&");
             return Token::And;
         }
 
         // or
         else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '|' {
             self.i += 1;
-            println!("|");
             return Token::Or;
         }
 
@@ -333,10 +314,8 @@ impl Scanner {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
                 self.i += 1;
-                println!("<=");
                 return Token::LTE;
             }
-            println!("<");
             return Token::LT;
         }
 
@@ -345,10 +324,8 @@ impl Scanner {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
                 self.i += 1;
-                println!(">=");
                 return Token::GTE;
             }
-            println!(">");
             return Token::GT;
         }
 
@@ -357,7 +334,6 @@ impl Scanner {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
                 self.i += 1;
-                println!("==");
                 return Token::Eq;
             }
         }
@@ -367,7 +343,6 @@ impl Scanner {
             self.i += 1;
             if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
                 self.i += 1;
-                println!("!=");
                 return Token::NotEq;
             }
         }
@@ -380,7 +355,6 @@ impl Scanner {
             //std::process::exit(1);
         }
 
-        println!("EOF");
         return Token::EOF;
     }
 }
@@ -498,28 +472,28 @@ mod tests {
     fn scan_type_integer() {
         let mut s = Scanner::new(String::from("integer"));
         let tok = s.scan();
-        assert!(tok == Token::Int);
+        assert!(tok == Token::IntType);
     }
 
     #[test]
     fn scan_type_float() {
         let mut s = Scanner::new(String::from("float"));
         let tok = s.scan();
-        assert!(tok == Token::Float);
+        assert!(tok == Token::FloatType);
     }
 
     #[test]
     fn scan_type_string() {
         let mut s = Scanner::new(String::from("string"));
         let tok = s.scan();
-        assert!(tok == Token::String);
+        assert!(tok == Token::StringType);
     }
 
     #[test]
     fn scan_type_bool() {
         let mut s = Scanner::new(String::from("bool"));
         let tok = s.scan();
-        assert!(tok == Token::Bool);
+        assert!(tok == Token::BoolType);
     }
 
     #[test]
