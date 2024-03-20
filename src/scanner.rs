@@ -372,6 +372,14 @@ impl Scanner {
             }
         }
 
+        // invalid char (this must be the last else if)
+        else if self.i < self.stream.len() {
+            eprintln!("invalid character");
+            // return error with message so that main can exit
+            // do we continue scanning?
+            //std::process::exit(1);
+        }
+
         println!("EOF");
         return Token::EOF;
     }
