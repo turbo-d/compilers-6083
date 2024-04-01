@@ -189,6 +189,8 @@ impl LLParser {
     // TODO: Almost the same as program_body
     // first(procedure_body): "global", "procedure", "variable", "begin"
     fn procedure_body(&mut self) {
+        self.st.enter_scope();
+
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
             self.declaration();
@@ -218,6 +220,8 @@ impl LLParser {
             panic!("Expected \"end procedure\"");
         }
         self.consume_tok();
+
+        self.st.exit_scope();
     }
 
     fn variable_declaration(&mut self, is_global: bool) {
@@ -296,10 +300,16 @@ impl LLParser {
     }
 
     fn destination(&mut self) {
-        if !matches!(self.tok, Token::Identifier(_)) {
-            panic!("Expected \"identifier\"");
+        let identifier: String;
+        match &self.tok {
+            Token::Identifier(id) => identifier = id.clone(),
+            _ => panic!("Expected \"identifier\""),
         }
         self.consume_tok();
+        // TODO: Move to correct spot
+        if let None = self.st.get(&identifier) {
+            panic!("Missing declaration for {identifier}");
+        }
 
         if self.tok != Token::LSquare {
             return;
@@ -519,9 +529,15 @@ impl LLParser {
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
     fn factor(&mut self) {
-        if matches!(self.tok, Token::Identifier(_)) {
+        let identifier: String;
+        if let Token::Identifier(id) = &self.tok {
+            identifier = id.clone();
             // consume identifier
             self.consume_tok();
+            // TODO: Move to correct spot
+            if let None = self.st.get(&identifier) {
+                panic!("Missing declaration for {identifier}");
+            }
 
             if self.tok == Token::LParen {
                 self.procedure_call_prime();
@@ -606,10 +622,16 @@ impl LLParser {
     }
 
     fn name(&mut self) {
-        if !matches!(self.tok, Token::Identifier(_)) {
-            panic!("Expected \"identifier\"");
+        let identifier: String;
+        match &self.tok {
+            Token::Identifier(id) => identifier = id.clone(),
+            _ => panic!("Expected \"identifier\""),
         }
         self.consume_tok();
+        // TODO: Move to correct spot
+        if let None = self.st.get(&identifier) {
+            panic!("Missing declaration for {identifier}");
+        }
 
         self.name_prime();
     }
