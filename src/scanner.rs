@@ -1,38 +1,39 @@
-use crate::symtable::SymTable;
 use crate::token::Token;
+
+use std::collections::HashMap;
 
 pub struct Scanner {
     stream: String,
     i: usize,
-    table: SymTable,
+    table: HashMap<String, Token>,
 }
 
 impl Scanner {
     pub fn new(contents: String) -> Scanner {
-        let mut table = SymTable::new();
+        let mut table = HashMap::new();
 
-        let _ = table.insert(String::from("program"), Token::Program);
-        let _ = table.insert(String::from("is"), Token::Is);
-        let _ = table.insert(String::from("global"), Token::Global);
-        let _ = table.insert(String::from("procedure"), Token::Procedure);
-        let _ = table.insert(String::from("variable"), Token::Variable);
-        let _ = table.insert(String::from("begin"), Token::Begin);
-        let _ = table.insert(String::from("if"), Token::If);
-        let _ = table.insert(String::from("then"), Token::Then);
-        let _ = table.insert(String::from("else"), Token::Else);
-        let _ = table.insert(String::from("for"), Token::For);
-        let _ = table.insert(String::from("return"), Token::Return);
-        let _ = table.insert(String::from("end program"), Token::EndProgram);
-        let _ = table.insert(String::from("end procedure"), Token::EndProcedure);
-        let _ = table.insert(String::from("end if"), Token::EndIf);
-        let _ = table.insert(String::from("end for"), Token::EndFor);
-        let _ = table.insert(String::from("true"), Token::True);
-        let _ = table.insert(String::from("false"), Token::False);
-        let _ = table.insert(String::from("not"), Token::Not);
-        let _ = table.insert(String::from("integer"), Token::IntType);
-        let _ = table.insert(String::from("float"), Token::FloatType);
-        let _ = table.insert(String::from("string"), Token::StringType);
-        let _ = table.insert(String::from("bool"), Token::BoolType);
+        table.insert(String::from("program"), Token::Program);
+        table.insert(String::from("is"), Token::Is);
+        table.insert(String::from("global"), Token::Global);
+        table.insert(String::from("procedure"), Token::Procedure);
+        table.insert(String::from("variable"), Token::Variable);
+        table.insert(String::from("begin"), Token::Begin);
+        table.insert(String::from("if"), Token::If);
+        table.insert(String::from("then"), Token::Then);
+        table.insert(String::from("else"), Token::Else);
+        table.insert(String::from("for"), Token::For);
+        table.insert(String::from("return"), Token::Return);
+        table.insert(String::from("end program"), Token::EndProgram);
+        table.insert(String::from("end procedure"), Token::EndProcedure);
+        table.insert(String::from("end if"), Token::EndIf);
+        table.insert(String::from("end for"), Token::EndFor);
+        table.insert(String::from("true"), Token::True);
+        table.insert(String::from("false"), Token::False);
+        table.insert(String::from("not"), Token::Not);
+        table.insert(String::from("integer"), Token::IntType);
+        table.insert(String::from("float"), Token::FloatType);
+        table.insert(String::from("string"), Token::StringType);
+        table.insert(String::from("bool"), Token::BoolType);
 
         Scanner {
             stream: contents,
