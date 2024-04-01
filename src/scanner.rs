@@ -1,16 +1,15 @@
+use crate::symtable::SymTable;
 use crate::token::Token;
-
-use std::collections::HashMap;
 
 pub struct Scanner {
     stream: String,
     i: usize,
-    table: HashMap<String, Token>,
+    table: SymTable,
 }
 
 impl Scanner {
     pub fn new(contents: String) -> Scanner {
-        let mut table = HashMap::new();
+        let mut table = SymTable::new();
 
         table.insert(String::from("program"), Token::Program);
         table.insert(String::from("is"), Token::Is);
