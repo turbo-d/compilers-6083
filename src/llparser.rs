@@ -1,9 +1,11 @@
 use crate::scanner::Scanner;
+use crate::symtable::SymTable;
 use crate::token::Token;
 
 pub struct LLParser {
     s: Scanner,
     tok: Token,
+    st: SymTable,
 }
 
 impl LLParser {
@@ -11,6 +13,7 @@ impl LLParser {
         LLParser {
             s,
             tok: Token::Unknown,
+            st: SymTable::new(),
         }
     }
 
@@ -92,32 +95,36 @@ impl LLParser {
 
     // first(declaration): "global", "procedure", "variable"
     fn declaration(&mut self) {
+        let mut is_global = false;
         if self.tok == Token::Global {
             self.consume_tok();
+            is_global = true;
         }
 
         if self.tok == Token::Procedure {
-            self.procedure_declaration();
+            self.procedure_declaration(is_global);
         } else if self.tok == Token::Variable {
-            self.variable_declaration();
+            self.variable_declaration(is_global);
         } else {
             panic!("Expected \"Procedure declaration or Variable declaration\"");
         }
     }
 
-    fn procedure_declaration(&mut self) {
-        self.procedure_header();
+    fn procedure_declaration(&mut self, is_global: bool) {
+        self.procedure_header(is_global);
         self.procedure_body();
     }
 
-    fn procedure_header(&mut self) {
+    fn procedure_header(&mut self, is_global: bool) {
         if self.tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
         self.consume_tok();
 
-        if !matches!(self.tok, Token::Identifier(_)) {
-            panic!("Expected \"identifier\"");
+        let identifier: String;
+        match &self.tok {
+            Token::Identifier(id) => identifier = id.clone(),
+            _ => panic!("Expected \"identifier\""),
         }
         self.consume_tok();
 
@@ -142,6 +149,18 @@ impl LLParser {
             panic!("Expected \")\"");
         }
         self.consume_tok();
+
+        let result: Result<(), String>;
+        if is_global {
+            result = self.st.insert_global(identifier.clone(), Token::Unknown);
+        } else {
+            result = self.st.insert(identifier.clone(), Token::Unknown);
+        }
+
+        match result {
+            Ok(_) => (),
+            Err(_) => panic!("Duplicate declaration. {identifier} is already declared in this scope"),
+        }
     }
 
     fn type_mark(&mut self) {
@@ -164,7 +183,7 @@ impl LLParser {
     }
 
     fn parameter(&mut self) {
-        self.variable_declaration();
+        self.variable_declaration(false);
     }
 
     // TODO: Almost the same as program_body
@@ -201,14 +220,16 @@ impl LLParser {
         self.consume_tok();
     }
 
-    fn variable_declaration(&mut self) {
+    fn variable_declaration(&mut self, is_global: bool) {
         if self.tok != Token::Variable {
             panic!("Expected \"variable\"");
         }
         self.consume_tok();
 
-        if !matches!(self.tok, Token::Identifier(_)) {
-            panic!("Expected \"identifier\"");
+        let identifier: String;
+        match &self.tok {
+            Token::Identifier(id) => identifier = id.clone(),
+            _ => panic!("Expected \"identifier\""),
         }
         self.consume_tok();
 
@@ -219,22 +240,33 @@ impl LLParser {
 
         self.type_mark();
 
-        if self.tok != Token::LSquare {
-            return;
-        }
-        // consume LSquare
-        self.consume_tok();
+        if self.tok == Token::LSquare {
+            // consume LSquare
+            self.consume_tok();
 
-        // bound (inlined production expansion)
-        if !matches!(self.tok, Token::Number(_)) {
-            panic!("Expected \"number\"");
-        }
-        self.consume_tok();
+            // bound (inlined production expansion)
+            if !matches!(self.tok, Token::Number(_)) {
+                panic!("Expected \"number\"");
+            }
+            self.consume_tok();
 
-        if self.tok != Token::RSquare {
-            panic!("Expected \"]\"");
+            if self.tok != Token::RSquare {
+                panic!("Expected \"]\"");
+            }
+            self.consume_tok();
         }
-        self.consume_tok();
+
+        let result: Result<(), String>;
+        if is_global {
+            result = self.st.insert_global(identifier.clone(), Token::Unknown);
+        } else {
+            result = self.st.insert(identifier.clone(), Token::Unknown);
+        }
+
+        match result {
+            Ok(_) => (),
+            Err(_) => panic!("Duplicate declaration. {identifier} is already declared in this scope"),
+        }
     }
 
     // first(statement): "identifier", "if", "for", "return"

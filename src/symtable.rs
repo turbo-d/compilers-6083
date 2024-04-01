@@ -22,8 +22,7 @@ impl SymTable {
                 Some(_) => return Err(String::from("Key already exists")),
                 _ => (),
             }
-            self.insert_global(k, v);
-            return Ok(());
+            return self.insert_global(k, v);
         }
 
         let top = self.local.len() - 1;
@@ -35,8 +34,13 @@ impl SymTable {
         Ok(())
     }
 
-    pub fn insert_global(&mut self, k: String, v: Token) {
+    pub fn insert_global(&mut self, k: String, v: Token) -> Result<(), String> {
+        match self.global.get(&k) {
+            Some(_) => return Err(String::from("Key already exists")),
+            _ => (),
+        }
         self.global.insert(k, v);
+        Ok(())
     }
 
     pub fn enter_scope(&mut self) {
