@@ -5,40 +5,40 @@ use std::collections::HashMap;
 pub struct Scanner {
     stream: String,
     i: usize,
-    table: HashMap<String, Token>,
+    reserved_words: HashMap<String, Token>,
 }
 
 impl Scanner {
     pub fn new(contents: String) -> Scanner {
-        let mut table = HashMap::new();
+        let mut reserved_words = HashMap::new();
 
-        table.insert(String::from("program"), Token::Program);
-        table.insert(String::from("is"), Token::Is);
-        table.insert(String::from("global"), Token::Global);
-        table.insert(String::from("procedure"), Token::Procedure);
-        table.insert(String::from("variable"), Token::Variable);
-        table.insert(String::from("begin"), Token::Begin);
-        table.insert(String::from("if"), Token::If);
-        table.insert(String::from("then"), Token::Then);
-        table.insert(String::from("else"), Token::Else);
-        table.insert(String::from("for"), Token::For);
-        table.insert(String::from("return"), Token::Return);
-        table.insert(String::from("end program"), Token::EndProgram);
-        table.insert(String::from("end procedure"), Token::EndProcedure);
-        table.insert(String::from("end if"), Token::EndIf);
-        table.insert(String::from("end for"), Token::EndFor);
-        table.insert(String::from("true"), Token::True);
-        table.insert(String::from("false"), Token::False);
-        table.insert(String::from("not"), Token::Not);
-        table.insert(String::from("integer"), Token::IntType);
-        table.insert(String::from("float"), Token::FloatType);
-        table.insert(String::from("string"), Token::StringType);
-        table.insert(String::from("bool"), Token::BoolType);
+        reserved_words.insert(String::from("program"), Token::Program);
+        reserved_words.insert(String::from("is"), Token::Is);
+        reserved_words.insert(String::from("global"), Token::Global);
+        reserved_words.insert(String::from("procedure"), Token::Procedure);
+        reserved_words.insert(String::from("variable"), Token::Variable);
+        reserved_words.insert(String::from("begin"), Token::Begin);
+        reserved_words.insert(String::from("if"), Token::If);
+        reserved_words.insert(String::from("then"), Token::Then);
+        reserved_words.insert(String::from("else"), Token::Else);
+        reserved_words.insert(String::from("for"), Token::For);
+        reserved_words.insert(String::from("return"), Token::Return);
+        reserved_words.insert(String::from("end program"), Token::EndProgram);
+        reserved_words.insert(String::from("end procedure"), Token::EndProcedure);
+        reserved_words.insert(String::from("end if"), Token::EndIf);
+        reserved_words.insert(String::from("end for"), Token::EndFor);
+        reserved_words.insert(String::from("true"), Token::True);
+        reserved_words.insert(String::from("false"), Token::False);
+        reserved_words.insert(String::from("not"), Token::Not);
+        reserved_words.insert(String::from("integer"), Token::IntType);
+        reserved_words.insert(String::from("float"), Token::FloatType);
+        reserved_words.insert(String::from("string"), Token::StringType);
+        reserved_words.insert(String::from("bool"), Token::BoolType);
 
         Scanner {
             stream: contents,
             i: 0,
-            table: table,
+            reserved_words: reserved_words,
         }
     }
 
@@ -193,7 +193,7 @@ impl Scanner {
                 }
             }
 
-            match self.table.get(&slice.to_lowercase()) {
+            match self.reserved_words.get(&slice.to_lowercase()) {
                 Some(tok) => return tok.clone(),
                 _ => (),
             }
