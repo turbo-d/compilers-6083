@@ -16,14 +16,23 @@ impl SymTable {
         }
     }
 
-    pub fn insert(&mut self, k: String, v: Token) {
+    pub fn insert(&mut self, k: String, v: Token) -> Result<(), String> {
         if self.local.is_empty() {
+            match self.global.get(&k) {
+                Some(_) => return Err(String::from("Key already exists")),
+                _ => (),
+            }
             self.insert_global(k, v);
-            return;
+            return Ok(());
         }
 
         let top = self.local.len() - 1;
+        match self.local[top].get(&k) {
+            Some(_) => return Err(String::from("Key already exists")),
+            _ => (),
+        }
         self.local[top].insert(k, v);
+        Ok(())
     }
 
     pub fn insert_global(&mut self, k: String, v: Token) {
