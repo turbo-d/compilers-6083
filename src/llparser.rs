@@ -469,27 +469,33 @@ impl LLParser {
             self.consume_tok();
         }
 
-        self.arith_op();
+        let l_op_type = self.arith_op();
 
-        self.expr_prime();
-
-        // TODO: correct type
-        Types::Unknown
+        self.expr_prime(l_op_type.clone())
     }
 
-    fn expr_prime(&mut self) {
-        if self.tok == Token::And || self.tok == Token::Or {
-            // consume token
-            self.consume_tok();
-
-            self.arith_op();
-        } else {
+    fn expr_prime(&mut self, l_op_type: Types) -> Types {
+        if self.tok != Token::And && self.tok != Token::Or {
             // null body production
             // TODO: check follow() for error checking
-            return;
+            return l_op_type;
         }
 
-        self.expr_prime();
+        // consume token
+        self.consume_tok();
+
+        let r_op_type = self.arith_op();
+
+        if l_op_type != Types::Int {
+            panic!("Bitwise operations can only be performed on operands of integer type");
+        }
+
+        if r_op_type != Types::Int {
+            panic!("Bitwise operations can only be performed on operands of integer type");
+        }
+
+        let op_type = Types::Int;
+        self.expr_prime(op_type)
     }
 
     // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
