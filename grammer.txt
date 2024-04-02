@@ -6,6 +6,7 @@ arith_op ::= relation arith_op_prime
 arith_op_prime ::= + relation arith_op_prime |
 					- relation arith_op_prime |
 					null
+// TODO: Should relations be right-associative?
 relation ::= term relation_prime
 relation_prime ::= < term relation_prime |
 					>= term relation prime |

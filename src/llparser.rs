@@ -515,37 +515,66 @@ impl LLParser {
     }
 
     // first(relation): "(", "identifier", "-", "number", "string", "true", "false"
-    fn relation(&mut self) {
-        self.term();
+    fn relation(&mut self) -> Types {
+        let l_op_type = self.term();
 
-        self.relation_prime();
+        self.relation_prime(l_op_type.clone())
     }
 
-    fn relation_prime(&mut self) {
-        if self.tok == Token::LT ||
-            self.tok == Token::LTE ||
-            self.tok == Token::GT ||
-            self.tok == Token::GTE ||
-            self.tok == Token::Eq ||
-            self.tok == Token::NotEq {
-            // consume token
-            self.consume_tok();
-
-            self.term();
-        } else {
+    fn relation_prime(&mut self, l_op_type: Types) -> Types {
+        if self.tok != Token::LT && 
+            self.tok != Token::LTE &&
+            self.tok != Token::GT &&
+            self.tok != Token::GTE &&
+            self.tok != Token::Eq &&
+            self.tok != Token::NotEq {
             // null body production
             // TODO: check follow() for error checking
-            return;
+            return l_op_type;
         }
 
-        self.relation_prime();
+        let op = self.tok.clone();
+        // consume token
+        self.consume_tok();
+
+        let r_op_type = self.term();
+
+        match l_op_type {
+            Types::Bool => {
+                if r_op_type != Types::Bool && r_op_type != Types::Int {
+                    panic!("Type mismatch. Right operand must be of bool or integer type");
+                }
+            }
+            Types::Int => {
+                if r_op_type != Types::Int && r_op_type != Types::Bool {
+                    panic!("Type mismatch. Right operand must be of integer or bool type");
+                }
+            }
+            Types::Float => {
+                if r_op_type != Types::Float {
+                    panic!("Type mismatch. Right operand must be of float type");
+                }
+            }
+            Types::String => {
+                if op != Token::Eq && op != Token::NotEq {
+                    panic!("Operator not supported for operands of string type. Only == and != are supported for operands of string type");
+                }
+                if r_op_type != Types::String {
+                    panic!("Type mismatch. Right operand must be of string type");
+                }
+            }
+            _ => panic!("Relational operators not supported for this operand type"),
+        }
+
+        let op_type = Types::Bool;
+        self.relation_prime(op_type)
     }
 
     // first(term): "(", "identifier", "-", "number", "string", "true", "false"
-    fn term(&mut self) {
+    fn term(&mut self) -> Types {
         let l_op_type = self.factor();
 
-        self.term_prime(l_op_type.clone());
+        self.term_prime(l_op_type.clone())
     }
 
     fn term_prime(&mut self, l_op_type: Types) -> Types {
