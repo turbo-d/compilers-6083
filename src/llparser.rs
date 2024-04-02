@@ -561,28 +561,29 @@ impl LLParser {
     }
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
-    fn factor(&mut self) {
-        let identifier: String;
+    fn factor(&mut self) -> Types {
+        let mut parsed_type = Types::Unknown;
+
         if let Token::Identifier(id) = &self.tok {
-            identifier = id.clone();
-            // consume identifier
-            self.consume_tok();
-            // TODO: Move to correct spot
-            if let None = self.st.get(&identifier) {
-                panic!("Missing declaration for {identifier}");
+            match self.st.get(id) {
+                Some(types) => parsed_type = types.clone(),
+                None => panic!("Missing declaration for {id}"),
             }
 
+            // consume identifier
+            self.consume_tok();
+
             if self.tok == Token::LParen {
-                self.procedure_call_prime();
+                parsed_type = self.procedure_call_prime(parsed_type.clone());
             } else {
-                self.name_prime();
+                parsed_type = self.name_prime(parsed_type.clone());
             }
         } else if self.tok == Token::Sub {
             // consume minus
             self.consume_tok();
 
             if matches!(self.tok, Token::Identifier(_)) {
-                self.name();
+                parsed_type = self.name();
             } else if matches!(self.tok, Token::Number(_)) {
                 // consume number
                 self.consume_tok();
@@ -614,9 +615,13 @@ impl LLParser {
         } else {
             panic!("Expected \"factor\"");
         }
+
+        parsed_type
     }
 
-    fn procedure_call_prime(&mut self) {
+    fn procedure_call_prime(&mut self, proc_type: Types) -> Types {
+        // TODO: validate argument list matches proc param types
+        // TODO: return proc return type
         // identifier already consumed
 
         if self.tok != Token::LParen {
@@ -640,6 +645,8 @@ impl LLParser {
             panic!("Expected \")\"");
         }
         self.consume_tok();
+
+        proc_type
     }
 
     // first(argument_list): "not", "(", "identifier", "-", "number", "string", "true", "false"
@@ -654,26 +661,31 @@ impl LLParser {
         }
     }
 
-    fn name(&mut self) {
-        let identifier: String;
+    fn name(&mut self) -> Types {
+        let mut parsed_type: Types;
         match &self.tok {
-            Token::Identifier(id) => identifier = id.clone(),
+            Token::Identifier(id) => {
+                match self.st.get(id) {
+                    Some(types) => parsed_type = types.clone(),
+                    None => panic!("Missing declaration for {id}"),
+                }
+            }
             _ => panic!("Expected \"identifier\""),
         }
         self.consume_tok();
-        // TODO: Move to correct spot
-        if let None = self.st.get(&identifier) {
-            panic!("Missing declaration for {identifier}");
-        }
 
-        self.name_prime();
+        parsed_type = self.name_prime(parsed_type.clone());
+
+        parsed_type
     }
 
-    fn name_prime(&mut self) {
+    fn name_prime(&mut self, array_type: Types) -> Types {
+        // TODO: validate array type
+        // TODO: return elem type
         // identifier already consumed
 
         if self.tok != Token::LSquare {
-            return;
+            return array_type;
         }
         // consume LSquare
         self.consume_tok();
@@ -684,6 +696,8 @@ impl LLParser {
             panic!("Expected \"]\"");
         }
         self.consume_tok();
+
+        array_type
     }
 }
 
