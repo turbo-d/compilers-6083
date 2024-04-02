@@ -493,25 +493,39 @@ impl LLParser {
     }
 
     // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
-    fn arith_op(&mut self) {
-        self.relation();
+    fn arith_op(&mut self) -> Types {
+        let l_op_type = self.relation();
 
-        self.arith_op_prime();
+        self.arith_op_prime(l_op_type.clone())
     }
 
-    fn arith_op_prime(&mut self) {
-        if self.tok == Token::Add || self.tok == Token::Sub {
-            // consume token
-            self.consume_tok();
-
-            self.relation();
-        } else {
+    fn arith_op_prime(&mut self, l_op_type: Types) -> Types {
+        if self.tok != Token::Add && self.tok != Token::Sub {
             // null body production
             // TODO: check follow() for error checking
-            return;
+            return l_op_type;
         }
 
-        self.arith_op_prime();
+        //let op = self.tok.clone();
+        // consume token
+        self.consume_tok();
+
+        let r_op_type = self.relation();
+
+        if l_op_type != Types::Int && l_op_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        if r_op_type != Types::Int && r_op_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        let mut op_type = Types::Float;
+        if l_op_type == Types::Int && r_op_type == Types::Int {
+            op_type = Types::Int;
+        }
+
+        self.arith_op_prime(op_type)
     }
 
     // first(relation): "(", "identifier", "-", "number", "string", "true", "false"
