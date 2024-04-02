@@ -236,7 +236,7 @@ impl LLParser {
         self.st.exit_scope();
     }
 
-    fn variable_declaration(&mut self, is_global: bool) {
+    fn variable_declaration(&mut self, is_global: bool) -> Types {
         if self.tok != Token::Variable {
             panic!("Expected \"variable\"");
         }
@@ -275,12 +275,6 @@ impl LLParser {
                 _ => panic!("Expected \"number\""),
             }
 
-            // old
-            if !matches!(self.tok, Token::Number(_)) {
-                panic!("Expected \"number\"");
-            }
-            self.consume_tok();
-
             if self.tok != Token::RSquare {
                 panic!("Expected \"]\"");
             }
@@ -289,15 +283,17 @@ impl LLParser {
 
         let result: Result<(), String>;
         if is_global {
-            result = self.st.insert_global(identifier.clone(), parsed_type);
+            result = self.st.insert_global(identifier.clone(), parsed_type.clone());
         } else {
-            result = self.st.insert(identifier.clone(), parsed_type);
+            result = self.st.insert(identifier.clone(), parsed_type.clone());
         }
 
         match result {
             Ok(_) => (),
             Err(_) => panic!("Duplicate declaration. {identifier} is already declared in this scope"),
         }
+
+        parsed_type
     }
 
     // first(statement): "identifier", "if", "for", "return"
