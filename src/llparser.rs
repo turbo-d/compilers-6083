@@ -463,7 +463,7 @@ impl LLParser {
     }
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn expr(&mut self) {
+    fn expr(&mut self) -> Types {
         if self.tok == Token::Not {
             // consume not token
             self.consume_tok();
@@ -472,6 +472,9 @@ impl LLParser {
         self.arith_op();
 
         self.expr_prime();
+
+        // TODO: correct type
+        Types::Unknown
     }
 
     fn expr_prime(&mut self) {
@@ -562,14 +565,13 @@ impl LLParser {
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
     fn factor(&mut self) -> Types {
-        let mut parsed_type = Types::Unknown;
+        let mut parsed_type: Types;
 
         if let Token::Identifier(id) = &self.tok {
             match self.st.get(id) {
                 Some(types) => parsed_type = types.clone(),
                 None => panic!("Missing declaration for {id}"),
             }
-
             // consume identifier
             self.consume_tok();
 
@@ -587,23 +589,27 @@ impl LLParser {
             } else if matches!(self.tok, Token::IntLiteral(_)) {
                 // consume number
                 self.consume_tok();
+                parsed_type = Types::Int;
             } else if matches!(self.tok, Token::FloatLiteral(_)) {
                 // consume number
                 self.consume_tok();
+                parsed_type = Types::Float;
             } else {
                 panic!("Expected \"identifier\" or \"number\" following \"-\"");
             }
         } else if matches!(self.tok, Token::IntLiteral(_)) {
             // consume number
             self.consume_tok();
+            parsed_type = Types::Int;
         } else if matches!(self.tok, Token::FloatLiteral(_)) {
             // consume number
             self.consume_tok();
+            parsed_type = Types::Float;
         } else if self.tok == Token::LParen {
             // consume left paren
             self.consume_tok();
 
-            self.expr();
+            parsed_type = self.expr();
 
             if self.tok != Token::RParen {
                 panic!("Expected \")\"");
@@ -612,12 +618,15 @@ impl LLParser {
         } else if matches!(self.tok, Token::String(_)) {
             // consume string
             self.consume_tok();
+            parsed_type = Types::String;
         } else if self.tok == Token::True {
             // consume true
             self.consume_tok();
+            parsed_type = Types::Bool;
         } else if self.tok == Token::False {
             // consume false
             self.consume_tok();
+            parsed_type = Types::Bool;
         } else {
             panic!("Expected \"factor\"");
         }
@@ -626,8 +635,6 @@ impl LLParser {
     }
 
     fn procedure_call_prime(&mut self, proc_type: Types) -> Types {
-        // TODO: validate argument list matches proc param types
-        // TODO: return proc return type
         // identifier already consumed
 
         if self.tok != Token::LParen {
@@ -635,6 +642,7 @@ impl LLParser {
         }
         self.consume_tok();
 
+        let mut arg_types = Vec::new();
         // first(argument_list)
         if matches!(self.tok, Token::Identifier(_)) ||
             matches!(self.tok, Token::IntLiteral(_)) || 
@@ -645,7 +653,7 @@ impl LLParser {
             self.tok == Token::True ||
             self.tok == Token::False ||
             self.tok == Token::Sub {
-            self.argument_list();
+            arg_types = self.argument_list();
         }
 
         if self.tok != Token::RParen {
@@ -653,19 +661,43 @@ impl LLParser {
         }
         self.consume_tok();
 
-        proc_type
+        let return_type: Types;
+        match proc_type {
+            Types::Proc(out_type, param_types) => {
+                let n_args = arg_types.len();
+                let n_params = param_types.len();
+                if n_args != n_params {
+                    panic!("Incorrect number of arguments");
+                }
+
+                for (i, (arg, param)) in arg_types.iter().zip(param_types.iter()).enumerate() {
+                    if arg != param {
+                        panic!("Type mismatch in argument {i}. (0-indexed)");
+                    }
+                }
+
+                return_type = *out_type;
+            }
+            _ => panic!("Expected procedure type"),
+        }
+
+        return_type
     }
 
     // first(argument_list): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn argument_list(&mut self) {
-        self.expr();
+    fn argument_list(&mut self) -> Vec<Types> {
+        let mut arg_types = Vec::new();
+
+        arg_types.push(self.expr());
 
         while self.tok == Token::Comma {
             //consume comma
             self.consume_tok();
 
-            self.expr();
+            arg_types.push(self.expr());
         }
+
+        arg_types
     }
 
     fn name(&mut self) -> Types {
@@ -687,8 +719,6 @@ impl LLParser {
     }
 
     fn name_prime(&mut self, array_type: Types) -> Types {
-        // TODO: validate array type
-        // TODO: return elem type
         // identifier already consumed
 
         if self.tok != Token::LSquare {
@@ -697,14 +727,24 @@ impl LLParser {
         // consume LSquare
         self.consume_tok();
 
-        self.expr();
+        let elem_type: Types;
+        match array_type {
+            Types::Array(_, elem) => elem_type = *elem,
+            _ => panic!("Indexing can only be performed on array types"),
+        }
+
+        let expr_type = self.expr();
+        match expr_type {
+            Types::Int => (),
+            _ => panic!("Array index must be of integer type"),
+        }
 
         if self.tok != Token::RSquare {
             panic!("Expected \"]\"");
         }
         self.consume_tok();
 
-        array_type
+        elem_type
     }
 }
 
