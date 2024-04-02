@@ -217,7 +217,12 @@ impl Scanner {
                 Ok(v) => v,
                 Err(_) => panic!("Error parsing number"),
             };
-            return Token::Number(num);
+
+            if !slice.contains(".") {
+                return Token::IntLiteral(num as i32);
+            }
+
+            return Token::FloatLiteral(num);
         }
 
         // string
@@ -669,38 +674,38 @@ mod tests {
     }
 
     #[test]
-    fn scan_number_singledigit() {
+    fn scan_intliteral_singledigit() {
         let mut s = Scanner::new(String::from("9"));
         let tok = s.scan();
-        assert!(matches!(tok, Token::Number(_)));
+        assert!(matches!(tok, Token::IntLiteral(_)));
     }
 
     #[test]
-    fn scan_number_multidigit() {
+    fn scan_intliteral_multidigit() {
         let mut s = Scanner::new(String::from("23459"));
         let tok = s.scan();
-        assert!(matches!(tok, Token::Number(_)));
+        assert!(matches!(tok, Token::IntLiteral(_)));
     }
 
     #[test]
-    fn scan_number_multidigit_decimalpoint() {
+    fn scan_floatliteral_multidigit_decimalpoint() {
         let mut s = Scanner::new(String::from("15429."));
         let tok = s.scan();
-        assert!(matches!(tok, Token::Number(_)));
+        assert!(matches!(tok, Token::FloatLiteral(_)));
     }
 
     #[test]
-    fn scan_number_multidigit_decimalpoint_singledigit() {
+    fn scan_floatliteral_multidigit_decimalpoint_singledigit() {
         let mut s = Scanner::new(String::from("92345.1"));
         let tok = s.scan();
-        assert!(matches!(tok, Token::Number(_)));
+        assert!(matches!(tok, Token::FloatLiteral(_)));
     }
 
     #[test]
-    fn scan_number_multidigit_decimalpoint_multidigit() {
+    fn scan_floatliteral_multidigit_decimalpoint_multidigit() {
         let mut s = Scanner::new(String::from("9345.23456"));
         let tok = s.scan();
-        assert!(matches!(tok, Token::Number(_)));
+        assert!(matches!(tok, Token::FloatLiteral(_)));
     }
 
     #[test]

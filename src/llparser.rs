@@ -272,16 +272,16 @@ impl LLParser {
 
             // bound (inlined production expansion)
             match &self.tok {
-                Token::Number(num) => {
-                    // this number must be an integer literal
+                Token::IntLiteral(num) => {
                     let num = num.clone();
-                    if (num as u32) as f32 == num {
+                    if (num as u32) as i32 == num {
                         let bound = num as u32;
                         parsed_type = Types::Array(bound, Box::new(parsed_type));
                     } else {
-                        panic!("Array size must be an integer value")
+                        panic!("Array size must be non-negative")
                     }
                 }
+                Token::FloatLiteral(_) => panic!("Array size must be a non-negative integer value"),
                 _ => panic!("Expected \"number\""),
             }
 
@@ -584,13 +584,19 @@ impl LLParser {
 
             if matches!(self.tok, Token::Identifier(_)) {
                 parsed_type = self.name();
-            } else if matches!(self.tok, Token::Number(_)) {
+            } else if matches!(self.tok, Token::IntLiteral(_)) {
+                // consume number
+                self.consume_tok();
+            } else if matches!(self.tok, Token::FloatLiteral(_)) {
                 // consume number
                 self.consume_tok();
             } else {
                 panic!("Expected \"identifier\" or \"number\" following \"-\"");
             }
-        } else if matches!(self.tok, Token::Number(_)) {
+        } else if matches!(self.tok, Token::IntLiteral(_)) {
+            // consume number
+            self.consume_tok();
+        } else if matches!(self.tok, Token::FloatLiteral(_)) {
             // consume number
             self.consume_tok();
         } else if self.tok == Token::LParen {
@@ -631,7 +637,8 @@ impl LLParser {
 
         // first(argument_list)
         if matches!(self.tok, Token::Identifier(_)) ||
-            matches!(self.tok, Token::Number(_)) || 
+            matches!(self.tok, Token::IntLiteral(_)) || 
+            matches!(self.tok, Token::FloatLiteral(_)) || 
             matches!(self.tok, Token::String(_)) || 
             self.tok == Token::Not ||
             self.tok == Token::LParen ||
