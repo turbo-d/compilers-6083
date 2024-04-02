@@ -543,24 +543,44 @@ impl LLParser {
 
     // first(term): "(", "identifier", "-", "number", "string", "true", "false"
     fn term(&mut self) {
-        self.factor();
+        let l_op_type = self.factor();
 
-        self.term_prime();
+        self.term_prime(l_op_type.clone());
     }
 
-    fn term_prime(&mut self) {
-        if self.tok == Token::Mul || self.tok == Token::Div {
-            // consume token
-            self.consume_tok();
-
-            self.factor();
-        } else {
+    fn term_prime(&mut self, l_op_type: Types) -> Types {
+        if self.tok != Token::Mul && self.tok != Token::Div {
             // null body production
             // TODO: check follow() for error checking
-            return;
+            return l_op_type;
         }
 
-        self.term_prime();
+        let op = self.tok.clone();
+        // consume token
+        self.consume_tok();
+
+        let r_op_type = self.factor();
+
+        if l_op_type != Types::Int && l_op_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        if r_op_type != Types::Int && r_op_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        let op_type = match op {
+            Token::Mul => {
+                if l_op_type == Types::Int && r_op_type == Types::Int {
+                    return Types::Int;
+                }
+                Types::Float
+            }
+            Token::Div => Types::Float,
+            _ => Types::Unknown,
+        };
+
+        self.term_prime(op_type)
     }
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
