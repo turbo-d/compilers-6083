@@ -27,7 +27,7 @@ pub enum Token {
     StringType,
     BoolType,
     Identifier(String),
-    Number(String),
+    Number(f32),
     String(String),
     Colon,
     Semicolon,

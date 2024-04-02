@@ -213,7 +213,11 @@ impl Scanner {
                 }
             }
             let slice = &self.stream[start..self.i];
-            return Token::Number(String::from(slice));
+            let num: f32 = match slice.parse() {
+                Ok(v) => v,
+                Err(_) => panic!("Error parsing number"),
+            };
+            return Token::Number(num);
         }
 
         // string

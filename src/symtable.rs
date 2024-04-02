@@ -1,11 +1,11 @@
-use crate::token::Token;
+use crate::types::Types;
 
 use std::collections::HashMap;
 use std::vec::Vec;
 
 pub struct SymTable {
-    global: HashMap<String, Token>,
-    local: Vec<HashMap<String, Token>>,
+    global: HashMap<String, Types>,
+    local: Vec<HashMap<String, Types>>,
 }
 
 impl SymTable {
@@ -16,7 +16,7 @@ impl SymTable {
         }
     }
 
-    pub fn insert(&mut self, k: String, v: Token) -> Result<(), String> {
+    pub fn insert(&mut self, k: String, v: Types) -> Result<(), String> {
         if self.local.is_empty() {
             match self.global.get(&k) {
                 Some(_) => return Err(String::from("Key already exists")),
@@ -34,7 +34,7 @@ impl SymTable {
         Ok(())
     }
 
-    pub fn insert_global(&mut self, k: String, v: Token) -> Result<(), String> {
+    pub fn insert_global(&mut self, k: String, v: Types) -> Result<(), String> {
         match self.global.get(&k) {
             Some(_) => return Err(String::from("Key already exists")),
             _ => (),
@@ -51,7 +51,7 @@ impl SymTable {
         self.local.pop();
     }
 
-    pub fn get(&mut self, k: &String) -> Option<&Token> {
+    pub fn get(&mut self, k: &String) -> Option<&Types> {
         for t in self.local.iter().rev() {
             match t.get(k) {
                 Some(tok) => return Some(tok),

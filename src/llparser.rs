@@ -1,6 +1,7 @@
 use crate::scanner::Scanner;
 use crate::symtable::SymTable;
 use crate::token::Token;
+use crate::types::Types;
 
 pub struct LLParser {
     s: Scanner,
@@ -152,9 +153,9 @@ impl LLParser {
 
         let result: Result<(), String>;
         if is_global {
-            result = self.st.insert_global(identifier.clone(), Token::Unknown);
+            result = self.st.insert_global(identifier.clone(), Types::Unknown);
         } else {
-            result = self.st.insert(identifier.clone(), Token::Unknown);
+            result = self.st.insert(identifier.clone(), Types::Unknown);
         }
 
         match result {
@@ -163,11 +164,22 @@ impl LLParser {
         }
     }
 
-    fn type_mark(&mut self) {
-        if self.tok != Token::IntType && self.tok != Token::FloatType && self.tok != Token::StringType && self.tok != Token::BoolType {
+    fn type_mark(&mut self) -> Types {
+        let parsed_type: Types;
+        if self.tok != Token::IntType {
+            parsed_type = Types::Int;
+        } else if self.tok != Token::FloatType {
+            parsed_type = Types::Float;
+        } else if self.tok != Token::StringType {
+            parsed_type = Types::String;
+        } else if self.tok != Token::BoolType {
+            parsed_type = Types::Bool;
+        } else {
             panic!("Expected \"type\"");
         }
         self.consume_tok();
+
+        return parsed_type;
     }
 
     // first(parameter_list): "variable"
@@ -242,13 +254,28 @@ impl LLParser {
         }
         self.consume_tok();
 
-        self.type_mark();
+        let mut parsed_type = self.type_mark();
 
         if self.tok == Token::LSquare {
             // consume LSquare
             self.consume_tok();
 
             // bound (inlined production expansion)
+            match &self.tok {
+                Token::Number(num) => {
+                    // this number must be an integer literal
+                    let num = num.clone();
+                    if (num as u32) as f32 == num {
+                        let bound = num as u32;
+                        parsed_type = Types::Array(bound, Box::new(parsed_type));
+                    } else {
+                        panic!("Array size must be an integer value")
+                    }
+                }
+                _ => panic!("Expected \"number\""),
+            }
+
+            // old
             if !matches!(self.tok, Token::Number(_)) {
                 panic!("Expected \"number\"");
             }
@@ -262,9 +289,9 @@ impl LLParser {
 
         let result: Result<(), String>;
         if is_global {
-            result = self.st.insert_global(identifier.clone(), Token::Unknown);
+            result = self.st.insert_global(identifier.clone(), parsed_type);
         } else {
-            result = self.st.insert(identifier.clone(), Token::Unknown);
+            result = self.st.insert(identifier.clone(), parsed_type);
         }
 
         match result {
