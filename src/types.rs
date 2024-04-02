@@ -8,6 +8,6 @@ pub enum Types {
     Float,
     String,
     Bool,
-    Func(Box<Types>, Vec<Types>),
+    Proc(Box<Types>, Vec<Types>),
     Array(u32, Box<Types>),
 }

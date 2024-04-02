@@ -3,6 +3,8 @@ use crate::symtable::SymTable;
 use crate::token::Token;
 use crate::types::Types;
 
+use std::vec::Vec;
+
 pub struct LLParser {
     s: Scanner,
     tok: Token,
@@ -116,7 +118,7 @@ impl LLParser {
         self.procedure_body();
     }
 
-    fn procedure_header(&mut self, is_global: bool) {
+    fn procedure_header(&mut self, is_global: bool) -> Types {
         if self.tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
@@ -134,16 +136,17 @@ impl LLParser {
         }
         self.consume_tok();
 
-        self.type_mark();
+        let return_type = self.type_mark();
 
         if self.tok != Token::LParen {
             panic!("Expected \"(\"");
         }
         self.consume_tok();
 
+        let mut param_types = Vec::new();
         // first(parameter_list)
         if self.tok == Token::Variable {
-            self.parameter_list();
+            param_types = self.parameter_list();
         }
 
         if self.tok != Token::RParen {
@@ -151,17 +154,20 @@ impl LLParser {
         }
         self.consume_tok();
 
+        let parsed_type = Types::Proc(Box::new(return_type), param_types);
         let result: Result<(), String>;
         if is_global {
-            result = self.st.insert_global(identifier.clone(), Types::Unknown);
+            result = self.st.insert_global(identifier.clone(), parsed_type.clone());
         } else {
-            result = self.st.insert(identifier.clone(), Types::Unknown);
+            result = self.st.insert(identifier.clone(), parsed_type.clone());
         }
 
         match result {
             Ok(_) => (),
             Err(_) => panic!("Duplicate declaration. {identifier} is already declared in this scope"),
         }
+
+        parsed_type
     }
 
     fn type_mark(&mut self) -> Types {
@@ -183,19 +189,23 @@ impl LLParser {
     }
 
     // first(parameter_list): "variable"
-    fn parameter_list(&mut self) {
-        self.parameter();
+    fn parameter_list(&mut self) -> Vec<Types> {
+        let mut param_types = Vec::new();
+
+        param_types.push(self.parameter());
 
         while self.tok == Token::Comma {
             //consume comma
             self.consume_tok();
 
-            self.parameter();
+            param_types.push(self.parameter());
         }
+
+        param_types
     }
 
-    fn parameter(&mut self) {
-        self.variable_declaration(false);
+    fn parameter(&mut self) -> Types {
+        self.variable_declaration(false)
     }
 
     // TODO: Almost the same as program_body
