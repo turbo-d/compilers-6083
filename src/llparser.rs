@@ -114,8 +114,8 @@ impl LLParser {
     }
 
     fn procedure_declaration(&mut self, is_global: bool) {
-        self.procedure_header(is_global);
-        self.procedure_body();
+        let proc_type = self.procedure_header(is_global);
+        self.procedure_body(proc_type);
     }
 
     fn procedure_header(&mut self, is_global: bool) -> Types {
@@ -210,8 +210,8 @@ impl LLParser {
 
     // TODO: Almost the same as program_body
     // first(procedure_body): "global", "procedure", "variable", "begin"
-    fn procedure_body(&mut self) {
-        self.st.enter_scope();
+    fn procedure_body(&mut self, proc_type: Types) {
+        self.st.enter_scope(proc_type.clone());
 
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
@@ -459,7 +459,14 @@ impl LLParser {
         }
         self.consume_tok();
 
-        self.expr();
+        let expr_type = self.expr();
+        let owning_proc_type = self.st.get_owning_proc_type();
+
+        if let Types::Proc(return_type, _) = owning_proc_type {
+            if expr_type != *return_type {
+                panic!("Expression type does not match the return type of the owning procedure");
+            }
+        }
     }
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"

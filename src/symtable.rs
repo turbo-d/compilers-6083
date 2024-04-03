@@ -6,6 +6,7 @@ use std::vec::Vec;
 pub struct SymTable {
     global: HashMap<String, Types>,
     local: Vec<HashMap<String, Types>>,
+    owning_proc_types: Vec<Types>,
 }
 
 impl SymTable {
@@ -13,6 +14,7 @@ impl SymTable {
         SymTable {
             global: HashMap::new(),
             local: Vec::new(),
+            owning_proc_types: Vec::new(),
         }
     }
 
@@ -43,12 +45,14 @@ impl SymTable {
         Ok(())
     }
 
-    pub fn enter_scope(&mut self) {
+    pub fn enter_scope(&mut self, owning_proc_type: Types) {
         self.local.push(HashMap::new());
+        self.owning_proc_types.push(owning_proc_type);
     }
 
     pub fn exit_scope(&mut self) {
         self.local.pop();
+        self.owning_proc_types.pop();
     }
 
     pub fn get(&mut self, k: &String) -> Option<&Types> {
@@ -60,5 +64,14 @@ impl SymTable {
         }
 
         return self.global.get(k);
+    }
+
+    pub fn get_owning_proc_type(&mut self) -> Types {
+        if self.local.is_empty() {
+            return Types::Proc(Box::new(Types::Int), Vec::new());
+        }
+
+        let top = self.local.len() - 1;
+        return self.owning_proc_types[top].clone();
     }
 }
