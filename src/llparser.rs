@@ -322,40 +322,77 @@ impl LLParser {
     }
 
     fn assignment_statement(&mut self) {
-        self.destination();
+        let dest_type = self.destination();
 
         if self.tok != Token::Assign {
             panic!("Expected \":=\"");
         }
         self.consume_tok();
 
-        self.expr();
+        let expr_type = self.expr();
+
+        match dest_type {
+            Types::Bool => {
+                if expr_type != Types::Bool && expr_type != Types::Int {
+                    panic!("Type mismatch. Expression must be of bool or integer type");
+                }
+            }
+            Types::Int => {
+                if expr_type != Types::Int && expr_type != Types::Bool {
+                    panic!("Type mismatch. Expression must be of integer, float, or bool type");
+                }
+            }
+            Types::Float => {
+                if expr_type != Types::Float && expr_type != Types::Int {
+                    panic!("Type mismatch. Expression must be of float or integer type");
+                }
+            }
+            Types::String => {
+                if expr_type != Types::String {
+                    panic!("Type mismatch. Expression must be of string type");
+                }
+            }
+            _ => panic!("Assignment not supported for this operand type"),
+        }
     }
 
-    fn destination(&mut self) {
-        let identifier: String;
+    fn destination(&mut self) -> Types {
+        let parsed_type: Types;
         match &self.tok {
-            Token::Identifier(id) => identifier = id.clone(),
+            Token::Identifier(id) => {
+                match self.st.get(id) {
+                    Some(types) => parsed_type = types.clone(),
+                    None => panic!("Missing declaration for {id}"),
+                }
+            }
             _ => panic!("Expected \"identifier\""),
         }
         self.consume_tok();
-        // TODO: Move to correct spot
-        if let None = self.st.get(&identifier) {
-            panic!("Missing declaration for {identifier}");
-        }
 
         if self.tok != Token::LSquare {
-            return;
+            return parsed_type;
         }
         // consume LSquare
         self.consume_tok();
 
-        self.expr();
+        let elem_type: Types;
+        match parsed_type {
+            Types::Array(_, elem) => elem_type = *elem,
+            _ => panic!("Indexing can only be performed on array types"),
+        }
+
+        let expr_type = self.expr();
+        match expr_type {
+            Types::Int => (),
+            _ => panic!("Array index must be of integer type"),
+        }
 
         if self.tok != Token::RSquare {
             panic!("Expected \"]\"");
         }
         self.consume_tok();
+
+        elem_type
     }
 
     fn if_statement(&mut self) {
