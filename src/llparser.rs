@@ -28,9 +28,9 @@ impl LLParser {
         let _ = self.st.insert_global(String::from("getfloat"), Types::Proc(Box::new(Types::Float), Vec::new()));
         let _ = self.st.insert_global(String::from("getstring"), Types::Proc(Box::new(Types::String), Vec::new()));
         let _ = self.st.insert_global(String::from("putbool"), Types::Proc(Box::new(Types::Bool), vec![Types::Bool]));
-        let _ = self.st.insert_global(String::from("putinteger"), Types::Proc(Box::new(Types::Int), vec![Types::Int]));
-        let _ = self.st.insert_global(String::from("putfloat"), Types::Proc(Box::new(Types::Float), vec![Types::Float]));
-        let _ = self.st.insert_global(String::from("putstring"), Types::Proc(Box::new(Types::String), vec![Types::String]));
+        let _ = self.st.insert_global(String::from("putinteger"), Types::Proc(Box::new(Types::Bool), vec![Types::Int]));
+        let _ = self.st.insert_global(String::from("putfloat"), Types::Proc(Box::new(Types::Bool), vec![Types::Float]));
+        let _ = self.st.insert_global(String::from("putstring"), Types::Proc(Box::new(Types::Bool), vec![Types::String]));
         let _ = self.st.insert_global(String::from("sqrt"), Types::Proc(Box::new(Types::Float), vec![Types::Int]));
 
         self.consume_tok();
