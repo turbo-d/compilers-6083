@@ -369,7 +369,10 @@ impl LLParser {
         }
         self.consume_tok();
 
-        self.expr();
+        let expr_type = self.expr();
+        if expr_type != Types::Bool && expr_type != Types::Int {
+            panic!("The conditional expression must be of bool or integer type");
+        }
 
         if self.tok != Token::RParen {
             panic!("Expected \")\"");
@@ -430,7 +433,10 @@ impl LLParser {
         }
         self.consume_tok();
 
-        self.expr();
+        let expr_type = self.expr();
+        if expr_type != Types::Bool && expr_type != Types::Int {
+            panic!("The conditional expression must be of bool or integer type");
+        }
 
         if self.tok != Token::RParen {
             panic!("Expected \")\"");
