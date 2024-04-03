@@ -518,9 +518,30 @@ impl LLParser {
         let expr_type = self.expr();
         let owning_proc_type = self.st.get_owning_proc_type();
 
+        // Same compatibility rules as assignment
         if let Types::Proc(return_type, _) = owning_proc_type {
-            if expr_type != *return_type {
-                panic!("Expression type does not match the return type of the owning procedure");
+            match *return_type {
+                Types::Bool => {
+                    if expr_type != Types::Bool && expr_type != Types::Int {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                Types::Int => {
+                    if expr_type != Types::Int && expr_type != Types::Bool {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                Types::Float => {
+                    if expr_type != Types::Float && expr_type != Types::Int {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                Types::String => {
+                    if expr_type != Types::String {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                _ => panic!("Returns not supported for this operand type"),
             }
         }
     }
