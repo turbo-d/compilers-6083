@@ -184,13 +184,13 @@ impl LLParser {
 
     fn type_mark(&mut self) -> Types {
         let parsed_type: Types;
-        if self.tok != Token::IntType {
+        if self.tok == Token::IntType {
             parsed_type = Types::Int;
-        } else if self.tok != Token::FloatType {
+        } else if self.tok == Token::FloatType {
             parsed_type = Types::Float;
-        } else if self.tok != Token::StringType {
+        } else if self.tok == Token::StringType {
             parsed_type = Types::String;
-        } else if self.tok != Token::BoolType {
+        } else if self.tok == Token::BoolType {
             parsed_type = Types::Bool;
         } else {
             panic!("Expected \"type\"");
