@@ -1,3 +1,4 @@
+use crate::codegen::CodeGen;
 use crate::scanner::Scanner;
 use crate::symtable::SymTable;
 use crate::token::Token;
@@ -5,14 +6,15 @@ use crate::types::Types;
 
 use std::vec::Vec;
 
-pub struct LLParser {
+pub struct LLParser<'a, 'ctx> {
     s: Scanner,
     tok: Token,
     st: SymTable,
+    cg: CodeGen<'a, 'ctx>,
 }
 
-impl LLParser {
-    pub fn new(s: Scanner) -> LLParser {
+impl<'a, 'ctx> LLParser<'a, 'ctx> {
+    pub fn new(s: Scanner, codegen: CodeGen<'a, 'ctx>) -> LLParser<'a, 'ctx> {
         let mut st = SymTable::new();
         // TODO: Delete this once runtime is finished.
         // This is just for testing
@@ -30,11 +32,11 @@ impl LLParser {
             s,
             tok: Token::Unknown,
             st: st,
+            cg: codegen,
         }
     }
 
     pub fn parse(&mut self) {
-
         self.consume_tok();
 
         self.program();
