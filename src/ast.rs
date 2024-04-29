@@ -21,6 +21,10 @@ pub trait ASTVisitor {
     fn visit_negate_op(&self, s: &NegateOp);
     fn visit_subscript_op(&self, s: &SubscriptOp);
     fn visit_proc_call(&self, s: &ProcCall);
+    fn visit_int_literal(&self, s: &IntLiteral);
+    fn visit_float_literal(&self, s: &FloatLiteral);
+    fn visit_string_literal(&self, s: &StringLiteral);
+    fn visit_bool_literal(&self, s: &BoolLiteral);
 }
 
 pub trait ASTNode {
