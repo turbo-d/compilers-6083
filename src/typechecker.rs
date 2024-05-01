@@ -70,8 +70,21 @@ impl ASTVisitor<Types> for TypeChecker {
         Types::Unknown
     }
 
-    fn visit_subscript_op(&self, s: &SubscriptOp) -> Types {
-        Types::Unknown
+    fn visit_subscript_op(&self, op: &SubscriptOp) -> Types {
+        let array_type = op.array.visit(&self);
+        let expr_type = op.index.visit(&self);
+
+        match array_type {
+            Types::Array(_, _) => (),
+            _ => panic!("Indexing can only be performed on array types"),
+        }
+
+        match expr_type {
+            Types::Int => (),
+            _ => panic!("Array index must be of integer type"),
+        }
+
+        array_type
     }
 
     fn visit_proc_call(&self, s: &ProcCall) -> Types {
@@ -94,13 +107,14 @@ impl ASTVisitor<Types> for TypeChecker {
         Types::Unknown
     }
 
-    fn visit_var(&self, v: &Var) -> Types {
-        match self.st.get(id) {
+    fn visit_var(&self, var: &Var) -> Types {
+        let parsed_type: Types;
+        match self.st.get(var.id) {
             Some(types) => {
                 parsed_type = types.clone();
             }
             None => panic!("Missing declaration for {id}"),
         }
-        Types::Unknown
+        parsed_type
     }
 }

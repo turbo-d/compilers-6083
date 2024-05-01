@@ -254,8 +254,8 @@ impl ASTNode for NegateOp {
 }
 
 pub struct SubscriptOp {
-    array: String,
-    index: Box<dyn Expr>,
+    pub array: Box<Var>,
+    pub index: Box<dyn Expr>,
 }
 
 impl Expr for SubscriptOp {}
@@ -267,8 +267,8 @@ impl ASTNode for SubscriptOp {
 }
 
 pub struct ProcCall {
-    proc: String,
-    args: Vec<Box<dyn Expr>>,
+    pub proc: Box<Var>,
+    pub args: Vec<Box<dyn Expr>>,
 }
 
 impl Expr for ProcCall {}
@@ -329,7 +329,6 @@ impl ASTNode for StringLiteral {
 
 pub struct Var {
     pub id: String,
-    pub ty: Types,
 }
 
 impl Expr for Var {}

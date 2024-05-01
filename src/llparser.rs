@@ -1,3 +1,4 @@
+use crate::ast;
 use crate::codegen::CodeGen;
 use crate::scanner::Scanner;
 use crate::symtable::SymTable;
@@ -346,7 +347,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        let expr_type = self.expr();
+        let (expr_type, expr_node) = self.expr();
 
         match dest_type {
             Types::Bool => {
@@ -398,7 +399,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             _ => panic!("Indexing can only be performed on array types"),
         }
 
-        let expr_type = self.expr();
+        let (expr_type, expr_node) = self.expr();
         match expr_type {
             Types::Int => (),
             _ => panic!("Array index must be of integer type"),
@@ -423,7 +424,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        let expr_type = self.expr();
+        let (expr_type, expr_node) = self.expr();
         if expr_type != Types::Bool && expr_type != Types::Int {
             panic!("The conditional expression must be of bool or integer type");
         }
@@ -487,7 +488,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        let expr_type = self.expr();
+        let (expr_type, expr_node) = self.expr();
         if expr_type != Types::Bool && expr_type != Types::Int {
             panic!("The conditional expression must be of bool or integer type");
         }
@@ -519,7 +520,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        let expr_type = self.expr();
+        let (expr_type, expr_node) = self.expr();
         let owning_proc_type = self.st.get_owning_proc_type();
 
         // Same compatibility rules as assignment
@@ -551,7 +552,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn expr(&mut self) -> Types {
+    fn expr(&mut self) -> (Types, Box<dyn ast::Expr>) {
         if self.tok == Token::Not {
             // consume not token
             self.consume_tok();
@@ -562,11 +563,15 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         self.expr_prime(l_op_type.clone())
     }
 
-    fn expr_prime(&mut self, l_op_type: Types) -> Types {
+    fn expr_prime(&mut self, l_op_type: Types) -> (Types, Box<dyn ast::Expr>) {
+        let null_node = Box::new(ast::Var {
+            id: String::from(""),
+        });
+
         if self.tok != Token::And && self.tok != Token::Or {
             // null body production
             // TODO: check follow() for error checking
-            return l_op_type;
+            return (l_op_type, null_node);
         }
 
         // consume token
@@ -725,24 +730,32 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         let mut parsed_type: Types;
 
         if let Token::Identifier(id) = &self.tok {
+            let mut var_id = String::from("");
             match self.st.get(id) {
-                Some(types) => parsed_type = types.clone(),
+                Some(types) => {
+                    parsed_type = types.clone();
+                    var_id = id.clone();
+                }
                 None => panic!("Missing declaration for {id}"),
             }
             // consume identifier
             self.consume_tok();
 
+            let var = Box::new(ast::Var {
+                id: var_id,
+            });
+
             if self.tok == Token::LParen {
-                parsed_type = self.procedure_call_prime(parsed_type.clone());
+                (parsed_type, _) = self.procedure_call_prime(parsed_type.clone(), var);
             } else {
-                parsed_type = self.name_prime(parsed_type.clone());
+                (parsed_type, _) = self.name_prime(parsed_type.clone(), var);
             }
         } else if self.tok == Token::Sub {
             // consume minus
             self.consume_tok();
 
             if matches!(self.tok, Token::Identifier(_)) {
-                parsed_type = self.name();
+                (parsed_type, _) = self.name();
             } else if matches!(self.tok, Token::IntLiteral(_)) {
                 // consume number
                 self.consume_tok();
@@ -766,7 +779,8 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             // consume left paren
             self.consume_tok();
 
-            parsed_type = self.expr();
+            let expr_node: Box<dyn ast::Expr>;
+            (parsed_type, expr_node) = self.expr();
 
             if self.tok != Token::RParen {
                 panic!("Expected \")\"");
@@ -791,7 +805,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         parsed_type
     }
 
-    fn procedure_call_prime(&mut self, proc_type: Types) -> Types {
+    fn procedure_call_prime(&mut self, proc_type: Types, var_node: Box<ast::Var>) -> (Types, Box<dyn ast::Expr>) {
         // identifier already consumed
 
         if self.tok != Token::LParen {
@@ -799,7 +813,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        let mut arg_types = Vec::new();
+        let mut args = Vec::new();
         // first(argument_list)
         if matches!(self.tok, Token::Identifier(_)) ||
             matches!(self.tok, Token::IntLiteral(_)) || 
@@ -810,7 +824,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             self.tok == Token::True ||
             self.tok == Token::False ||
             self.tok == Token::Sub {
-            arg_types = self.argument_list();
+            args = self.argument_list();
         }
 
         if self.tok != Token::RParen {
@@ -821,14 +835,14 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         let return_type: Types;
         match proc_type {
             Types::Proc(out_type, param_types) => {
-                let n_args = arg_types.len();
+                let n_args = args.len();
                 let n_params = param_types.len();
                 if n_args != n_params {
                     panic!("Incorrect number of arguments");
                 }
 
-                for (i, (arg, param)) in arg_types.iter().zip(param_types.iter()).enumerate() {
-                    if arg != param {
+                for (i, ((arg_type, arg_node), param_type)) in args.iter().zip(param_types.iter()).enumerate() {
+                    if arg_type != param_type {
                         panic!("Type mismatch in argument {i}. (0-indexed)");
                     }
                 }
@@ -838,31 +852,45 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             _ => panic!("Expected procedure type"),
         }
 
-        return_type
+        let (arg_types, arg_nodes): (Vec<_>, Vec<_>) = args.into_iter().unzip();
+        let proc_call_node = Box::new(ast::ProcCall {
+            proc: var_node,
+            args: arg_nodes,
+        });
+
+        (return_type, proc_call_node)
     }
 
     // first(argument_list): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn argument_list(&mut self) -> Vec<Types> {
+    fn argument_list(&mut self) -> Vec<(Types, Box<dyn ast::Expr>)> {
         let mut arg_types = Vec::new();
 
+        //let (mut expr_type, mut expr_node) = self.expr();
+        //arg_types.push(expr_type);
         arg_types.push(self.expr());
 
         while self.tok == Token::Comma {
             //consume comma
             self.consume_tok();
 
+            //(expr_type, expr_node) = self.expr();
+            //arg_types.push(expr_type);
             arg_types.push(self.expr());
         }
 
         arg_types
     }
 
-    fn name(&mut self) -> Types {
+    fn name(&mut self) -> (Types, Box<dyn ast::Expr>) {
         let mut parsed_type: Types;
+        let mut var_id = String::from("");
         match &self.tok {
             Token::Identifier(id) => {
                 match self.st.get(id) {
-                    Some(types) => parsed_type = types.clone(),
+                    Some(types) => {
+                        parsed_type = types.clone();
+                        var_id = id.clone();
+                    }
                     None => panic!("Missing declaration for {id}"),
                 }
             }
@@ -870,16 +898,21 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        parsed_type = self.name_prime(parsed_type.clone());
+        let var = Box::new(ast::Var {
+            id: var_id,
+        });
 
-        parsed_type
+        let expr_node: Box<dyn ast::Expr>;
+        (parsed_type, expr_node) = self.name_prime(parsed_type.clone(), var);
+
+        (parsed_type, expr_node)
     }
 
-    fn name_prime(&mut self, array_type: Types) -> Types {
+    fn name_prime(&mut self, array_type: Types, var_node: Box<ast::Var>) -> (Types, Box<dyn ast::Expr>) {
         // identifier already consumed
 
         if self.tok != Token::LSquare {
-            return array_type;
+            return (array_type, var_node);
         }
         // consume LSquare
         self.consume_tok();
@@ -890,7 +923,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             _ => panic!("Indexing can only be performed on array types"),
         }
 
-        let expr_type = self.expr();
+        let (expr_type, expr_node) = self.expr();
         match expr_type {
             Types::Int => (),
             _ => panic!("Array index must be of integer type"),
@@ -901,7 +934,12 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        elem_type
+        let sub_node = Box::new(ast::SubscriptOp {
+            array: var_node,
+            index: expr_node,
+        });
+
+        (elem_type, sub_node)
     }
 }
 
