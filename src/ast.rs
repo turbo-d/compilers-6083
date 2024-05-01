@@ -1,3 +1,4 @@
+use crate::symtable::SymTable;
 use crate::types::Types;
 
 use std::vec::Vec;
@@ -29,7 +30,8 @@ pub trait ASTVisitor<T> {
 }
 
 pub trait ASTNode {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T;
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T;
+    fn type_check(&self, st: &mut SymTable) -> Types;
 }
 
 pub struct Program {
@@ -40,8 +42,12 @@ pub struct Program {
 }
 
 impl ASTNode for Program {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_program(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_program(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -52,8 +58,12 @@ pub struct VarDecl {
 }
 
 impl ASTNode for VarDecl {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_var_decl(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_var_decl(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -68,8 +78,12 @@ pub struct ProcDecl {
 }
 
 impl ASTNode for ProcDecl {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_proc_decl(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_proc_decl(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -81,13 +95,17 @@ pub struct AssignStmt {
 impl Stmt for AssignStmt {}
 
 impl ASTNode for AssignStmt {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_assign_stmt(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_assign_stmt(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct IfStmt {
-    cond: Box<dyn Expr>,
+    cond: Box<dyn ASTNode>,
     then_body: Vec<Box<dyn Stmt>>,
     else_body: Vec<Box<dyn Stmt>>,
 }
@@ -95,126 +113,166 @@ pub struct IfStmt {
 impl Stmt for IfStmt {}
 
 impl ASTNode for IfStmt {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_if_stmt(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_if_stmt(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct LoopStmt {
     init: AssignStmt,
-    cond: Box<dyn Expr>,
+    cond: Box<dyn ASTNode>,
     body: Vec<Box<dyn Stmt>>,
 }
 
 impl Stmt for LoopStmt {}
 
 impl ASTNode for LoopStmt {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_loop_stmt(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_loop_stmt(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct ReturnStmt {
-    expr: Box<dyn Expr>,
+    expr: Box<dyn ASTNode>,
 }
 
 impl Stmt for ReturnStmt {}
 
 impl ASTNode for ReturnStmt {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_return_stmt(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_return_stmt(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub trait Expr {}
 
 pub struct AndOp {
-    lhs: Box<dyn Expr>,
-    rhs: Box<dyn Expr>,
+    lhs: Box<dyn ASTNode>,
+    rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for AndOp {}
 
 impl ASTNode for AndOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_and_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_and_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct OrOp {
-    lhs: Box<dyn Expr>,
-    rhs: Box<dyn Expr>,
+    lhs: Box<dyn ASTNode>,
+    rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for OrOp {}
 
 impl ASTNode for OrOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_or_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_or_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct NotOp {
-    operand: Box<dyn Expr>,
+    operand: Box<dyn ASTNode>,
 }
 
 impl Expr for NotOp {}
 
 impl ASTNode for NotOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_not_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_not_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct AddOp {
-    lhs: Box<dyn Expr>,
-    rhs: Box<dyn Expr>,
+    lhs: Box<dyn ASTNode>,
+    rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for AddOp {}
 
 impl ASTNode for AddOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_add_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_add_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct SubOp {
-    lhs: Box<dyn Expr>,
-    rhs: Box<dyn Expr>,
+    lhs: Box<dyn ASTNode>,
+    rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for SubOp {}
 
 impl ASTNode for SubOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_sub_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_sub_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct MulOp {
-    lhs: Box<dyn Expr>,
-    rhs: Box<dyn Expr>,
+    lhs: Box<dyn ASTNode>,
+    rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for MulOp {}
 
 impl ASTNode for MulOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_mul_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_mul_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct DivOp {
-    lhs: Box<dyn Expr>,
-    rhs: Box<dyn Expr>,
+    lhs: Box<dyn ASTNode>,
+    rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for DivOp {}
 
 impl ASTNode for DivOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_div_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_div_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -229,53 +287,107 @@ pub enum RelationOp {
 
 pub struct Relation {
     op: RelationOp,
-    lhs: Box<dyn Expr>,
-    rhs: Box<dyn Expr>,
+    lhs: Box<dyn ASTNode>,
+    rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for Relation {}
 
 impl ASTNode for Relation {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_relation(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_relation(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct NegateOp {
-    operand: Box<dyn Expr>,
+    operand: Box<dyn ASTNode>,
 }
 
 impl Expr for NegateOp {}
 
 impl ASTNode for NegateOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_negate_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_negate_op(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
 pub struct SubscriptOp {
     pub array: Box<Var>,
-    pub index: Box<dyn Expr>,
+    pub index: Box<dyn ASTNode>,
 }
 
 impl Expr for SubscriptOp {}
 
 impl ASTNode for SubscriptOp {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_subscript_op(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_subscript_op(&self)
+    //}
+    
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        let array_type = self.array.type_check(st);
+        let expr_type = self.index.type_check(st);
+
+        match array_type {
+            Types::Array(_, _) => (),
+            _ => panic!("Indexing can only be performed on array types"),
+        }
+
+        match expr_type {
+            Types::Int => (),
+            _ => panic!("Array index must be of integer type"),
+        }
+
+        array_type
     }
 }
 
 pub struct ProcCall {
     pub proc: Box<Var>,
-    pub args: Vec<Box<dyn Expr>>,
+    pub args: Vec<Box<dyn ASTNode>>,
 }
 
 impl Expr for ProcCall {}
 
 impl ASTNode for ProcCall {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_proc_call(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_proc_call(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        let proc_type = self.proc.type_check(st);
+        let mut arg_types = Vec::new();
+        for arg in self.args.iter() {
+            arg_types.push(arg.type_check(st));
+        }
+
+        let return_type: Types;
+        match proc_type {
+            Types::Proc(out_type, param_types) => {
+                let n_args = arg_types.len();
+                let n_params = param_types.len();
+                if n_args != n_params {
+                    panic!("Incorrect number of arguments");
+                }
+
+                for (i, (arg_type, param_type)) in arg_types.iter().zip(param_types.iter()).enumerate() {
+                    if arg_type != param_type {
+                        panic!("Type mismatch in argument {i}. (0-indexed)");
+                    }
+                }
+
+                return_type = *out_type;
+            }
+            _ => panic!("Expected procedure type"),
+        }
+        return_type
     }
 }
 
@@ -286,8 +398,12 @@ pub struct IntLiteral {
 impl Expr for IntLiteral {}
 
 impl ASTNode for IntLiteral {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_int_literal(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_int_literal(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -298,8 +414,12 @@ pub struct FloatLiteral {
 impl Expr for FloatLiteral {}
 
 impl ASTNode for FloatLiteral {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_float_literal(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_float_literal(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -310,8 +430,12 @@ pub struct BoolLiteral {
 impl Expr for BoolLiteral {}
 
 impl ASTNode for BoolLiteral {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_bool_literal(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_bool_literal(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -322,8 +446,12 @@ pub struct StringLiteral {
 impl Expr for StringLiteral {}
 
 impl ASTNode for StringLiteral {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_string_literal(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_string_literal(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        Types::Unknown
     }
 }
 
@@ -334,7 +462,18 @@ pub struct Var {
 impl Expr for Var {}
 
 impl ASTNode for Var {
-    fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
-        v.visit_var(&self)
+    //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T {
+    //    v.visit_var(&self)
+    //}
+
+    fn type_check(&self, st: &mut SymTable) -> Types {
+        let parsed_type: Types;
+        match st.get(&self.id) {
+            Some(types) => {
+                parsed_type = types.clone();
+            }
+            None => panic!("Missing declaration for {}", self.id),
+        }
+        parsed_type
     }
 }

@@ -4,6 +4,7 @@ use std::fs;
 use compiler::codegen::CodeGen;
 use compiler::llparser::LLParser;
 use compiler::scanner::Scanner;
+//use compiler::typechecker::TypeChecker;
 //use compiler::token::Token;
 
 use inkwell::context::Context;
@@ -33,6 +34,8 @@ fn main() {
 
     let mut p = LLParser::new(s, codegen);
     p.parse();
+
+    //let tc = TypeChecker::new();
 
     println!("Parse completed!");
 }

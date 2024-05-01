@@ -552,7 +552,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn expr(&mut self) -> (Types, Box<dyn ast::Expr>) {
+    fn expr(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
         if self.tok == Token::Not {
             // consume not token
             self.consume_tok();
@@ -563,7 +563,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         self.expr_prime(l_op_type.clone())
     }
 
-    fn expr_prime(&mut self, l_op_type: Types) -> (Types, Box<dyn ast::Expr>) {
+    fn expr_prime(&mut self, l_op_type: Types) -> (Types, Box<dyn ast::ASTNode>) {
         let null_node = Box::new(ast::Var {
             id: String::from(""),
         });
@@ -779,7 +779,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             // consume left paren
             self.consume_tok();
 
-            let expr_node: Box<dyn ast::Expr>;
+            let expr_node: Box<dyn ast::ASTNode>;
             (parsed_type, expr_node) = self.expr();
 
             if self.tok != Token::RParen {
@@ -805,7 +805,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         parsed_type
     }
 
-    fn procedure_call_prime(&mut self, proc_type: Types, var_node: Box<ast::Var>) -> (Types, Box<dyn ast::Expr>) {
+    fn procedure_call_prime(&mut self, proc_type: Types, var_node: Box<ast::Var>) -> (Types, Box<dyn ast::ASTNode>) {
         // identifier already consumed
 
         if self.tok != Token::LParen {
@@ -862,7 +862,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(argument_list): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn argument_list(&mut self) -> Vec<(Types, Box<dyn ast::Expr>)> {
+    fn argument_list(&mut self) -> Vec<(Types, Box<dyn ast::ASTNode>)> {
         let mut arg_types = Vec::new();
 
         //let (mut expr_type, mut expr_node) = self.expr();
@@ -881,7 +881,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         arg_types
     }
 
-    fn name(&mut self) -> (Types, Box<dyn ast::Expr>) {
+    fn name(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
         let mut parsed_type: Types;
         let mut var_id = String::from("");
         match &self.tok {
@@ -902,13 +902,13 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             id: var_id,
         });
 
-        let expr_node: Box<dyn ast::Expr>;
+        let expr_node: Box<dyn ast::ASTNode>;
         (parsed_type, expr_node) = self.name_prime(parsed_type.clone(), var);
 
         (parsed_type, expr_node)
     }
 
-    fn name_prime(&mut self, array_type: Types, var_node: Box<ast::Var>) -> (Types, Box<dyn ast::Expr>) {
+    fn name_prime(&mut self, array_type: Types, var_node: Box<ast::Var>) -> (Types, Box<dyn ast::ASTNode>) {
         // identifier already consumed
 
         if self.tok != Token::LSquare {
