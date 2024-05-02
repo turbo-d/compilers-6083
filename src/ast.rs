@@ -304,7 +304,7 @@ impl ASTNode for Relation {
 }
 
 pub struct NegateOp {
-    operand: Box<dyn ASTNode>,
+    pub operand: Box<dyn ASTNode>,
 }
 
 impl Expr for NegateOp {}
@@ -315,7 +315,8 @@ impl ASTNode for NegateOp {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        // TODO: Type checking for negation operand
+        self.operand.type_check(st)
     }
 }
 
@@ -392,7 +393,7 @@ impl ASTNode for ProcCall {
 }
 
 pub struct IntLiteral {
-    value: i32,
+    pub value: i32,
 }
 
 impl Expr for IntLiteral {}
@@ -403,12 +404,12 @@ impl ASTNode for IntLiteral {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        Types::Int
     }
 }
 
 pub struct FloatLiteral {
-    value: f32,
+    pub value: f32,
 }
 
 impl Expr for FloatLiteral {}
@@ -419,12 +420,12 @@ impl ASTNode for FloatLiteral {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        Types::Float
     }
 }
 
 pub struct BoolLiteral {
-    value: bool,
+    pub value: bool,
 }
 
 impl Expr for BoolLiteral {}
@@ -435,12 +436,12 @@ impl ASTNode for BoolLiteral {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        Types::Bool
     }
 }
 
 pub struct StringLiteral {
-    value: String,
+    pub value: String,
 }
 
 impl Expr for StringLiteral {}
@@ -451,7 +452,7 @@ impl ASTNode for StringLiteral {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        Types::String
     }
 }
 

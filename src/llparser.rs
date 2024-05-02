@@ -685,7 +685,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
 
     // first(term): "(", "identifier", "-", "number", "string", "true", "false"
     fn term(&mut self) -> Types {
-        let l_op_type = self.factor();
+        let (l_op_type, _) = self.factor();
 
         self.term_prime(l_op_type.clone())
     }
@@ -701,7 +701,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         // consume token
         self.consume_tok();
 
-        let r_op_type = self.factor();
+        let (r_op_type, _) = self.factor();
 
         if l_op_type != Types::Int && l_op_type != Types::Float {
             panic!("Arithmetic operations can only be performed on operands of integer and float type");
@@ -726,83 +726,123 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
-    fn factor(&mut self) -> Types {
+    fn factor(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
         let mut parsed_type: Types;
+        let mut factor_node: Box<dyn ast::ASTNode>;
 
-        if let Token::Identifier(id) = &self.tok {
-            let mut var_id = String::from("");
-            match self.st.get(id) {
-                Some(types) => {
-                    parsed_type = types.clone();
-                    var_id = id.clone();
+        let tok = self.tok.clone();
+        match tok {
+            Token::Identifier(id) => {
+                let mut var_id = String::from("");
+                match self.st.get(&id) {
+                    Some(types) => {
+                        parsed_type = types.clone();
+                        var_id = id.clone();
+                    }
+                    None => panic!("Missing declaration for {id}"),
                 }
-                None => panic!("Missing declaration for {id}"),
+                // consume identifier
+                self.consume_tok();
+
+                let var = Box::new(ast::Var {
+                    id: var_id,
+                });
+
+                if self.tok == Token::LParen {
+                    (parsed_type, factor_node) = self.procedure_call_prime(parsed_type.clone(), var);
+                } else {
+                    (parsed_type, factor_node) = self.name_prime(parsed_type.clone(), var);
+                }
             }
-            // consume identifier
-            self.consume_tok();
+            Token::Sub => {
+                // consume minus
+                self.consume_tok();
 
-            let var = Box::new(ast::Var {
-                id: var_id,
-            });
+                let mut negate_operand_node: Box<dyn ast::ASTNode>;
+                let tok = self.tok.clone();
+                match tok {
+                    Token::Identifier(_) => {
+                        (parsed_type, negate_operand_node) = self.name();
+                    }
+                    Token::IntLiteral(val) => {
+                        // consume number
+                        self.consume_tok();
+                        parsed_type = Types::Int;
+                        negate_operand_node = Box::new(ast::IntLiteral {
+                            value: val,
+                        });
+                    }
+                    Token::FloatLiteral(val) => {
+                        // consume number
+                        self.consume_tok();
+                        parsed_type = Types::Float;
+                        negate_operand_node = Box::new(ast::FloatLiteral {
+                            value: val,
+                        });
+                    }
+                    _ => panic!("Expected \"identifier\" or \"number\" following \"-\"")
+                }
 
-            if self.tok == Token::LParen {
-                (parsed_type, _) = self.procedure_call_prime(parsed_type.clone(), var);
-            } else {
-                (parsed_type, _) = self.name_prime(parsed_type.clone(), var);
+                factor_node = Box::new(ast::NegateOp {
+                    operand: negate_operand_node,
+                });
             }
-        } else if self.tok == Token::Sub {
-            // consume minus
-            self.consume_tok();
-
-            if matches!(self.tok, Token::Identifier(_)) {
-                (parsed_type, _) = self.name();
-            } else if matches!(self.tok, Token::IntLiteral(_)) {
+            Token::IntLiteral(val) => {
                 // consume number
                 self.consume_tok();
                 parsed_type = Types::Int;
-            } else if matches!(self.tok, Token::FloatLiteral(_)) {
+                factor_node = Box::new(ast::IntLiteral {
+                    value: val,
+                });
+            }
+            Token::FloatLiteral(val) => {
                 // consume number
                 self.consume_tok();
                 parsed_type = Types::Float;
-            } else {
-                panic!("Expected \"identifier\" or \"number\" following \"-\"");
+                factor_node = Box::new(ast::FloatLiteral {
+                    value: val,
+                });
             }
-        } else if matches!(self.tok, Token::IntLiteral(_)) {
-            // consume number
-            self.consume_tok();
-            parsed_type = Types::Int;
-        } else if matches!(self.tok, Token::FloatLiteral(_)) {
-            // consume number
-            self.consume_tok();
-            parsed_type = Types::Float;
-        } else if self.tok == Token::LParen {
-            // consume left paren
-            self.consume_tok();
+            Token::LParen => {
+                // consume left paren
+                self.consume_tok();
 
-            let expr_node: Box<dyn ast::ASTNode>;
-            (parsed_type, expr_node) = self.expr();
+                let expr_node: Box<dyn ast::ASTNode>;
+                (parsed_type, factor_node) = self.expr();
 
-            if self.tok != Token::RParen {
-                panic!("Expected \")\"");
+                if self.tok != Token::RParen {
+                    panic!("Expected \")\"");
+                }
+                self.consume_tok();
             }
-            self.consume_tok();
-        } else if matches!(self.tok, Token::String(_)) {
-            // consume string
-            self.consume_tok();
-            parsed_type = Types::String;
-        } else if self.tok == Token::True {
-            // consume true
-            self.consume_tok();
-            parsed_type = Types::Bool;
-        } else if self.tok == Token::False {
-            // consume false
-            self.consume_tok();
-            parsed_type = Types::Bool;
-        } else {
-            panic!("Expected \"factor\"");
+            Token::String(val) => {
+                // consume string
+                self.consume_tok();
+                parsed_type = Types::String;
+                factor_node = Box::new(ast::StringLiteral {
+                    value: val.clone(),
+                });
+            }
+            Token::True => {
+                // consume true
+                self.consume_tok();
+                parsed_type = Types::Bool;
+                factor_node = Box::new(ast::BoolLiteral {
+                    value: true,
+                });
+            }
+            Token::False => {
+                // consume false
+                self.consume_tok();
+                parsed_type = Types::Bool;
+                factor_node = Box::new(ast::BoolLiteral {
+                    value: false,
+                });
+            }
+            _ => panic!("Expected \"factor\""),
         }
 
-        parsed_type
+        (parsed_type, factor_node)
     }
 
     fn procedure_call_prime(&mut self, proc_type: Types, var_node: Box<ast::Var>) -> (Types, Box<dyn ast::ASTNode>) {
