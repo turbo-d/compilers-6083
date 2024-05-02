@@ -159,8 +159,8 @@ impl ASTNode for ReturnStmt {
 pub trait Expr {}
 
 pub struct AndOp {
-    lhs: Box<dyn ASTNode>,
-    rhs: Box<dyn ASTNode>,
+    pub lhs: Box<dyn ASTNode>,
+    pub rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for AndOp {}
@@ -171,13 +171,24 @@ impl ASTNode for AndOp {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let lhs_type = self.lhs.type_check(st);
+        let rhs_type = self.rhs.type_check(st);
+
+        if lhs_type != Types::Int {
+            panic!("Bitwise operations can only be performed on operands of integer type");
+        }
+
+        if rhs_type != Types::Int {
+            panic!("Bitwise operations can only be performed on operands of integer type");
+        }
+
+        Types::Int
     }
 }
 
 pub struct OrOp {
-    lhs: Box<dyn ASTNode>,
-    rhs: Box<dyn ASTNode>,
+    pub lhs: Box<dyn ASTNode>,
+    pub rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for OrOp {}
@@ -188,12 +199,23 @@ impl ASTNode for OrOp {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let lhs_type = self.lhs.type_check(st);
+        let rhs_type = self.rhs.type_check(st);
+
+        if lhs_type != Types::Int {
+            panic!("Bitwise operations can only be performed on operands of integer type");
+        }
+
+        if rhs_type != Types::Int {
+            panic!("Bitwise operations can only be performed on operands of integer type");
+        }
+
+        Types::Int
     }
 }
 
 pub struct NotOp {
-    operand: Box<dyn ASTNode>,
+    pub operand: Box<dyn ASTNode>,
 }
 
 impl Expr for NotOp {}
@@ -204,7 +226,13 @@ impl ASTNode for NotOp {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let operand_type = self.operand.type_check(st);
+
+        if operand_type != Types::Int {
+            panic!("Bitwise operations can only be performed on operands of integer type");
+        }
+
+        Types::Int
     }
 }
 

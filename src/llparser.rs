@@ -553,27 +553,34 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
     fn expr(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
+        let mut do_complement = false;
         if self.tok == Token::Not {
+            do_complement = true;
             // consume not token
             self.consume_tok();
         }
 
         let (lhs_type, lhs_node) = self.arith_op();
 
-        self.expr_prime(lhs_type.clone())
+        let (expr_type, expr_node) = self.expr_prime(lhs_type, lhs_node);
+        if do_complement {
+            let complement_node = Box::new(ast::NotOp {
+                operand: expr_node,
+            });
+            return (Types::Int, complement_node);
+        }
+
+        (expr_type, expr_node)
     }
 
-    fn expr_prime(&mut self, lhs_type: Types) -> (Types, Box<dyn ast::ASTNode>) {
-        let null_node = Box::new(ast::Var {
-            id: String::from(""),
-        });
-
+    fn expr_prime(&mut self, lhs_type: Types, lhs_node: Box<dyn ast::ASTNode>) -> (Types, Box<dyn ast::ASTNode>) {
         if self.tok != Token::And && self.tok != Token::Or {
             // null body production
             // TODO: check follow() for error checking
-            return (lhs_type, null_node);
+            return (lhs_type, lhs_node);
         }
 
+        let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
@@ -587,8 +594,24 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             panic!("Bitwise operations can only be performed on operands of integer type");
         }
 
+        let expr_node: Box<dyn ast::ASTNode> = match op {
+            Token::And => {
+                Box::new(ast::AndOp {
+                    lhs: lhs_node,
+                    rhs: rhs_node,
+                })
+            }
+            Token::Or => {
+                Box::new(ast::OrOp {
+                    lhs: lhs_node,
+                    rhs: rhs_node,
+                })
+            }
+            _ => panic!("Cannot create ast node"),
+        };
+
         let op_type = Types::Int;
-        self.expr_prime(op_type)
+        self.expr_prime(op_type, expr_node)
     }
 
     // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
