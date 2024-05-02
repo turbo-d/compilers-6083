@@ -558,7 +558,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             self.consume_tok();
         }
 
-        let lhs_type = self.arith_op();
+        let (lhs_type, lhs_node) = self.arith_op();
 
         self.expr_prime(lhs_type.clone())
     }
@@ -577,7 +577,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         // consume token
         self.consume_tok();
 
-        let rhs_type = self.arith_op();
+        let (rhs_type, rhs_node) = self.arith_op();
 
         if lhs_type != Types::Int {
             panic!("Bitwise operations can only be performed on operands of integer type");
@@ -592,24 +592,24 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
-    fn arith_op(&mut self) -> Types {
-        let (lhs_type, _) = self.relation();
+    fn arith_op(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
+        let (lhs_type, lhs_node) = self.relation();
 
-        self.arith_op_prime(lhs_type.clone())
+        self.arith_op_prime(lhs_type.clone(), lhs_node)
     }
 
-    fn arith_op_prime(&mut self, lhs_type: Types) -> Types {
+    fn arith_op_prime(&mut self, lhs_type: Types, lhs_node: Box<dyn ast::ASTNode>) -> (Types, Box<dyn ast::ASTNode>) {
         if self.tok != Token::Add && self.tok != Token::Sub {
             // null body production
             // TODO: check follow() for error checking
-            return lhs_type;
+            return (lhs_type, lhs_node);
         }
 
-        //let op = self.tok.clone();
+        let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let (rhs_type, _) = self.relation();
+        let (rhs_type, rhs_node) = self.relation();
 
         if lhs_type != Types::Int && lhs_type != Types::Float {
             panic!("Arithmetic operations can only be performed on operands of integer and float type");
@@ -624,7 +624,23 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             op_type = Types::Int;
         }
 
-        self.arith_op_prime(op_type)
+        let arith_op_node: Box<dyn ast::ASTNode> = match op {
+            Token::Add => {
+                Box::new(ast::AddOp {
+                    lhs: lhs_node,
+                    rhs: rhs_node,
+                })
+            }
+            Token::Sub => {
+                Box::new(ast::SubOp {
+                    lhs: lhs_node,
+                    rhs: rhs_node,
+                })
+            }
+            _ => panic!("Cannot create ast node"),
+        };
+
+        self.arith_op_prime(op_type, arith_op_node)
     }
 
     // first(relation): "(", "identifier", "-", "number", "string", "true", "false"

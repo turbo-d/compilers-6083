@@ -209,8 +209,8 @@ impl ASTNode for NotOp {
 }
 
 pub struct AddOp {
-    lhs: Box<dyn ASTNode>,
-    rhs: Box<dyn ASTNode>,
+    pub lhs: Box<dyn ASTNode>,
+    pub rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for AddOp {}
@@ -221,13 +221,28 @@ impl ASTNode for AddOp {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let lhs_type = self.lhs.type_check(st);
+        let rhs_type = self.rhs.type_check(st);
+
+        if lhs_type != Types::Int && lhs_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        if rhs_type != Types::Int && rhs_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        let mut op_type = Types::Float;
+        if lhs_type == Types::Int && rhs_type == Types::Int {
+            op_type = Types::Int;
+        }
+        op_type
     }
 }
 
 pub struct SubOp {
-    lhs: Box<dyn ASTNode>,
-    rhs: Box<dyn ASTNode>,
+    pub lhs: Box<dyn ASTNode>,
+    pub rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for SubOp {}
@@ -238,7 +253,22 @@ impl ASTNode for SubOp {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let lhs_type = self.lhs.type_check(st);
+        let rhs_type = self.rhs.type_check(st);
+
+        if lhs_type != Types::Int && lhs_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        if rhs_type != Types::Int && rhs_type != Types::Float {
+            panic!("Arithmetic operations can only be performed on operands of integer and float type");
+        }
+
+        let mut op_type = Types::Float;
+        if lhs_type == Types::Int && rhs_type == Types::Int {
+            op_type = Types::Int;
+        }
+        op_type
     }
 }
 
