@@ -37,40 +37,50 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
     }
 
-    pub fn parse(&mut self) {
+    pub fn parse(&mut self) -> Box<dyn ast::ASTNode> {
         self.consume_tok();
 
-        self.program();
+        let prgm_node = self.program();
 
         if self.tok != Token::EOF {
             eprintln!("Extraneous trailing characters");
         }
+
+        prgm_node
     }
 
     fn consume_tok(&mut self) {
         self.tok = self.s.scan();
     }
 
-    fn program(&mut self) {
-        self.program_header();
+    fn program(&mut self) -> Box<dyn ast::ASTNode> {
+        let name = self.program_header();
 
-        self.program_body();
+        let (decls, body) = self.program_body();
 
         if self.tok != Token::Period {
             // TODO: Probably want to warn here instead
             panic!("Expected \".\"");
         }
         self.consume_tok();
+
+        Box::new(ast::Program {
+            name: name,
+            decls: decls,
+            body: body,
+        })
     }
 
-    fn program_header(&mut self) {
+    fn program_header(&mut self) -> String {
         if self.tok != Token::Program {
             panic!("Expected \"program\"");
         }
         self.consume_tok();
 
-        if !matches!(self.tok, Token::Identifier(_)) {
-            panic!("Expected \"identifier\"");
+        let identifier: String;
+        match &self.tok {
+            Token::Identifier(id) => identifier = id.clone(),
+            _ => panic!("Expected \"identifier\""),
         }
         self.consume_tok();
 
@@ -78,13 +88,16 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             panic!("Expected \"is\"");
         }
         self.consume_tok();
+
+        identifier
     }
 
     // first(program_body): "global", "procedure", "variable", "begin"
-    fn program_body(&mut self) {
+    fn program_body(&mut self) -> (Vec<Box<dyn ast::ASTNode>>, Vec<Box<dyn ast::ASTNode>>) {
+        let mut decls = Vec::new();
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
-            self.declaration();
+            decls.push(self.declaration());
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -97,9 +110,10 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
+        let mut stmts = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            _ = self.statement();
+            stmts.push(self.statement());
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -111,31 +125,45 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             panic!("Expected \"end program\"");
         }
         self.consume_tok();
+
+        (decls, stmts)
     }
 
     // first(declaration): "global", "procedure", "variable"
-    fn declaration(&mut self) {
+    fn declaration(&mut self) -> Box<dyn ast::ASTNode> {
         let mut is_global = false;
         if self.tok == Token::Global {
             self.consume_tok();
             is_global = true;
         }
 
+        let decl_node: Box<dyn ast::ASTNode>;
         if self.tok == Token::Procedure {
-            self.procedure_declaration(is_global);
+            decl_node = self.procedure_declaration(is_global);
         } else if self.tok == Token::Variable {
-            self.variable_declaration(is_global);
+            (_, decl_node) = self.variable_declaration(is_global);
         } else {
             panic!("Expected \"Procedure declaration or Variable declaration\"");
         }
+
+        decl_node
     }
 
-    fn procedure_declaration(&mut self, is_global: bool) {
-        let proc_type = self.procedure_header(is_global);
-        self.procedure_body(proc_type);
+    fn procedure_declaration(&mut self, is_global: bool) -> Box<dyn ast::ASTNode> {
+        let (name, proc_type, params) = self.procedure_header(is_global);
+        let (decls, body) = self.procedure_body(proc_type.clone());
+
+        Box::new(ast::ProcDecl {
+            is_global: is_global,
+            name: name,
+            ty: proc_type,
+            params: params,
+            decls: decls,
+            body: body,
+        })
     }
 
-    fn procedure_header(&mut self, is_global: bool) -> Types {
+    fn procedure_header(&mut self, is_global: bool) -> (String, Types, Vec<Box<dyn ast::ASTNode>>) {
         if self.tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
@@ -160,10 +188,10 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        let mut param_types = Vec::new();
+        let mut params = Vec::new();
         // first(parameter_list)
         if self.tok == Token::Variable {
-            param_types = self.parameter_list();
+            params = self.parameter_list();
         }
 
         if self.tok != Token::RParen {
@@ -171,6 +199,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
+        let (param_types, param_nodes): (Vec<_>, Vec<_>) = params.into_iter().unzip();
         let parsed_type = Types::Proc(Box::new(return_type), param_types);
         let result: Result<(), String>;
         if is_global {
@@ -184,7 +213,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             Err(_) => panic!("Duplicate declaration. {identifier} is already declared in this scope"),
         }
 
-        parsed_type
+        (identifier, parsed_type, param_nodes)
     }
 
     fn type_mark(&mut self) -> Types {
@@ -206,33 +235,34 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(parameter_list): "variable"
-    fn parameter_list(&mut self) -> Vec<Types> {
-        let mut param_types = Vec::new();
+    fn parameter_list(&mut self) -> Vec<(Types, Box<dyn ast::ASTNode>)> {
+        let mut params = Vec::new();
 
-        param_types.push(self.parameter());
+        params.push(self.parameter());
 
         while self.tok == Token::Comma {
             //consume comma
             self.consume_tok();
 
-            param_types.push(self.parameter());
+            params.push(self.parameter());
         }
 
-        param_types
+        params
     }
 
-    fn parameter(&mut self) -> Types {
+    fn parameter(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
         self.variable_declaration(false)
     }
 
     // TODO: Almost the same as program_body
     // first(procedure_body): "global", "procedure", "variable", "begin"
-    fn procedure_body(&mut self, proc_type: Types) {
+    fn procedure_body(&mut self, proc_type: Types) -> (Vec<Box<dyn ast::ASTNode>>, Vec<Box<dyn ast::ASTNode>>) {
         self.st.enter_scope(proc_type.clone());
 
+        let mut decls = Vec::new();
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
-            self.declaration();
+            decls.push(self.declaration());
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -245,9 +275,10 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
+        let mut stmts = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            _ = self.statement();
+            stmts.push(self.statement());
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -261,9 +292,11 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         self.consume_tok();
 
         self.st.exit_scope();
+
+        (decls, stmts)
     }
 
-    fn variable_declaration(&mut self, is_global: bool) -> Types {
+    fn variable_declaration(&mut self, is_global: bool) -> (Types, Box<dyn ast::ASTNode>) {
         if self.tok != Token::Variable {
             panic!("Expected \"variable\"");
         }
@@ -321,7 +354,13 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             Err(_) => panic!("Duplicate declaration. {identifier} is already declared in this scope"),
         }
 
-        parsed_type
+        let var_decl_node = Box::new(ast::VarDecl {
+            is_global: is_global,
+            name: identifier,
+            ty: parsed_type.clone(),
+        });
+
+        (parsed_type, var_decl_node)
     }
 
     // first(statement): "identifier", "if", "for", "return"

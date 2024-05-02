@@ -35,10 +35,9 @@ pub trait ASTNode {
 }
 
 pub struct Program {
-    name: String,
-    vars: Vec<VarDecl>,
-    procs: Vec<ProcDecl>,
-    body: Vec<Box<dyn ASTNode>>,
+    pub name: String,
+    pub decls: Vec<Box<dyn ASTNode>>,
+    pub body: Vec<Box<dyn ASTNode>>,
 }
 
 impl ASTNode for Program {
@@ -47,14 +46,22 @@ impl ASTNode for Program {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
+        for decl in &self.decls {
+            decl.type_check(st);
+        }
+
+        for stmt in &self.body {
+            stmt.type_check(st);
+        }
+
         Types::Unknown
     }
 }
 
 pub struct VarDecl {
-    is_global: bool,
-    name: String,
-    ty: Types,
+    pub is_global: bool,
+    pub name: String,
+    pub ty: Types,
 }
 
 impl ASTNode for VarDecl {
@@ -63,18 +70,29 @@ impl ASTNode for VarDecl {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let result: Result<(), String>;
+        if self.is_global {
+            result = st.insert_global(self.name.clone(), self.ty.clone());
+        } else {
+            result = st.insert(self.name.clone(), self.ty.clone());
+        }
+
+        match result {
+            Ok(_) => (),
+            Err(_) => panic!("Duplicate declaration. {} is already declared in this scope", self.name),
+        }
+
+        self.ty.clone()
     }
 }
 
 pub struct ProcDecl {
-    is_global: bool,
-    name: String,
-    ty: Types,
-    params: Vec<VarDecl>,
-    vars: Vec<VarDecl>,
-    procs: Vec<ProcDecl>,
-    body: Vec<Box<dyn ASTNode>>,
+    pub is_global: bool,
+    pub name: String,
+    pub ty: Types,
+    pub params: Vec<Box<dyn ASTNode>>,
+    pub decls: Vec<Box<dyn ASTNode>>,
+    pub body: Vec<Box<dyn ASTNode>>,
 }
 
 impl ASTNode for ProcDecl {
@@ -83,7 +101,35 @@ impl ASTNode for ProcDecl {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let result: Result<(), String>;
+        if self.is_global {
+            result = st.insert_global(self.name.clone(), self.ty.clone());
+        } else {
+            result = st.insert(self.name.clone(), self.ty.clone());
+        }
+
+        match result {
+            Ok(_) => (),
+            Err(_) => panic!("Duplicate declaration. {} is already declared in this scope", self.name),
+        }
+
+        st.enter_scope(self.ty.clone());
+
+        for param in &self.params {
+            param.type_check(st);
+        }
+
+        for decl in &self.decls {
+            decl.type_check(st);
+        }
+
+        for stmt in &self.body {
+            stmt.type_check(st);
+        }
+
+        st.exit_scope();
+
+        self.ty.clone()
     }
 }
 
