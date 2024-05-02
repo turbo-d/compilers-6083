@@ -301,6 +301,7 @@ impl ASTNode for DivOp {
     }
 }
 
+#[derive(PartialEq)]
 pub enum RelationOp {
     LT,
     LTE,
@@ -311,9 +312,9 @@ pub enum RelationOp {
 }
 
 pub struct Relation {
-    op: RelationOp,
-    lhs: Box<dyn ASTNode>,
-    rhs: Box<dyn ASTNode>,
+    pub op: RelationOp,
+    pub lhs: Box<dyn ASTNode>,
+    pub rhs: Box<dyn ASTNode>,
 }
 
 impl Expr for Relation {}
@@ -324,7 +325,37 @@ impl ASTNode for Relation {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        Types::Unknown
+        let lhs_type = self.lhs.type_check(st);
+        let rhs_type = self.rhs.type_check(st);
+
+        match lhs_type {
+            Types::Bool => {
+                if rhs_type != Types::Bool && rhs_type != Types::Int {
+                    panic!("Type mismatch. Right operand must be of bool or integer type");
+                }
+            }
+            Types::Int => {
+                if rhs_type != Types::Int && rhs_type != Types::Bool {
+                    panic!("Type mismatch. Right operand must be of integer or bool type");
+                }
+            }
+            Types::Float => {
+                if rhs_type != Types::Float {
+                    panic!("Type mismatch. Right operand must be of float type");
+                }
+            }
+            Types::String => {
+                if self.op != RelationOp::Eq && self.op != RelationOp::NotEq {
+                    panic!("Operator not supported for operands of string type. Only == and != are supported for operands of string type");
+                }
+                if rhs_type != Types::String {
+                    panic!("Type mismatch. Right operand must be of string type");
+                }
+            }
+            _ => panic!("Relational operators not supported for this operand type"),
+        }
+
+        Types::Bool
     }
 }
 

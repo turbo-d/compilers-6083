@@ -558,12 +558,12 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             self.consume_tok();
         }
 
-        let l_op_type = self.arith_op();
+        let lhs_type = self.arith_op();
 
-        self.expr_prime(l_op_type.clone())
+        self.expr_prime(lhs_type.clone())
     }
 
-    fn expr_prime(&mut self, l_op_type: Types) -> (Types, Box<dyn ast::ASTNode>) {
+    fn expr_prime(&mut self, lhs_type: Types) -> (Types, Box<dyn ast::ASTNode>) {
         let null_node = Box::new(ast::Var {
             id: String::from(""),
         });
@@ -571,19 +571,19 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         if self.tok != Token::And && self.tok != Token::Or {
             // null body production
             // TODO: check follow() for error checking
-            return (l_op_type, null_node);
+            return (lhs_type, null_node);
         }
 
         // consume token
         self.consume_tok();
 
-        let r_op_type = self.arith_op();
+        let rhs_type = self.arith_op();
 
-        if l_op_type != Types::Int {
+        if lhs_type != Types::Int {
             panic!("Bitwise operations can only be performed on operands of integer type");
         }
 
-        if r_op_type != Types::Int {
+        if rhs_type != Types::Int {
             panic!("Bitwise operations can only be performed on operands of integer type");
         }
 
@@ -593,34 +593,34 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
 
     // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
     fn arith_op(&mut self) -> Types {
-        let l_op_type = self.relation();
+        let (lhs_type, _) = self.relation();
 
-        self.arith_op_prime(l_op_type.clone())
+        self.arith_op_prime(lhs_type.clone())
     }
 
-    fn arith_op_prime(&mut self, l_op_type: Types) -> Types {
+    fn arith_op_prime(&mut self, lhs_type: Types) -> Types {
         if self.tok != Token::Add && self.tok != Token::Sub {
             // null body production
             // TODO: check follow() for error checking
-            return l_op_type;
+            return lhs_type;
         }
 
         //let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let r_op_type = self.relation();
+        let (rhs_type, _) = self.relation();
 
-        if l_op_type != Types::Int && l_op_type != Types::Float {
+        if lhs_type != Types::Int && lhs_type != Types::Float {
             panic!("Arithmetic operations can only be performed on operands of integer and float type");
         }
 
-        if r_op_type != Types::Int && r_op_type != Types::Float {
+        if rhs_type != Types::Int && rhs_type != Types::Float {
             panic!("Arithmetic operations can only be performed on operands of integer and float type");
         }
 
         let mut op_type = Types::Float;
-        if l_op_type == Types::Int && r_op_type == Types::Int {
+        if lhs_type == Types::Int && rhs_type == Types::Int {
             op_type = Types::Int;
         }
 
@@ -628,13 +628,13 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(relation): "(", "identifier", "-", "number", "string", "true", "false"
-    fn relation(&mut self) -> Types {
-        let (l_op_type, _) = self.term();
+    fn relation(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
+        let (lhs_type, lhs_node) = self.term();
 
-        self.relation_prime(l_op_type.clone())
+        self.relation_prime(lhs_type.clone(), lhs_node)
     }
 
-    fn relation_prime(&mut self, l_op_type: Types) -> Types {
+    fn relation_prime(&mut self, lhs_type: Types, lhs_node: Box<dyn ast::ASTNode>) -> (Types, Box<dyn ast::ASTNode>) {
         if self.tok != Token::LT && 
             self.tok != Token::LTE &&
             self.tok != Token::GT &&
@@ -643,28 +643,28 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             self.tok != Token::NotEq {
             // null body production
             // TODO: check follow() for error checking
-            return l_op_type;
+            return (lhs_type, lhs_node);
         }
 
         let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let (r_op_type, _) = self.term();
+        let (rhs_type, rhs_node) = self.term();
 
-        match l_op_type {
+        match lhs_type {
             Types::Bool => {
-                if r_op_type != Types::Bool && r_op_type != Types::Int {
+                if rhs_type != Types::Bool && rhs_type != Types::Int {
                     panic!("Type mismatch. Right operand must be of bool or integer type");
                 }
             }
             Types::Int => {
-                if r_op_type != Types::Int && r_op_type != Types::Bool {
+                if rhs_type != Types::Int && rhs_type != Types::Bool {
                     panic!("Type mismatch. Right operand must be of integer or bool type");
                 }
             }
             Types::Float => {
-                if r_op_type != Types::Float {
+                if rhs_type != Types::Float {
                     panic!("Type mismatch. Right operand must be of float type");
                 }
             }
@@ -672,15 +672,31 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
                 if op != Token::Eq && op != Token::NotEq {
                     panic!("Operator not supported for operands of string type. Only == and != are supported for operands of string type");
                 }
-                if r_op_type != Types::String {
+                if rhs_type != Types::String {
                     panic!("Type mismatch. Right operand must be of string type");
                 }
             }
             _ => panic!("Relational operators not supported for this operand type"),
         }
 
+        let rel_op = match op {
+            Token::LT => ast::RelationOp::LT,
+            Token::LTE => ast::RelationOp::LTE,
+            Token::GT => ast::RelationOp::GT,
+            Token::GTE => ast::RelationOp::GTE,
+            Token::Eq => ast::RelationOp::Eq,
+            Token::NotEq => ast::RelationOp::NotEq,
+            _ => panic!("Invalid relation token"),
+        };
+
+        let rel_node = Box::new(ast::Relation {
+            op: rel_op,
+            lhs: lhs_node,
+            rhs: rhs_node,
+        });
+
         let op_type = Types::Bool;
-        self.relation_prime(op_type)
+        self.relation_prime(op_type, rel_node)
     }
 
     // first(term): "(", "identifier", "-", "number", "string", "true", "false"
