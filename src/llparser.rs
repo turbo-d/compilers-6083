@@ -629,7 +629,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
 
     // first(relation): "(", "identifier", "-", "number", "string", "true", "false"
     fn relation(&mut self) -> Types {
-        let l_op_type = self.term();
+        let (l_op_type, _) = self.term();
 
         self.relation_prime(l_op_type.clone())
     }
@@ -650,7 +650,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         // consume token
         self.consume_tok();
 
-        let r_op_type = self.term();
+        let (r_op_type, _) = self.term();
 
         match l_op_type {
             Types::Bool => {
@@ -684,45 +684,62 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(term): "(", "identifier", "-", "number", "string", "true", "false"
-    fn term(&mut self) -> Types {
-        let (l_op_type, _) = self.factor();
+    fn term(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
+        let (lhs_type, lhs_node) = self.factor();
 
-        self.term_prime(l_op_type.clone())
+        self.term_prime(lhs_type.clone(), lhs_node)
     }
 
-    fn term_prime(&mut self, l_op_type: Types) -> Types {
+    fn term_prime(&mut self, lhs_type: Types, lhs_node: Box<dyn ast::ASTNode>) -> (Types, Box<dyn ast::ASTNode>) {
         if self.tok != Token::Mul && self.tok != Token::Div {
             // null body production
             // TODO: check follow() for error checking
-            return l_op_type;
+            return (lhs_type, lhs_node);
         }
 
         let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let (r_op_type, _) = self.factor();
+        let (rhs_type, rhs_node) = self.factor();
 
-        if l_op_type != Types::Int && l_op_type != Types::Float {
+        if lhs_type != Types::Int && lhs_type != Types::Float {
             panic!("Arithmetic operations can only be performed on operands of integer and float type");
         }
 
-        if r_op_type != Types::Int && r_op_type != Types::Float {
+        if rhs_type != Types::Int && rhs_type != Types::Float {
             panic!("Arithmetic operations can only be performed on operands of integer and float type");
         }
 
         let op_type = match op {
             Token::Mul => {
-                if l_op_type == Types::Int && r_op_type == Types::Int {
-                    return Types::Int;
+                if lhs_type == Types::Int && rhs_type == Types::Int {
+                    Types::Int
+                } else {
+                    Types::Float
                 }
-                Types::Float
             }
             Token::Div => Types::Float,
             _ => Types::Unknown,
         };
 
-        self.term_prime(op_type)
+        let term_node: Box<dyn ast::ASTNode> = match op {
+            Token::Mul => {
+                Box::new(ast::MulOp {
+                    lhs: lhs_node,
+                    rhs: rhs_node,
+                })
+            }
+            Token::Div => {
+                Box::new(ast::DivOp {
+                    lhs: lhs_node,
+                    rhs: rhs_node,
+                })
+            }
+            _ => panic!("Cannot create ast node"),
+        };
+
+        self.term_prime(op_type, term_node)
     }
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
