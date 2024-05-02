@@ -99,7 +99,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
 
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            self.statement();
+            _ = self.statement();
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -247,7 +247,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
 
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            self.statement();
+            _ = self.statement();
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -325,22 +325,24 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
     }
 
     // first(statement): "identifier", "if", "for", "return"
-    fn statement(&mut self) {
+    fn statement(&mut self) -> Box<dyn ast::ASTNode> {
+        let stmt_node: Box<dyn ast::ASTNode>;
         if matches!(self.tok, Token::Identifier(_)) {
-            self.assignment_statement();
+            stmt_node = self.assignment_statement();
         } else if self.tok == Token::If {
-            self.if_statement();
+            stmt_node = self.if_statement();
         } else if self.tok == Token::For {
-            self.loop_statement();
+            stmt_node = self.loop_statement();
         } else if self.tok == Token::Return {
-            self.return_statement();
+            stmt_node = self.return_statement();
         } else {
             panic!("Expected \"statement\"");
         }
+        stmt_node
     }
 
-    fn assignment_statement(&mut self) {
-        let dest_type = self.destination();
+    fn assignment_statement(&mut self) -> Box<dyn ast::ASTNode> {
+        let (dest_type, dest_node) = self.destination();
 
         if self.tok != Token::Assign {
             panic!("Expected \":=\"");
@@ -372,14 +374,23 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             }
             _ => panic!("Assignment not supported for this operand type"),
         }
+
+        Box::new(ast::AssignStmt {
+            dest: dest_node,
+            expr: expr_node,
+        })
     }
 
-    fn destination(&mut self) -> Types {
+    fn destination(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
         let parsed_type: Types;
+        let mut var_id = String::from("");
         match &self.tok {
             Token::Identifier(id) => {
                 match self.st.get(id) {
-                    Some(types) => parsed_type = types.clone(),
+                    Some(types) => {
+                        parsed_type = types.clone();
+                        var_id = id.clone();
+                    }
                     None => panic!("Missing declaration for {id}"),
                 }
             }
@@ -387,8 +398,12 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
+        let var_node = Box::new(ast::Var {
+            id: var_id,
+        });
+
         if self.tok != Token::LSquare {
-            return parsed_type;
+            return (parsed_type, var_node);
         }
         // consume LSquare
         self.consume_tok();
@@ -410,10 +425,15 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        elem_type
+        let sub_node = Box::new(ast::SubscriptOp {
+            array: var_node,
+            index: expr_node,
+        });
+
+        (elem_type, sub_node)
     }
 
-    fn if_statement(&mut self) {
+    fn if_statement(&mut self) -> Box<dyn ast::ASTNode> {
         if self.tok != Token::If {
             panic!("Expected \"if\"");
         }
@@ -439,9 +459,10 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
+        let mut then_body = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            self.statement();
+            then_body.push(self.statement());
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -449,13 +470,14 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             self.consume_tok();
         }
 
+        let mut else_body = Vec::new();
         if self.tok == Token::Else {
             // consume else
             self.consume_tok();
 
             // first(statement)
             while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-                self.statement();
+                else_body.push(self.statement());
 
                 if self.tok != Token::Semicolon {
                     panic!("Expected \";\"");
@@ -468,9 +490,15 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             panic!("Expected \"end if\"");
         }
         self.consume_tok();
+
+        Box::new(ast::IfStmt {
+            cond: expr_node,
+            then_body: then_body,
+            else_body: else_body,
+        })
     }
 
-    fn loop_statement(&mut self) {
+    fn loop_statement(&mut self) -> Box<dyn ast::ASTNode> {
         if self.tok != Token::For {
             panic!("Expected \"for\"");
         }
@@ -481,7 +509,7 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
-        self.assignment_statement();
+        let assign_stmt_node = self.assignment_statement();
 
         if self.tok != Token::Semicolon {
             panic!("Expected \";\"");
@@ -498,9 +526,10 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
         }
         self.consume_tok();
 
+        let mut body = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            self.statement();
+            body.push(self.statement());
 
             if self.tok != Token::Semicolon {
                 panic!("Expected \";\"");
@@ -512,9 +541,15 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
             panic!("Expected \"end for\"");
         }
         self.consume_tok();
+
+        Box::new(ast::LoopStmt {
+            init: assign_stmt_node,
+            cond: expr_node,
+            body: body,
+        })
     }
 
-    fn return_statement(&mut self) {
+    fn return_statement(&mut self) -> Box<dyn ast::ASTNode> {
         if self.tok != Token::Return {
             panic!("Expected \"return\"");
         }
@@ -549,6 +584,10 @@ impl<'a, 'ctx> LLParser<'a, 'ctx> {
                 _ => panic!("Returns not supported for this operand type"),
             }
         }
+
+        Box::new(ast::ReturnStmt {
+            expr: expr_node,
+        })
     }
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"

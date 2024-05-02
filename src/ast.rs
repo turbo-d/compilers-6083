@@ -38,7 +38,7 @@ pub struct Program {
     name: String,
     vars: Vec<VarDecl>,
     procs: Vec<ProcDecl>,
-    body: Vec<Box<dyn Stmt>>,
+    body: Vec<Box<dyn ASTNode>>,
 }
 
 impl ASTNode for Program {
@@ -74,7 +74,7 @@ pub struct ProcDecl {
     params: Vec<VarDecl>,
     vars: Vec<VarDecl>,
     procs: Vec<ProcDecl>,
-    body: Vec<Box<dyn Stmt>>,
+    body: Vec<Box<dyn ASTNode>>,
 }
 
 impl ASTNode for ProcDecl {
@@ -90,6 +90,8 @@ impl ASTNode for ProcDecl {
 pub trait Stmt {}
 
 pub struct AssignStmt {
+    pub dest: Box<dyn ASTNode>,
+    pub expr: Box<dyn ASTNode>,
 }
 
 impl Stmt for AssignStmt {}
@@ -100,14 +102,39 @@ impl ASTNode for AssignStmt {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
+        let dest_type = self.dest.type_check(st);
+        let expr_type = self.expr.type_check(st);
+        match dest_type {
+            Types::Bool => {
+                if expr_type != Types::Bool && expr_type != Types::Int {
+                    panic!("Type mismatch. Expression must be of bool or integer type");
+                }
+            }
+            Types::Int => {
+                if expr_type != Types::Int && expr_type != Types::Bool {
+                    panic!("Type mismatch. Expression must be of integer, float, or bool type");
+                }
+            }
+            Types::Float => {
+                if expr_type != Types::Float && expr_type != Types::Int {
+                    panic!("Type mismatch. Expression must be of float or integer type");
+                }
+            }
+            Types::String => {
+                if expr_type != Types::String {
+                    panic!("Type mismatch. Expression must be of string type");
+                }
+            }
+            _ => panic!("Assignment not supported for this operand type"),
+        }
         Types::Unknown
     }
 }
 
 pub struct IfStmt {
-    cond: Box<dyn ASTNode>,
-    then_body: Vec<Box<dyn Stmt>>,
-    else_body: Vec<Box<dyn Stmt>>,
+    pub cond: Box<dyn ASTNode>,
+    pub then_body: Vec<Box<dyn ASTNode>>,
+    pub else_body: Vec<Box<dyn ASTNode>>,
 }
 
 impl Stmt for IfStmt {}
@@ -118,14 +145,24 @@ impl ASTNode for IfStmt {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
+        let cond_expr_type = self.cond.type_check(st);
+        if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
+            panic!("The conditional expression must be of bool or integer type");
+        }
+        for stmt in &self.then_body {
+            stmt.type_check(st);
+        }
+        for stmt in &self.else_body {
+            stmt.type_check(st);
+        }
         Types::Unknown
     }
 }
 
 pub struct LoopStmt {
-    init: AssignStmt,
-    cond: Box<dyn ASTNode>,
-    body: Vec<Box<dyn Stmt>>,
+    pub init: Box<dyn ASTNode>,
+    pub cond: Box<dyn ASTNode>,
+    pub body: Vec<Box<dyn ASTNode>>,
 }
 
 impl Stmt for LoopStmt {}
@@ -136,12 +173,20 @@ impl ASTNode for LoopStmt {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
+        self.init.type_check(st);
+        let cond_expr_type = self.cond.type_check(st);
+        if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
+            panic!("The conditional expression must be of bool or integer type");
+        }
+        for stmt in &self.body {
+            stmt.type_check(st);
+        }
         Types::Unknown
     }
 }
 
 pub struct ReturnStmt {
-    expr: Box<dyn ASTNode>,
+    pub expr: Box<dyn ASTNode>,
 }
 
 impl Stmt for ReturnStmt {}
@@ -152,6 +197,36 @@ impl ASTNode for ReturnStmt {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
+        let expr_type = self.expr.type_check(st);
+        let owning_proc_type = st.get_owning_proc_type();
+
+        // Same compatibility rules as assignment
+        if let Types::Proc(return_type, _) = owning_proc_type {
+            match *return_type {
+                Types::Bool => {
+                    if expr_type != Types::Bool && expr_type != Types::Int {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                Types::Int => {
+                    if expr_type != Types::Int && expr_type != Types::Bool {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                Types::Float => {
+                    if expr_type != Types::Float && expr_type != Types::Int {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                Types::String => {
+                    if expr_type != Types::String {
+                        panic!("Expression type does not match the return type of the owning procedure");
+                    }
+                }
+                _ => panic!("Returns not supported for this operand type"),
+            }
+        }
+
         Types::Unknown
     }
 }
