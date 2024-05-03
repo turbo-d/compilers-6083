@@ -6,16 +6,18 @@ use crate::types::Types;
 
 use std::vec::Vec;
 
-pub struct LLParser {
+pub struct LLParser<'a, 'ctx> {
     s: Scanner,
     tok: Token,
+    cg: CodeGen<'a, 'ctx>,
 }
 
-impl LLParser {
-    pub fn new(s: Scanner) -> LLParser {
+impl<'a, 'ctx> LLParser<'a, 'ctx> {
+    pub fn new(s: Scanner, codegen: CodeGen<'a, 'ctx>) -> LLParser<'a, 'ctx> {
         LLParser {
             s,
             tok: Token::Unknown,
+            cg: codegen,
         }
     }
 
