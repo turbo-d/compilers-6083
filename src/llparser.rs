@@ -1,5 +1,4 @@
 use crate::ast;
-use crate::codegen::CodeGen;
 use crate::scanner::Scanner;
 use crate::token::Token;
 use crate::types::Types;

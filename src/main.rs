@@ -29,18 +29,16 @@ fn main() {
     //    println!("{}", tok);
     //}
 
-    let context = Context::create();
-    let builder = context.create_builder();
-    let module = context.create_module("tmp");
-    let codegen = CodeGen::new(&context, &builder, &module);
-
     let mut p = LLParser::new(s);
     let ast = p.parse();
 
     let mut st = SymTable::new_with_runtime();
     ast.type_check(&mut st);
 
-    //let tc = TypeChecker::new();
+    let context = Context::create();
+    let builder = context.create_builder();
+    let module = context.create_module("tmp");
+    let codegen = CodeGen::new(&context, &builder, &module);
 
     println!("Parse completed!");
 }

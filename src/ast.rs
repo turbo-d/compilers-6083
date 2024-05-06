@@ -1,5 +1,9 @@
+use crate::codegen::CodeGen;
 use crate::symtable::SymTable;
 use crate::types::Types;
+
+use inkwell::values::{FloatValue, IntValue};
+use inkwell::FloatPredicate;
 
 use std::vec::Vec;
 
@@ -307,6 +311,19 @@ impl ASTNode for AndOp {
     }
 }
 
+impl AndOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let l: u64 = 5;
+        let lhs = cg.context.i64_type().const_int(l, false);
+        let r: u64 = 10;
+        let rhs = cg.context.i64_type().const_int(r, false);
+
+        cg.builder.build_and(lhs, rhs, "tmpand").unwrap()
+    }
+}
+
 pub struct OrOp {
     pub lhs: Box<dyn ASTNode>,
     pub rhs: Box<dyn ASTNode>,
@@ -335,6 +352,19 @@ impl ASTNode for OrOp {
     }
 }
 
+impl OrOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let l: u64 = 5;
+        let lhs = cg.context.i64_type().const_int(l, false);
+        let r: u64 = 10;
+        let rhs = cg.context.i64_type().const_int(r, false);
+
+        cg.builder.build_or(lhs, rhs, "tmpor").unwrap()
+    }
+}
+
 pub struct NotOp {
     pub operand: Box<dyn ASTNode>,
 }
@@ -354,6 +384,17 @@ impl ASTNode for NotOp {
         }
 
         Types::Int
+    }
+}
+
+impl NotOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let v: u64 = 5;
+        let value = cg.context.i64_type().const_int(v, false);
+
+        cg.builder.build_not(value, "tmpnot").unwrap()
     }
 }
 
@@ -389,6 +430,19 @@ impl ASTNode for AddOp {
     }
 }
 
+impl AddOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let l: f64 = 5.0;
+        let lhs = cg.context.f64_type().const_float(l);
+        let r: f64 = 10.0;
+        let rhs = cg.context.f64_type().const_float(r);
+
+        cg.builder.build_float_add(lhs, rhs, "tmpadd").unwrap()
+    }
+}
+
 pub struct SubOp {
     pub lhs: Box<dyn ASTNode>,
     pub rhs: Box<dyn ASTNode>,
@@ -418,6 +472,19 @@ impl ASTNode for SubOp {
             op_type = Types::Int;
         }
         op_type
+    }
+}
+
+impl SubOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let l: f64 = 5.0;
+        let lhs = cg.context.f64_type().const_float(l);
+        let r: f64 = 10.0;
+        let rhs = cg.context.f64_type().const_float(r);
+
+        cg.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap()
     }
 }
 
@@ -452,6 +519,19 @@ impl ASTNode for MulOp {
     }
 }
 
+impl MulOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let l: f64 = 5.0;
+        let lhs = cg.context.f64_type().const_float(l);
+        let r: f64 = 10.0;
+        let rhs = cg.context.f64_type().const_float(r);
+
+        cg.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap()
+    }
+}
+
 pub struct DivOp {
     pub lhs: Box<dyn ASTNode>,
     pub rhs: Box<dyn ASTNode>,
@@ -477,6 +557,19 @@ impl ASTNode for DivOp {
         }
 
         Types::Float
+    }
+}
+
+impl DivOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let l: f64 = 5.0;
+        let lhs = cg.context.f64_type().const_float(l);
+        let r: f64 = 10.0;
+        let rhs = cg.context.f64_type().const_float(r);
+
+        cg.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap()
     }
 }
 
@@ -538,6 +631,29 @@ impl ASTNode for Relation {
     }
 }
 
+impl Relation {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let l: f64 = 5.0;
+        let lhs = cg.context.f64_type().const_float(l);
+        let r: f64 = 10.0;
+        let rhs = cg.context.f64_type().const_float(r);
+
+        let cmp = match self.op {
+            RelationOp::LT => cg.builder.build_float_compare(FloatPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
+            RelationOp::LTE => cg.builder.build_float_compare(FloatPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
+            RelationOp::GT => cg.builder.build_float_compare(FloatPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
+            RelationOp::GTE => cg.builder.build_float_compare(FloatPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
+            RelationOp::Eq => cg.builder.build_float_compare(FloatPredicate::UEQ, lhs, rhs, "tmpcmp").unwrap(),
+            RelationOp::NotEq => cg.builder.build_float_compare(FloatPredicate::UNE, lhs, rhs, "tmpcmp").unwrap(),
+            _ => panic!("RelationOp not recognized"),
+        };
+
+        cg.builder.build_unsigned_int_to_float(cmp, cg.context.f64_type(), "tmpbool").unwrap()
+    }
+}
+
 pub struct NegateOp {
     pub operand: Box<dyn ASTNode>,
 }
@@ -552,6 +668,17 @@ impl ASTNode for NegateOp {
     fn type_check(&self, st: &mut SymTable) -> Types {
         // TODO: Type checking for negation operand
         self.operand.type_check(st)
+    }
+}
+
+impl NegateOp {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let lhs = self.lhs.code_gen(cg);
+        //let rhs = self.rhs.code_gen(cg);
+        let v: f64 = 5.0;
+        let value = cg.context.f64_type().const_float(v);
+
+        cg.builder.build_float_neg(value, "tmpneg").unwrap()
     }
 }
 
@@ -643,6 +770,12 @@ impl ASTNode for IntLiteral {
     }
 }
 
+impl IntLiteral {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+        cg.context.i64_type().const_int(self.value as u64, false)
+    }
+}
+
 pub struct FloatLiteral {
     pub value: f32,
 }
@@ -656,6 +789,12 @@ impl ASTNode for FloatLiteral {
 
     fn type_check(&self, st: &mut SymTable) -> Types {
         Types::Float
+    }
+}
+
+impl FloatLiteral {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        cg.context.f64_type().const_float(self.value as f64)
     }
 }
 
@@ -675,6 +814,12 @@ impl ASTNode for BoolLiteral {
     }
 }
 
+impl BoolLiteral {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+        cg.context.bool_type().const_int(self.value as u64, false)
+    }
+}
+
 pub struct StringLiteral {
     pub value: String,
 }
@@ -688,6 +833,11 @@ impl ASTNode for StringLiteral {
 
     fn type_check(&self, st: &mut SymTable) -> Types {
         Types::String
+    }
+}
+
+impl StringLiteral {
+    fn codegen(&self) {
     }
 }
 
