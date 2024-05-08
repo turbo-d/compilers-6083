@@ -122,7 +122,8 @@ impl LLParser {
         if self.tok == Token::Procedure {
             decl_node = self.procedure_declaration(is_global);
         } else if self.tok == Token::Variable {
-            (_, decl_node) = self.variable_declaration(is_global);
+            let (_, var_decl_node) = self.variable_declaration(is_global);
+            decl_node = Box::new(var_decl_node);
         } else {
             panic!("Expected \"Procedure declaration or Variable declaration\"");
         }
@@ -144,7 +145,7 @@ impl LLParser {
         })
     }
 
-    fn procedure_header(&mut self, is_global: bool) -> (String, Types, Vec<Box<dyn ast::ASTNode>>) {
+    fn procedure_header(&mut self, is_global: bool) -> (String, Types, Vec<ast::VarDecl>) {
         if self.tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
@@ -205,7 +206,7 @@ impl LLParser {
     }
 
     // first(parameter_list): "variable"
-    fn parameter_list(&mut self) -> Vec<(Types, Box<dyn ast::ASTNode>)> {
+    fn parameter_list(&mut self) -> Vec<(Types, ast::VarDecl)> {
         let mut params = Vec::new();
 
         params.push(self.parameter());
@@ -220,7 +221,7 @@ impl LLParser {
         params
     }
 
-    fn parameter(&mut self) -> (Types, Box<dyn ast::ASTNode>) {
+    fn parameter(&mut self) -> (Types, ast::VarDecl) {
         self.variable_declaration(false)
     }
 
@@ -262,7 +263,7 @@ impl LLParser {
         (decls, stmts)
     }
 
-    fn variable_declaration(&mut self, is_global: bool) -> (Types, Box<dyn ast::ASTNode>) {
+    fn variable_declaration(&mut self, is_global: bool) -> (Types, ast::VarDecl) {
         if self.tok != Token::Variable {
             panic!("Expected \"variable\"");
         }
@@ -309,11 +310,11 @@ impl LLParser {
             self.consume_tok();
         }
 
-        let var_decl_node = Box::new(ast::VarDecl {
+        let var_decl_node = ast::VarDecl {
             is_global: is_global,
             name: identifier,
             ty: parsed_type.clone(),
-        });
+        };
 
         (parsed_type, var_decl_node)
     }

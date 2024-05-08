@@ -2,7 +2,9 @@ use crate::codegen::CodeGen;
 use crate::symtable::SymTable;
 use crate::types::Types;
 
-use inkwell::values::{FloatValue, IntValue};
+use inkwell::AddressSpace;
+use inkwell::types::BasicMetadataTypeEnum;
+use inkwell::values::{BasicMetadataValueEnum, FloatValue, FunctionValue, IntValue};
 use inkwell::FloatPredicate;
 
 use std::vec::Vec;
@@ -94,7 +96,7 @@ pub struct ProcDecl {
     pub is_global: bool,
     pub name: String,
     pub ty: Types,
-    pub params: Vec<Box<dyn ASTNode>>,
+    pub params: Vec<VarDecl>,
     pub decls: Vec<Box<dyn ASTNode>>,
     pub body: Vec<Box<dyn ASTNode>>,
 }
@@ -134,6 +136,73 @@ impl ASTNode for ProcDecl {
         st.exit_scope();
 
         self.ty.clone()
+    }
+}
+
+impl ProcDecl {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FunctionValue<'ctx> {
+        let (ret_type, arg_types) = match self.ty.clone() {
+            Types::Proc(ret, args) => (ret, args),
+            _ => panic!("Expected Proc type"),
+        };
+
+        let args_types = std::iter::repeat(cg.context.f64_type())
+            .take(self.params.len())
+            .map(|f| f.into())
+            .collect::<Vec<BasicMetadataTypeEnum>>();
+        let args_types = args_types.as_slice();
+
+        let args_types = self.params.iter()
+            .map(|p| {
+                match p.ty.clone() {
+                    Types::Int => BasicMetadataTypeEnum::from(cg.context.i64_type()),
+                    Types::Float => BasicMetadataTypeEnum::from(cg.context.f64_type()),
+                    //Types::String => cg.context.ptr_type(AddressSpace::default()).fn_type(args_types, false), //TODO
+                    Types::String => BasicMetadataTypeEnum::from(cg.context.f64_type()), //TODO
+                    Types::Bool => BasicMetadataTypeEnum::from(cg.context.bool_type()),
+                    Types::Array(size, base_type) => {
+                        match *base_type {
+                            Types::Int => BasicMetadataTypeEnum::from(cg.context.i64_type().array_type(size)),
+                            Types::Float => BasicMetadataTypeEnum::from(cg.context.f64_type().array_type(size)),
+                            //Types::String => cg.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
+                            Types::String => BasicMetadataTypeEnum::from(cg.context.f64_type().array_type(size)), //TODO
+                            Types::Bool => BasicMetadataTypeEnum::from(cg.context.bool_type().array_type(size)),
+                            _ => panic!("Unexpected base type for arrary type"),
+                        }
+                    }
+                    _ => panic!("Unexpected procedure return type"),
+                }
+            })
+            .collect::<Vec<BasicMetadataTypeEnum>>();
+        let args_types = args_types.as_slice();
+
+        let fn_type = match *ret_type {
+            Types::Int => cg.context.i64_type().fn_type(args_types, false),
+            Types::Float => cg.context.f64_type().fn_type(args_types, false),
+            //Types::String => cg.context.ptr_type(AddressSpace::default()).fn_type(args_types, false), //TODO
+            Types::String => cg.context.f64_type().fn_type(args_types, false), //TODO
+            Types::Bool => cg.context.bool_type().fn_type(args_types, false),
+            Types::Array(size, base_type) => {
+                match *base_type {
+                    Types::Int => cg.context.i64_type().array_type(size).fn_type(args_types, false),
+                    Types::Float => cg.context.f64_type().array_type(size).fn_type(args_types, false),
+                    //Types::String => cg.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
+                    Types::String => cg.context.f64_type().array_type(size).fn_type(args_types, false), //TODO
+                    Types::Bool => cg.context.bool_type().array_type(size).fn_type(args_types, false),
+                    _ => panic!("Unexpected base type for arrary type"),
+                }
+            }
+            _ => panic!("Unexpected procedure return type"),
+        };
+
+        let fn_val = cg.module.add_function(self.name.as_str(), fn_type, None);
+
+        // set arguments names
+        for (i, arg) in fn_val.get_param_iter().enumerate() {
+            arg.set_name(self.params[i].name.as_str());
+        }
+
+        fn_val
     }
 }
 
@@ -751,6 +820,30 @@ impl ASTNode for ProcCall {
             _ => panic!("Expected procedure type"),
         }
         return_type
+    }
+}
+
+impl ProcCall {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        let proc = match cg.module.get_function(self.proc.id.as_str()) {
+            Some(p) => p,
+            None => panic!("Unknown function"),
+        };
+
+        //let mut compiled_args = Vec::with_capacity(self.args.len());
+        let compiled_args: Vec<FloatValue> = Vec::with_capacity(self.args.len());
+
+        //for arg in &self.args {
+        //    compiled_args.push(arg.code_gen(cg));
+        //}
+
+        let argsv: Vec<BasicMetadataValueEnum> =
+            compiled_args.iter().by_ref().map(|&val| val.into()).collect();
+
+        match cg.builder.build_call(proc, argsv.as_slice(), "tmp").unwrap().try_as_basic_value().left() {
+            Some(value) => value.into_float_value(),
+            None => panic!("Invalid call produced."),
+        }
     }
 }
 
