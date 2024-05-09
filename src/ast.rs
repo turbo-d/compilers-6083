@@ -292,6 +292,61 @@ impl ASTNode for IfStmt {
     }
 }
 
+impl IfStmt {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let parent = st.get_owning_proc_data();
+        let ret_type = cg.context.f64_type();
+        let args_types = std::iter::repeat(ret_type)
+            .take(3)
+            .map(|f| f.into())
+            .collect::<Vec<BasicMetadataTypeEnum>>();
+        let args_types = args_types.as_slice();
+        let fn_type = cg.context.f64_type().fn_type(args_types, false);
+        let fn_val = cg.module.add_function("dummy", fn_type, None);
+        let parent = fn_val;
+        let zero_const = cg.context.f64_type().const_float(0.0);
+
+        // create condition by comparing without 0.0 and returning an int
+        //let cond = self.cond.code_gen(cg);
+        let cond = zero_const;
+        let cond = cg.builder
+            .build_float_compare(FloatPredicate::ONE, cond, zero_const, "ifcond")
+            .unwrap();
+
+        // build branch
+        let then_bb = cg.context.append_basic_block(parent, "then");
+        let else_bb = cg.context.append_basic_block(parent, "else");
+        let cont_bb = cg.context.append_basic_block(parent, "ifcont");
+
+        cg.builder.build_conditional_branch(cond, then_bb, else_bb).unwrap();
+
+        // build then block
+        cg.builder.position_at_end(then_bb);
+        //let then_val = self.then_body.code_gen(cg);
+        let then_val = zero_const;
+        cg.builder.build_unconditional_branch(cont_bb).unwrap();
+
+        let then_bb = cg.builder.get_insert_block().unwrap();
+
+        // build else block
+        cg.builder.position_at_end(else_bb);
+        //let else_val = self.else_body.code_gen(cg);
+        let else_val = zero_const;
+        cg.builder.build_unconditional_branch(cont_bb).unwrap();
+
+        let else_bb = cg.builder.get_insert_block().unwrap();
+
+        // emit merge block
+        cg.builder.position_at_end(cont_bb);
+
+        let phi = cg.builder.build_phi(cg.context.f64_type(), "iftmp").unwrap();
+
+        phi.add_incoming(&[(&then_val, then_bb), (&else_val, else_bb)]);
+
+        phi.as_basic_value().into_float_value()
+    }
+}
+
 pub struct LoopStmt {
     pub init: Box<dyn ASTNode>,
     pub cond: Box<dyn ASTNode>,
