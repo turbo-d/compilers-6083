@@ -839,24 +839,28 @@ impl ASTNode for ProcCall {
 
 impl ProcCall {
     fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
-        let proc = match cg.module.get_function(self.proc.id.as_str()) {
-            Some(p) => p,
-            None => panic!("Unknown function"),
-        };
+        match cg.module.get_function(self.proc.id.as_str()) {
+            Some(fun) => {
+                let mut compiled_args: Vec<FloatValue> = Vec::with_capacity(self.args.len());
 
-        //let mut compiled_args = Vec::with_capacity(self.args.len());
-        let compiled_args: Vec<FloatValue> = Vec::with_capacity(self.args.len());
+                //for arg in &self.args {
+                //    compiled_args.push(arg.code_gen(cg));
+                //}
 
-        //for arg in &self.args {
-        //    compiled_args.push(arg.code_gen(cg));
-        //}
+                let argsv: Vec<BasicMetadataValueEnum> =
+                    compiled_args.iter().by_ref().map(|&val| val.into()).collect();
 
-        let argsv: Vec<BasicMetadataValueEnum> =
-            compiled_args.iter().by_ref().map(|&val| val.into()).collect();
-
-        match cg.builder.build_call(proc, argsv.as_slice(), "tmp").unwrap().try_as_basic_value().left() {
-            Some(value) => value.into_float_value(),
-            None => panic!("Invalid call produced."),
+                match cg.builder
+                    .build_call(fun, argsv.as_slice(), "tmp")
+                    .unwrap()
+                    .try_as_basic_value()
+                    .left()
+                {
+                    Some(value) => value.into_float_value(),
+                    None => panic!("Invalid call produced."),
+                }
+            },
+            None => panic!("Unknown function."),
         }
     }
 }
