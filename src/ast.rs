@@ -140,7 +140,7 @@ impl ASTNode for ProcDecl {
 }
 
 impl ProcDecl {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FunctionValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> FunctionValue<'ctx> {
         let (ret_type, arg_types) = match self.ty.clone() {
             Types::Proc(ret, args) => (ret, args),
             _ => panic!("Expected Proc type"),
@@ -200,6 +200,20 @@ impl ProcDecl {
         // set arguments names
         for (i, arg) in fn_val.get_param_iter().enumerate() {
             arg.set_name(self.params[i].name.as_str());
+        }
+
+        let entry = cg.context.append_basic_block(fn_val, "entry");
+        cg.builder.position_at_end(entry);
+
+        cg.st.reserve(self.params.len());
+
+        for (i, arg) in fn_val.get_param_iter().enumerate() {
+            let arg_name = self.params[i].name.as_str();
+            let alloca = cg.create_entry_block_alloca(&fn_val, arg_name);
+
+            cg.builder.build_store(alloca, arg).unwrap();
+
+            cg.st.insert(self.params[i].name.clone(), alloca);
         }
 
         fn_val
@@ -954,5 +968,14 @@ impl ASTNode for Var {
             None => panic!("Missing declaration for {}", self.id),
         }
         parsed_type
+    }
+}
+
+impl Var {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        match cg.st.get(self.id.as_str()) {
+            Some(var) => cg.builder.build_load(cg.context.f64_type(), *var, self.id.as_str()).unwrap().into_float_value(),
+            None => panic!("Identifer name not found"),
+        }
     }
 }
