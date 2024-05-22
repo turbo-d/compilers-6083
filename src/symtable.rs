@@ -37,10 +37,6 @@ impl SymTable {
 
     pub fn insert(&mut self, k: String, v: Types) -> Result<(), String> {
         if self.local.is_empty() {
-            match self.global.get(&k) {
-                Some(_) => return Err(String::from("Key already exists")),
-                _ => (),
-            }
             return self.insert_global(k, v);
         }
 
@@ -80,7 +76,7 @@ impl SymTable {
             }
         }
 
-        return self.global.get(k);
+        self.global.get(k)
     }
 
     pub fn get_owning_proc_type(&mut self) -> Types {

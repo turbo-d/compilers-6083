@@ -4,40 +4,41 @@ use crate::types::Types;
 
 use inkwell::AddressSpace;
 use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{BasicMetadataValueEnum, FloatValue, FunctionValue, IntValue};
+use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, FloatValue, FunctionValue, IntValue};
 use inkwell::FloatPredicate;
 
 use std::vec::Vec;
 
-pub trait ASTVisitor<T> {
-    fn visit_program(&self, prgm: &Program) -> T;
-    fn visit_var_decl(&self, decl: &VarDecl) -> T;
-    fn visit_proc_decl(&self, decl: &ProcDecl) -> T;
-    fn visit_assign_stmt(&self, stmt: &AssignStmt) -> T;
-    fn visit_if_stmt(&self, stmt: &IfStmt) -> T;
-    fn visit_loop_stmt(&self, stmt: &LoopStmt) -> T;
-    fn visit_return_stmt(&self, stmt: &ReturnStmt) -> T;
-    fn visit_and_op(&self, op: &AndOp) -> T;
-    fn visit_or_op(&self, op: &OrOp) -> T;
-    fn visit_not_op(&self, op: &NotOp) -> T;
-    fn visit_add_op(&self, op: &AddOp) -> T;
-    fn visit_sub_op(&self, op: &SubOp) -> T;
-    fn visit_mul_op(&self, op: &MulOp) -> T;
-    fn visit_div_op(&self, op: &DivOp) -> T;
-    fn visit_relation(&self, rel: &Relation) -> T;
-    fn visit_negate_op(&self, op: &NegateOp) -> T;
-    fn visit_subscript_op(&self, op: &SubscriptOp) -> T;
-    fn visit_proc_call(&self, pc: &ProcCall) -> T;
-    fn visit_int_literal(&self, lit: &IntLiteral) -> T;
-    fn visit_float_literal(&self, lit: &FloatLiteral) -> T;
-    fn visit_string_literal(&self, lit: &StringLiteral) -> T;
-    fn visit_bool_literal(&self, lit: &BoolLiteral) -> T;
-    fn visit_var(&self, var: &Var) -> T;
-}
+//pub trait ASTVisitor<T> {
+//    fn visit_program(&self, prgm: &Program) -> T;
+//    fn visit_var_decl(&self, decl: &VarDecl) -> T;
+//    fn visit_proc_decl(&self, decl: &ProcDecl) -> T;
+//    fn visit_assign_stmt(&self, stmt: &AssignStmt) -> T;
+//    fn visit_if_stmt(&self, stmt: &IfStmt) -> T;
+//    fn visit_loop_stmt(&self, stmt: &LoopStmt) -> T;
+//    fn visit_return_stmt(&self, stmt: &ReturnStmt) -> T;
+//    fn visit_and_op(&self, op: &AndOp) -> T;
+//    fn visit_or_op(&self, op: &OrOp) -> T;
+//    fn visit_not_op(&self, op: &NotOp) -> T;
+//    fn visit_add_op(&self, op: &AddOp) -> T;
+//    fn visit_sub_op(&self, op: &SubOp) -> T;
+//    fn visit_mul_op(&self, op: &MulOp) -> T;
+//    fn visit_div_op(&self, op: &DivOp) -> T;
+//    fn visit_relation(&self, rel: &Relation) -> T;
+//    fn visit_negate_op(&self, op: &NegateOp) -> T;
+//    fn visit_subscript_op(&self, op: &SubscriptOp) -> T;
+//    fn visit_proc_call(&self, pc: &ProcCall) -> T;
+//    fn visit_int_literal(&self, lit: &IntLiteral) -> T;
+//    fn visit_float_literal(&self, lit: &FloatLiteral) -> T;
+//    fn visit_string_literal(&self, lit: &StringLiteral) -> T;
+//    fn visit_bool_literal(&self, lit: &BoolLiteral) -> T;
+//    fn visit_var(&self, var: &Var) -> T;
+//}
 
 pub trait ASTNode {
     //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T;
     fn type_check(&self, st: &mut SymTable) -> Types;
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx>;
 }
 
 pub struct Program {
@@ -61,6 +62,10 @@ impl ASTNode for Program {
         }
 
         Types::Unknown
+    }
+
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
     }
 }
 
@@ -89,6 +94,10 @@ impl ASTNode for VarDecl {
         }
 
         self.ty.clone()
+    }
+
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
     }
 }
 
@@ -137,10 +146,8 @@ impl ASTNode for ProcDecl {
 
         self.ty.clone()
     }
-}
 
-impl ProcDecl {
-    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> FunctionValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         let (ret_type, arg_types) = match self.ty.clone() {
             Types::Proc(ret, args) => (ret, args),
             _ => panic!("Expected Proc type"),
@@ -216,7 +223,7 @@ impl ProcDecl {
             cg.st.insert(self.params[i].name.clone(), alloca);
         }
 
-        fn_val
+        AnyValueEnum::from(fn_val)
     }
 }
 
@@ -262,6 +269,10 @@ impl ASTNode for AssignStmt {
         }
         Types::Unknown
     }
+
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
+    }
 }
 
 pub struct IfStmt {
@@ -290,10 +301,8 @@ impl ASTNode for IfStmt {
         }
         Types::Unknown
     }
-}
 
-impl IfStmt {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let parent = st.get_owning_proc_data();
         let ret_type = cg.context.f64_type();
         let args_types = std::iter::repeat(ret_type)
@@ -343,7 +352,7 @@ impl IfStmt {
 
         phi.add_incoming(&[(&then_val, then_bb), (&else_val, else_bb)]);
 
-        phi.as_basic_value().into_float_value()
+        AnyValueEnum::from(phi.as_basic_value().into_float_value())
     }
 }
 
@@ -371,10 +380,8 @@ impl ASTNode for LoopStmt {
         }
         Types::Unknown
     }
-}
 
-impl LoopStmt {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let parent = st.get_owning_proc_data();
         //let ret_type = cg.context.f64_type();
         //let args_types = std::iter::repeat(ret_type)
@@ -444,7 +451,7 @@ impl LoopStmt {
         //}
 
         //Ok(self.context.f64_type().const_float(0.0))
-        cg.context.f64_type().const_float(0.0)
+        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
     }
 }
 
@@ -492,6 +499,10 @@ impl ASTNode for ReturnStmt {
 
         Types::Unknown
     }
+
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
+    }
 }
 
 pub trait Expr {}
@@ -522,10 +533,8 @@ impl ASTNode for AndOp {
 
         Types::Int
     }
-}
 
-impl AndOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let l: u64 = 5;
@@ -533,7 +542,7 @@ impl AndOp {
         let r: u64 = 10;
         let rhs = cg.context.i64_type().const_int(r, false);
 
-        cg.builder.build_and(lhs, rhs, "tmpand").unwrap()
+        AnyValueEnum::from(cg.builder.build_and(lhs, rhs, "tmpand").unwrap())
     }
 }
 
@@ -563,10 +572,8 @@ impl ASTNode for OrOp {
 
         Types::Int
     }
-}
 
-impl OrOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let l: u64 = 5;
@@ -574,7 +581,7 @@ impl OrOp {
         let r: u64 = 10;
         let rhs = cg.context.i64_type().const_int(r, false);
 
-        cg.builder.build_or(lhs, rhs, "tmpor").unwrap()
+        AnyValueEnum::from(cg.builder.build_or(lhs, rhs, "tmpor").unwrap())
     }
 }
 
@@ -598,16 +605,14 @@ impl ASTNode for NotOp {
 
         Types::Int
     }
-}
 
-impl NotOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let v: u64 = 5;
         let value = cg.context.i64_type().const_int(v, false);
 
-        cg.builder.build_not(value, "tmpnot").unwrap()
+        AnyValueEnum::from(cg.builder.build_not(value, "tmpnot").unwrap())
     }
 }
 
@@ -641,10 +646,8 @@ impl ASTNode for AddOp {
         }
         op_type
     }
-}
 
-impl AddOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let l: f64 = 5.0;
@@ -652,7 +655,7 @@ impl AddOp {
         let r: f64 = 10.0;
         let rhs = cg.context.f64_type().const_float(r);
 
-        cg.builder.build_float_add(lhs, rhs, "tmpadd").unwrap()
+        AnyValueEnum::from(cg.builder.build_float_add(lhs, rhs, "tmpadd").unwrap())
     }
 }
 
@@ -686,10 +689,8 @@ impl ASTNode for SubOp {
         }
         op_type
     }
-}
 
-impl SubOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let l: f64 = 5.0;
@@ -697,7 +698,7 @@ impl SubOp {
         let r: f64 = 10.0;
         let rhs = cg.context.f64_type().const_float(r);
 
-        cg.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap()
+        AnyValueEnum::from(cg.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap())
     }
 }
 
@@ -730,10 +731,8 @@ impl ASTNode for MulOp {
         }
         Types::Float
     }
-}
 
-impl MulOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let l: f64 = 5.0;
@@ -741,7 +740,7 @@ impl MulOp {
         let r: f64 = 10.0;
         let rhs = cg.context.f64_type().const_float(r);
 
-        cg.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap()
+        AnyValueEnum::from(cg.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap())
     }
 }
 
@@ -771,10 +770,8 @@ impl ASTNode for DivOp {
 
         Types::Float
     }
-}
 
-impl DivOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let l: f64 = 5.0;
@@ -782,7 +779,7 @@ impl DivOp {
         let r: f64 = 10.0;
         let rhs = cg.context.f64_type().const_float(r);
 
-        cg.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap()
+        AnyValueEnum::from(cg.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap())
     }
 }
 
@@ -842,10 +839,8 @@ impl ASTNode for Relation {
 
         Types::Bool
     }
-}
 
-impl Relation {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let l: f64 = 5.0;
@@ -863,7 +858,7 @@ impl Relation {
             _ => panic!("RelationOp not recognized"),
         };
 
-        cg.builder.build_unsigned_int_to_float(cmp, cg.context.f64_type(), "tmpbool").unwrap()
+        AnyValueEnum::from(cg.builder.build_unsigned_int_to_float(cmp, cg.context.f64_type(), "tmpbool").unwrap())
     }
 }
 
@@ -882,16 +877,14 @@ impl ASTNode for NegateOp {
         // TODO: Type checking for negation operand
         self.operand.type_check(st)
     }
-}
 
-impl NegateOp {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         //let lhs = self.lhs.code_gen(cg);
         //let rhs = self.rhs.code_gen(cg);
         let v: f64 = 5.0;
         let value = cg.context.f64_type().const_float(v);
 
-        cg.builder.build_float_neg(value, "tmpneg").unwrap()
+        AnyValueEnum::from(cg.builder.build_float_neg(value, "tmpneg").unwrap())
     }
 }
 
@@ -922,6 +915,10 @@ impl ASTNode for SubscriptOp {
         }
 
         array_type
+    }
+
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
     }
 }
 
@@ -965,10 +962,8 @@ impl ASTNode for ProcCall {
         }
         return_type
     }
-}
 
-impl ProcCall {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         match cg.module.get_function(self.proc.id.as_str()) {
             Some(fun) => {
                 let mut compiled_args: Vec<FloatValue> = Vec::with_capacity(self.args.len());
@@ -986,7 +981,7 @@ impl ProcCall {
                     .try_as_basic_value()
                     .left()
                 {
-                    Some(value) => value.into_float_value(),
+                    Some(value) => AnyValueEnum::from(value.into_float_value()),
                     None => panic!("Invalid call produced."),
                 }
             },
@@ -1009,11 +1004,9 @@ impl ASTNode for IntLiteral {
     fn type_check(&self, st: &mut SymTable) -> Types {
         Types::Int
     }
-}
 
-impl IntLiteral {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
-        cg.context.i64_type().const_int(self.value as u64, false)
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.i64_type().const_int(self.value as u64, false))
     }
 }
 
@@ -1031,11 +1024,9 @@ impl ASTNode for FloatLiteral {
     fn type_check(&self, st: &mut SymTable) -> Types {
         Types::Float
     }
-}
 
-impl FloatLiteral {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
-        cg.context.f64_type().const_float(self.value as f64)
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.f64_type().const_float(self.value as f64))
     }
 }
 
@@ -1053,11 +1044,9 @@ impl ASTNode for BoolLiteral {
     fn type_check(&self, st: &mut SymTable) -> Types {
         Types::Bool
     }
-}
 
-impl BoolLiteral {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> IntValue<'ctx> {
-        cg.context.bool_type().const_int(self.value as u64, false)
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.bool_type().const_int(self.value as u64, false))
     }
 }
 
@@ -1075,10 +1064,9 @@ impl ASTNode for StringLiteral {
     fn type_check(&self, st: &mut SymTable) -> Types {
         Types::String
     }
-}
 
-impl StringLiteral {
-    fn codegen(&self) {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
+        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
     }
 }
 
@@ -1103,12 +1091,10 @@ impl ASTNode for Var {
         }
         parsed_type
     }
-}
 
-impl Var {
-    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+    fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         match cg.st.get(self.id.as_str()) {
-            Some(var) => cg.builder.build_load(cg.context.f64_type(), *var, self.id.as_str()).unwrap().into_float_value(),
+            Some(var) => AnyValueEnum::from(cg.builder.build_load(cg.context.f64_type(), *var, self.id.as_str()).unwrap().into_float_value()),
             None => panic!("Identifer name not found"),
         }
     }
