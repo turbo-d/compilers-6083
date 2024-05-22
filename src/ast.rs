@@ -652,16 +652,34 @@ impl ASTNode for AddOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
-            Ok(val) => val,
-            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-        };
-        let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
-            Ok(val) => val,
-            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-        };
+        let lhs = self.lhs.code_gen(cg);
+        let rhs = self.rhs.code_gen(cg);
 
-        AnyValueEnum::from(cg.builder.build_float_add(lhs, rhs, "tmpadd").unwrap())
+        if lhs.is_int_value() {
+            let lhs = match IntValue::try_from(lhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+            let rhs = match IntValue::try_from(rhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_int_add(lhs, rhs, "tmpadd").unwrap());
+        } else if lhs.is_float_value() {
+            let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+            let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_float_add(lhs, rhs, "tmpadd").unwrap());
+        }
+
+        panic!("Arithmetic operations can only be performed on operands of integer and float type");
     }
 }
 
@@ -697,16 +715,34 @@ impl ASTNode for SubOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
-            Ok(val) => val,
-            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-        };
-        let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
-            Ok(val) => val,
-            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-        };
+        let lhs = self.lhs.code_gen(cg);
+        let rhs = self.rhs.code_gen(cg);
 
-        AnyValueEnum::from(cg.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap())
+        if lhs.is_int_value() {
+            let lhs = match IntValue::try_from(lhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+            let rhs = match IntValue::try_from(rhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_int_sub(lhs, rhs, "tmpsub").unwrap());
+        } else if lhs.is_float_value() {
+            let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+            let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap());
+        }
+
+        panic!("Arithmetic operations can only be performed on operands of integer and float type");
     }
 }
 
@@ -741,16 +777,34 @@ impl ASTNode for MulOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
-            Ok(val) => val,
-            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-        };
-        let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
-            Ok(val) => val,
-            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-        };
+        let lhs = self.lhs.code_gen(cg);
+        let rhs = self.rhs.code_gen(cg);
 
-        AnyValueEnum::from(cg.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap())
+        if lhs.is_int_value() {
+            let lhs = match IntValue::try_from(lhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+            let rhs = match IntValue::try_from(rhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_int_mul(lhs, rhs, "tmpmul").unwrap());
+        } else if lhs.is_float_value() {
+            let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+            let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap());
+        }
+
+        panic!("Arithmetic operations can only be performed on operands of integer and float type");
     }
 }
 
