@@ -6,6 +6,7 @@ use inkwell::AddressSpace;
 use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, FloatValue, FunctionValue, IntValue};
 use inkwell::FloatPredicate;
+use inkwell::IntPredicate;
 
 use std::vec::Vec;
 
@@ -907,24 +908,55 @@ impl ASTNode for Relation {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let l: f64 = 5.0;
-        let lhs = cg.context.f64_type().const_float(l);
-        let r: f64 = 10.0;
-        let rhs = cg.context.f64_type().const_float(r);
+        let lhs = self.lhs.code_gen(cg);
+        let rhs = self.rhs.code_gen(cg);
 
-        let cmp = match self.op {
-            RelationOp::LT => cg.builder.build_float_compare(FloatPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
-            RelationOp::LTE => cg.builder.build_float_compare(FloatPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
-            RelationOp::GT => cg.builder.build_float_compare(FloatPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
-            RelationOp::GTE => cg.builder.build_float_compare(FloatPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
-            RelationOp::Eq => cg.builder.build_float_compare(FloatPredicate::UEQ, lhs, rhs, "tmpcmp").unwrap(),
-            RelationOp::NotEq => cg.builder.build_float_compare(FloatPredicate::UNE, lhs, rhs, "tmpcmp").unwrap(),
-            _ => panic!("RelationOp not recognized"),
-        };
+        if lhs.is_int_value() {
+            let lhs = match IntValue::try_from(lhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+            let rhs = match IntValue::try_from(rhs) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
 
-        AnyValueEnum::from(cg.builder.build_unsigned_int_to_float(cmp, cg.context.f64_type(), "tmpbool").unwrap())
+            let cmp = match self.op {
+                RelationOp::LT => cg.builder.build_int_compare(IntPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::LTE => cg.builder.build_int_compare(IntPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::GT => cg.builder.build_int_compare(IntPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::GTE => cg.builder.build_int_compare(IntPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::Eq => cg.builder.build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::NotEq => cg.builder.build_int_compare(IntPredicate::NE, lhs, rhs, "tmpcmp").unwrap(),
+                _ => panic!("RelationOp not recognized"),
+            };
+
+            return AnyValueEnum::from(cmp);
+        } else if lhs.is_float_value() {
+            let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+            let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected FloatValue"),
+            };
+
+            let cmp = match self.op {
+                RelationOp::LT => cg.builder.build_float_compare(FloatPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::LTE => cg.builder.build_float_compare(FloatPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::GT => cg.builder.build_float_compare(FloatPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::GTE => cg.builder.build_float_compare(FloatPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::Eq => cg.builder.build_float_compare(FloatPredicate::UEQ, lhs, rhs, "tmpcmp").unwrap(),
+                RelationOp::NotEq => cg.builder.build_float_compare(FloatPredicate::UNE, lhs, rhs, "tmpcmp").unwrap(),
+                _ => panic!("RelationOp not recognized"),
+            };
+
+            return AnyValueEnum::from(cmp);
+        }
+        // TODO: Strings
+
+        panic!("Relational operators not supported on these operands");
     }
 }
 
