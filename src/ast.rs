@@ -652,12 +652,14 @@ impl ASTNode for AddOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let l: f64 = 5.0;
-        let lhs = cg.context.f64_type().const_float(l);
-        let r: f64 = 10.0;
-        let rhs = cg.context.f64_type().const_float(r);
+        let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
+        let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
 
         AnyValueEnum::from(cg.builder.build_float_add(lhs, rhs, "tmpadd").unwrap())
     }
@@ -695,12 +697,14 @@ impl ASTNode for SubOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let l: f64 = 5.0;
-        let lhs = cg.context.f64_type().const_float(l);
-        let r: f64 = 10.0;
-        let rhs = cg.context.f64_type().const_float(r);
+        let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
+        let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
 
         AnyValueEnum::from(cg.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap())
     }
@@ -737,12 +741,14 @@ impl ASTNode for MulOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let l: f64 = 5.0;
-        let lhs = cg.context.f64_type().const_float(l);
-        let r: f64 = 10.0;
-        let rhs = cg.context.f64_type().const_float(r);
+        let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
+        let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
 
         AnyValueEnum::from(cg.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap())
     }
@@ -776,12 +782,14 @@ impl ASTNode for DivOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let l: f64 = 5.0;
-        let lhs = cg.context.f64_type().const_float(l);
-        let r: f64 = 10.0;
-        let rhs = cg.context.f64_type().const_float(r);
+        let lhs = match FloatValue::try_from(self.lhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
+        let rhs = match FloatValue::try_from(self.rhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
+        };
 
         AnyValueEnum::from(cg.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap())
     }
