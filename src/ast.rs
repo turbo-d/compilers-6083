@@ -373,6 +373,81 @@ impl ASTNode for LoopStmt {
     }
 }
 
+impl LoopStmt {
+    fn code_gen<'a, 'ctx>(&self, cg: &CodeGen<'a, 'ctx>) -> FloatValue<'ctx> {
+        //let parent = st.get_owning_proc_data();
+        //let ret_type = cg.context.f64_type();
+        //let args_types = std::iter::repeat(ret_type)
+        //    .take(3)
+        //    .map(|f| f.into())
+        //    .collect::<Vec<BasicMetadataTypeEnum>>();
+        //let args_types = args_types.as_slice();
+        //let fn_type = cg.context.f64_type().fn_type(args_types, false);
+        //let fn_val = cg.module.add_function("dummy", fn_type, None);
+        //let parent = fn_val;
+
+        //let init_alloca = cg.create_entry_block_alloca(self.init.dest.id);
+        //let init = self.init.body.code_gen(cg);
+
+        //self.builder.build_store(init_alloca, init).unwrap();
+
+        //// go from current block to loop block
+        //let loop_bb = self.context.append_basic_block(parent, "loop");
+
+        //self.builder.build_unconditional_branch(loop_bb).unwrap();
+        //self.builder.position_at_end(loop_bb);
+
+        //let old_val = self.variables.remove(var_name.as_str());
+
+        //self.variables.insert(var_name.to_owned(), start_alloca);
+
+        //// emit body
+        //self.compile_expr(body)?;
+
+        //// emit step
+        //let step = match *step {
+        //    Some(ref step) => self.compile_expr(step)?,
+        //    None => self.context.f64_type().const_float(1.0),
+        //};
+
+        //// compile end condition
+        //let end_cond = self.compile_expr(end)?;
+
+        //let curr_var = self.build_load(start_alloca, var_name);
+        //let next_var = self
+        //    .builder
+        //    .build_float_add(curr_var.into_float_value(), step, "nextvar")
+        //    .unwrap();
+
+        //self.builder.build_store(start_alloca, next_var).unwrap();
+
+        //let end_cond = self
+        //    .builder
+        //    .build_float_compare(
+        //        FloatPredicate::ONE,
+        //        end_cond,
+        //        self.context.f64_type().const_float(0.0),
+        //        "loopcond",
+        //    )
+        //    .unwrap();
+        //let after_bb = self.context.append_basic_block(parent, "afterloop");
+
+        //self.builder
+        //    .build_conditional_branch(end_cond, loop_bb, after_bb)
+        //    .unwrap();
+        //self.builder.position_at_end(after_bb);
+
+        //self.variables.remove(var_name);
+
+        //if let Some(val) = old_val {
+        //    self.variables.insert(var_name.to_owned(), val);
+        //}
+
+        //Ok(self.context.f64_type().const_float(0.0))
+        cg.context.f64_type().const_float(0.0)
+    }
+}
+
 pub struct ReturnStmt {
     pub expr: Box<dyn ASTNode>,
 }
