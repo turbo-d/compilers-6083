@@ -535,12 +535,14 @@ impl ASTNode for AndOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let l: u64 = 5;
-        let lhs = cg.context.i64_type().const_int(l, false);
-        let r: u64 = 10;
-        let rhs = cg.context.i64_type().const_int(r, false);
+        let lhs = match IntValue::try_from(self.lhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+        };
+        let rhs = match IntValue::try_from(self.rhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+        };
 
         AnyValueEnum::from(cg.builder.build_and(lhs, rhs, "tmpand").unwrap())
     }
@@ -574,12 +576,14 @@ impl ASTNode for OrOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let l: u64 = 5;
-        let lhs = cg.context.i64_type().const_int(l, false);
-        let r: u64 = 10;
-        let rhs = cg.context.i64_type().const_int(r, false);
+        let lhs = match IntValue::try_from(self.lhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+        };
+        let rhs = match IntValue::try_from(self.rhs.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+        };
 
         AnyValueEnum::from(cg.builder.build_or(lhs, rhs, "tmpor").unwrap())
     }
@@ -607,12 +611,12 @@ impl ASTNode for NotOp {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let v: u64 = 5;
-        let value = cg.context.i64_type().const_int(v, false);
+        let val = match IntValue::try_from(self.operand.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+        };
 
-        AnyValueEnum::from(cg.builder.build_not(value, "tmpnot").unwrap())
+        AnyValueEnum::from(cg.builder.build_not(val, "tmpnot").unwrap())
     }
 }
 
