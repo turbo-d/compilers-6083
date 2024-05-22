@@ -972,17 +972,30 @@ impl ASTNode for NegateOp {
     //}
 
     fn type_check(&self, st: &mut SymTable) -> Types {
-        // TODO: Type checking for negation operand
+        // TODO: Type checking for negation operand. Same as arithmetic.
         self.operand.type_check(st)
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        //let lhs = self.lhs.code_gen(cg);
-        //let rhs = self.rhs.code_gen(cg);
-        let v: f64 = 5.0;
-        let value = cg.context.f64_type().const_float(v);
+        let val = self.operand.code_gen(cg);
 
-        AnyValueEnum::from(cg.builder.build_float_neg(value, "tmpneg").unwrap())
+        if val.is_int_value() {
+            let val = match IntValue::try_from(val) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_int_neg(val, "tmpneg").unwrap());
+        } else if val.is_float_value() {
+            let val = match FloatValue::try_from(val) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected IntValue"),
+            };
+
+            return AnyValueEnum::from(cg.builder.build_float_neg(val, "tmpneg").unwrap());
+        }
+
+        panic!("Arithmetic operations can only be performed on operands of integer and float type");
     }
 }
 
