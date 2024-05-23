@@ -154,18 +154,12 @@ impl ASTNode for ProcDecl {
             _ => panic!("Expected Proc type"),
         };
 
-        let args_types = std::iter::repeat(cg.context.f64_type())
-            .take(self.params.len())
-            .map(|f| f.into())
-            .collect::<Vec<BasicMetadataTypeEnum>>();
-        let args_types = args_types.as_slice();
-
         let args_types = self.params.iter()
             .map(|p| {
                 match p.ty.clone() {
                     Types::Int => BasicMetadataTypeEnum::from(cg.context.i64_type()),
                     Types::Float => BasicMetadataTypeEnum::from(cg.context.f64_type()),
-                    //Types::String => cg.context.ptr_type(AddressSpace::default()).fn_type(args_types, false), //TODO
+                    //Types::String => BasicMetadataTypeEnum::from(cg.context.ptr_type(AddressSpace::default())), //TODO
                     Types::String => BasicMetadataTypeEnum::from(cg.context.f64_type()), //TODO
                     Types::Bool => BasicMetadataTypeEnum::from(cg.context.bool_type()),
                     Types::Array(size, base_type) => {
@@ -205,11 +199,6 @@ impl ASTNode for ProcDecl {
 
         let fn_val = cg.module.add_function(self.name.as_str(), fn_type, None);
 
-        // set arguments names
-        for (i, arg) in fn_val.get_param_iter().enumerate() {
-            arg.set_name(self.params[i].name.as_str());
-        }
-
         let entry = cg.context.append_basic_block(fn_val, "entry");
         cg.builder.position_at_end(entry);
 
@@ -217,6 +206,7 @@ impl ASTNode for ProcDecl {
 
         for (i, arg) in fn_val.get_param_iter().enumerate() {
             let arg_name = self.params[i].name.as_str();
+            arg.set_name(arg_name);
             let alloca = cg.create_entry_block_alloca(&fn_val, arg_name);
 
             cg.builder.build_store(alloca, arg).unwrap();
