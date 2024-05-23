@@ -154,6 +154,10 @@ impl ASTNode for ProcDecl {
             _ => panic!("Expected Proc type"),
         };
 
+        for param in &self.params {
+            param.code_gen(cg);
+        }
+
         let args_types = self.params.iter()
             .map(|p| {
                 match p.ty.clone() {
@@ -214,7 +218,24 @@ impl ASTNode for ProcDecl {
             cg.st.insert(self.params[i].name.clone(), alloca);
         }
 
-        AnyValueEnum::from(fn_val)
+        for decl in &self.decls {
+            decl.code_gen(cg);
+        }
+
+        for stmt in &self.body {
+            stmt.code_gen(cg);
+        }
+
+        // return the whole thing after verification and optimization
+        if fn_val.verify(true) {
+            AnyValueEnum::from(fn_val)
+        } else {
+            unsafe {
+                fn_val.delete();
+            }
+
+            panic!("Invalid generated function.")
+        }
     }
 }
 
