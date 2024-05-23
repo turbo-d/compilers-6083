@@ -3,88 +3,73 @@ use crate::types::Types;
 use std::collections::HashMap;
 use std::vec::Vec;
 
-pub struct SymTable {
-    global: HashMap<String, Types>,
-    local: Vec<HashMap<String, Types>>,
-    owning_proc_types: Vec<Types>,
+pub struct SymTable<T, U> {
+    global: HashMap<String, T>,
+    global_proc_data: U,
+    local: Vec<HashMap<String, T>>,
+    local_proc_data: Vec<U>,
 }
 
-impl SymTable {
-    pub fn new() -> SymTable {
+impl<T, U> SymTable<T, U> {
+    pub fn new(global_proc_data: U) -> SymTable<T, U> {
         SymTable {
             global: HashMap::new(),
+            global_proc_data,
             local: Vec::new(),
-            owning_proc_types: Vec::new(),
+            local_proc_data: Vec::new(),
         }
     }
 
-    pub fn new_with_runtime() -> SymTable {
-        let mut st = SymTable::new();
-        // TODO: Delete this once runtime is finished.
-        // This is just for testing
-        let _ = st.insert_global(String::from("getbool"), Types::Proc(Box::new(Types::Bool), Vec::new()));
-        let _ = st.insert_global(String::from("getinteger"), Types::Proc(Box::new(Types::Int), Vec::new()));
-        let _ = st.insert_global(String::from("getfloat"), Types::Proc(Box::new(Types::Float), Vec::new()));
-        let _ = st.insert_global(String::from("getstring"), Types::Proc(Box::new(Types::String), Vec::new()));
-        let _ = st.insert_global(String::from("putbool"), Types::Proc(Box::new(Types::Bool), vec![Types::Bool]));
-        let _ = st.insert_global(String::from("putinteger"), Types::Proc(Box::new(Types::Bool), vec![Types::Int]));
-        let _ = st.insert_global(String::from("putfloat"), Types::Proc(Box::new(Types::Bool), vec![Types::Float]));
-        let _ = st.insert_global(String::from("putstring"), Types::Proc(Box::new(Types::Bool), vec![Types::String]));
-        let _ = st.insert_global(String::from("sqrt"), Types::Proc(Box::new(Types::Float), vec![Types::Int]));
-
-        st
-    }
-
-    pub fn insert(&mut self, k: String, v: Types) -> Result<(), String> {
+    pub fn insert(&mut self, name: String, val: T) -> Result<(), String> {
         if self.local.is_empty() {
-            return self.insert_global(k, v);
+            return self.insert_global(name, val);
         }
 
         let top = self.local.len() - 1;
-        match self.local[top].get(&k) {
-            Some(_) => return Err(String::from("Key already exists")),
+        match self.local[top].get(&name) {
+            Some(_) => return Err(String::from("Name already exists")),
             _ => (),
         }
-        self.local[top].insert(k, v);
+        self.local[top].insert(name, val);
         Ok(())
     }
 
-    pub fn insert_global(&mut self, k: String, v: Types) -> Result<(), String> {
-        match self.global.get(&k) {
-            Some(_) => return Err(String::from("Key already exists")),
+    pub fn insert_global(&mut self, name: String, val: T) -> Result<(), String> {
+        match self.global.get(&name) {
+            Some(_) => return Err(String::from("Name already exists")),
             _ => (),
         }
-        self.global.insert(k, v);
+        self.global.insert(name, val);
         Ok(())
     }
 
-    pub fn enter_scope(&mut self, owning_proc_type: Types) {
+    pub fn enter_scope(&mut self, local_proc_data: U) {
         self.local.push(HashMap::new());
-        self.owning_proc_types.push(owning_proc_type);
+        self.local_proc_data.push(local_proc_data);
     }
 
     pub fn exit_scope(&mut self) {
         self.local.pop();
-        self.owning_proc_types.pop();
+        self.local_proc_data.pop();
     }
 
-    pub fn get(&mut self, k: &String) -> Option<&Types> {
+    pub fn get(&mut self, name: &String) -> Option<&T> {
         for t in self.local.iter().rev() {
-            match t.get(k) {
-                Some(tok) => return Some(tok),
+            match t.get(name) {
+                Some(val) => return Some(val),
                 _ => (),
             }
         }
 
-        self.global.get(k)
+        self.global.get(name)
     }
 
-    pub fn get_owning_proc_type(&mut self) -> Types {
+    pub fn get_local_proc_data(&mut self) -> &U {
         if self.local.is_empty() {
-            return Types::Proc(Box::new(Types::Int), Vec::new());
+            return &self.global_proc_data;
         }
 
         let top = self.local.len() - 1;
-        return self.owning_proc_types[top].clone();
+        return &self.local_proc_data[top];
     }
 }

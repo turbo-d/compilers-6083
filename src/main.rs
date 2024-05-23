@@ -32,7 +32,7 @@ fn main() {
     let mut p = LLParser::new(s);
     let ast = p.parse();
 
-    let mut st = SymTable::new_with_runtime();
+    let mut st = SymTable::<Types, Types>::new_with_runtime();
     ast.type_check(&mut st);
 
     let context = Context::create();

@@ -36,9 +36,28 @@ use std::vec::Vec;
 //    fn visit_var(&self, var: &Var) -> T;
 //}
 
+impl SymTable<Types, Types> {
+    pub fn new_with_runtime() -> SymTable<Types, Types> {
+        let mut st = SymTable::new(Types::Proc(Box::new(Types::Int), Vec::new()));
+        // TODO: Delete this once runtime is finished.
+        // This is just for testing
+        let _ = st.insert_global(String::from("getbool"), Types::Proc(Box::new(Types::Bool), Vec::new()));
+        let _ = st.insert_global(String::from("getinteger"), Types::Proc(Box::new(Types::Int), Vec::new()));
+        let _ = st.insert_global(String::from("getfloat"), Types::Proc(Box::new(Types::Float), Vec::new()));
+        let _ = st.insert_global(String::from("getstring"), Types::Proc(Box::new(Types::String), Vec::new()));
+        let _ = st.insert_global(String::from("putbool"), Types::Proc(Box::new(Types::Bool), vec![Types::Bool]));
+        let _ = st.insert_global(String::from("putinteger"), Types::Proc(Box::new(Types::Bool), vec![Types::Int]));
+        let _ = st.insert_global(String::from("putfloat"), Types::Proc(Box::new(Types::Bool), vec![Types::Float]));
+        let _ = st.insert_global(String::from("putstring"), Types::Proc(Box::new(Types::Bool), vec![Types::String]));
+        let _ = st.insert_global(String::from("sqrt"), Types::Proc(Box::new(Types::Float), vec![Types::Int]));
+
+        st
+    }
+}
+
 pub trait ASTNode {
     //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T;
-    fn type_check(&self, st: &mut SymTable) -> Types;
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types;
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx>;
 }
 
@@ -53,7 +72,7 @@ impl ASTNode for Program {
     //    v.visit_program(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         for decl in &self.decls {
             decl.type_check(st);
         }
@@ -81,7 +100,7 @@ impl ASTNode for VarDecl {
     //    v.visit_var_decl(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let result: Result<(), String>;
         if self.is_global {
             result = st.insert_global(self.name.clone(), self.ty.clone());
@@ -116,7 +135,7 @@ impl ASTNode for ProcDecl {
     //    v.visit_proc_decl(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let result: Result<(), String>;
         if self.is_global {
             result = st.insert_global(self.name.clone(), self.ty.clone());
@@ -253,7 +272,7 @@ impl ASTNode for AssignStmt {
     //    v.visit_assign_stmt(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let dest_type = self.dest.type_check(st);
         let expr_type = self.expr.type_check(st);
         match dest_type {
@@ -300,7 +319,7 @@ impl ASTNode for IfStmt {
     //    v.visit_if_stmt(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let cond_expr_type = self.cond.type_check(st);
         if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
             panic!("The conditional expression must be of bool or integer type");
@@ -381,7 +400,7 @@ impl ASTNode for LoopStmt {
     //    v.visit_loop_stmt(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         self.init.type_check(st);
         let cond_expr_type = self.cond.type_check(st);
         if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
@@ -478,13 +497,13 @@ impl ASTNode for ReturnStmt {
     //    v.visit_return_stmt(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let expr_type = self.expr.type_check(st);
-        let owning_proc_type = st.get_owning_proc_type();
+        let owning_proc_type = st.get_local_proc_data();
 
         // Same compatibility rules as assignment
         if let Types::Proc(return_type, _) = owning_proc_type {
-            match *return_type {
+            match **return_type {
                 Types::Bool => {
                     if expr_type != Types::Bool && expr_type != Types::Int {
                         panic!("Expression type does not match the return type of the owning procedure");
@@ -531,7 +550,7 @@ impl ASTNode for AndOp {
     //    v.visit_and_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let lhs_type = self.lhs.type_check(st);
         let rhs_type = self.rhs.type_check(st);
 
@@ -572,7 +591,7 @@ impl ASTNode for OrOp {
     //    v.visit_or_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let lhs_type = self.lhs.type_check(st);
         let rhs_type = self.rhs.type_check(st);
 
@@ -612,7 +631,7 @@ impl ASTNode for NotOp {
     //    v.visit_not_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let operand_type = self.operand.type_check(st);
 
         if operand_type != Types::Int {
@@ -644,7 +663,7 @@ impl ASTNode for AddOp {
     //    v.visit_add_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let lhs_type = self.lhs.type_check(st);
         let rhs_type = self.rhs.type_check(st);
 
@@ -707,7 +726,7 @@ impl ASTNode for SubOp {
     //    v.visit_sub_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let lhs_type = self.lhs.type_check(st);
         let rhs_type = self.rhs.type_check(st);
 
@@ -770,7 +789,7 @@ impl ASTNode for MulOp {
     //    v.visit_mul_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let lhs_type = self.lhs.type_check(st);
         let rhs_type = self.rhs.type_check(st);
 
@@ -832,7 +851,7 @@ impl ASTNode for DivOp {
     //    v.visit_div_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let lhs_type = self.lhs.type_check(st);
         let rhs_type = self.rhs.type_check(st);
 
@@ -884,7 +903,7 @@ impl ASTNode for Relation {
     //    v.visit_relation(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let lhs_type = self.lhs.type_check(st);
         let rhs_type = self.rhs.type_check(st);
 
@@ -982,7 +1001,7 @@ impl ASTNode for NegateOp {
     //    v.visit_negate_op(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         // TODO: Type checking for negation operand. Same as arithmetic.
         self.operand.type_check(st)
     }
@@ -1022,7 +1041,7 @@ impl ASTNode for SubscriptOp {
     //    v.visit_subscript_op(&self)
     //}
     
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let array_type = self.array.type_check(st);
         let expr_type = self.index.type_check(st);
 
@@ -1056,7 +1075,7 @@ impl ASTNode for ProcCall {
     //    v.visit_proc_call(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let proc_type = self.proc.type_check(st);
         let mut arg_types = Vec::new();
         for arg in self.args.iter() {
@@ -1128,7 +1147,7 @@ impl ASTNode for IntLiteral {
     //    v.visit_int_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         Types::Int
     }
 
@@ -1148,7 +1167,7 @@ impl ASTNode for FloatLiteral {
     //    v.visit_float_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         Types::Float
     }
 
@@ -1168,7 +1187,7 @@ impl ASTNode for BoolLiteral {
     //    v.visit_bool_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         Types::Bool
     }
 
@@ -1188,7 +1207,7 @@ impl ASTNode for StringLiteral {
     //    v.visit_string_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         Types::String
     }
 
@@ -1208,7 +1227,7 @@ impl ASTNode for Var {
     //    v.visit_var(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable) -> Types {
+    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         let parsed_type: Types;
         match st.get(&self.id) {
             Some(types) => {
