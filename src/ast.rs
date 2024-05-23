@@ -1077,11 +1077,16 @@ impl ASTNode for ProcCall {
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         match cg.module.get_function(self.proc.id.as_str()) {
             Some(fun) => {
-                let mut compiled_args: Vec<FloatValue> = Vec::with_capacity(self.args.len());
+                let mut compiled_args: Vec<BasicMetadataValueEnum> = Vec::with_capacity(self.args.len());
 
-                //for arg in &self.args {
-                //    compiled_args.push(arg.code_gen(cg));
-                //}
+                for arg in &self.args {
+                    let arg = arg.code_gen(cg);
+                    let arg = match BasicMetadataValueEnum::try_from(arg) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected BasicMetadataValueEnum in arg list."),
+                    };
+                    compiled_args.push(arg);
+                }
 
                 let argsv: Vec<BasicMetadataValueEnum> =
                     compiled_args.iter().by_ref().map(|&val| val.into()).collect();
@@ -1092,7 +1097,7 @@ impl ASTNode for ProcCall {
                     .try_as_basic_value()
                     .left()
                 {
-                    Some(value) => AnyValueEnum::from(value.into_float_value()),
+                    Some(value) => AnyValueEnum::from(value),
                     None => panic!("Invalid call produced."),
                 }
             },
