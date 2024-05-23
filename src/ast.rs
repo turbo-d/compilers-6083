@@ -225,7 +225,7 @@ impl ASTNode for ProcDecl {
         let entry = cg.context.append_basic_block(fn_val, "entry");
         cg.builder.position_at_end(entry);
 
-        cg.st.reserve(self.params.len());
+        //cg.st.reserve(self.params.len());
 
         for (i, arg) in fn_val.get_param_iter().enumerate() {
             let arg_name = self.params[i].name.as_str();
@@ -1239,7 +1239,7 @@ impl ASTNode for Var {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        match cg.st.get(self.id.as_str()) {
+        match cg.st.get(&self.id) {
             Some(var) => AnyValueEnum::from(cg.builder.build_load(cg.context.f64_type(), *var, self.id.as_str()).unwrap().into_float_value()),
             None => panic!("Identifer name not found"),
         }
