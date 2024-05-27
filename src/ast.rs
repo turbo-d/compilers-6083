@@ -539,7 +539,12 @@ impl ASTNode for ReturnStmt {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
+        let val = match BasicValueEnum::try_from(self.expr.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Expected BasicValue in assignment."),
+        };
+
+        AnyValueEnum::from(cg.builder.build_return(Some(&val)).unwrap())
     }
 }
 
