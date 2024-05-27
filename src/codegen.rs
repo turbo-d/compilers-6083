@@ -7,8 +7,6 @@ use inkwell::module::Module;
 use inkwell::values::{FunctionValue, PointerValue};
 use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
 
-use std::collections::HashMap;
-
 pub struct CodeGen<'a, 'ctx> {
     pub context: &'ctx Context,
     pub builder: &'a Builder<'ctx>,

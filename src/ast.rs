@@ -4,7 +4,7 @@ use crate::types::Types;
 
 use inkwell::AddressSpace;
 use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
-use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue};
+use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValueEnum, FloatValue, IntValue, PointerValue};
 use inkwell::FloatPredicate;
 use inkwell::IntPredicate;
 
@@ -162,11 +162,11 @@ impl ASTNode for VarDecl {
                 _ => panic!("Unexpected procedure return type"),
             };
             let global = cg.module.add_global(ty, Some(AddressSpace::default()), self.name.as_str());
-            cg.st.insert_global(self.name.clone(), (global.as_pointer_value(), self.ty.clone()));
+            let _  = cg.st.insert_global(self.name.clone(), (global.as_pointer_value(), self.ty.clone()));
             return AnyValueEnum::from(global.as_pointer_value())
         } else {
             let alloca = cg.create_entry_block_alloca(&parent_fn, self.name.as_str(), self.ty.clone());
-            cg.st.insert(self.name.clone(), (alloca, self.ty.clone()));
+            let _ = cg.st.insert(self.name.clone(), (alloca, self.ty.clone()));
             return AnyValueEnum::from(alloca)
         }
     }
@@ -220,7 +220,7 @@ impl ASTNode for ProcDecl {
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         let ret_type = match self.ty.clone() {
-            Types::Proc(ret, args) => ret,
+            Types::Proc(ret, _) => ret,
             _ => panic!("Expected Proc type"),
         };
 
@@ -466,7 +466,7 @@ impl ASTNode for LoopStmt {
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         let parent = cg.st.get_local_proc_data().clone();
 
-        let init = self.init.code_gen(cg);
+        self.init.code_gen(cg);
 
         // go from current block to loop block
         let loop_bb = cg.context.append_basic_block(parent, "loop");
@@ -969,7 +969,6 @@ impl ASTNode for Relation {
                 RelationOp::GTE => cg.builder.build_int_compare(IntPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
                 RelationOp::Eq => cg.builder.build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpcmp").unwrap(),
                 RelationOp::NotEq => cg.builder.build_int_compare(IntPredicate::NE, lhs, rhs, "tmpcmp").unwrap(),
-                _ => panic!("RelationOp not recognized"),
             };
 
             return AnyValueEnum::from(cmp);
@@ -990,7 +989,6 @@ impl ASTNode for Relation {
                 RelationOp::GTE => cg.builder.build_float_compare(FloatPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
                 RelationOp::Eq => cg.builder.build_float_compare(FloatPredicate::UEQ, lhs, rhs, "tmpcmp").unwrap(),
                 RelationOp::NotEq => cg.builder.build_float_compare(FloatPredicate::UNE, lhs, rhs, "tmpcmp").unwrap(),
-                _ => panic!("RelationOp not recognized"),
             };
 
             return AnyValueEnum::from(cmp);
@@ -1164,7 +1162,7 @@ impl ASTNode for IntLiteral {
     //    v.visit_int_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
+    fn type_check(&self, _st: &mut SymTable<Types, Types>) -> Types {
         Types::Int
     }
 
@@ -1184,7 +1182,7 @@ impl ASTNode for FloatLiteral {
     //    v.visit_float_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
+    fn type_check(&self, _st: &mut SymTable<Types, Types>) -> Types {
         Types::Float
     }
 
@@ -1204,7 +1202,7 @@ impl ASTNode for BoolLiteral {
     //    v.visit_bool_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
+    fn type_check(&self, _st: &mut SymTable<Types, Types>) -> Types {
         Types::Bool
     }
 
@@ -1224,7 +1222,7 @@ impl ASTNode for StringLiteral {
     //    v.visit_string_literal(&self)
     //}
 
-    fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
+    fn type_check(&self, _st: &mut SymTable<Types, Types>) -> Types {
         Types::String
     }
 

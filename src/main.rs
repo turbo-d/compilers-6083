@@ -38,7 +38,7 @@ fn main() {
     let context = Context::create();
     let builder = context.create_builder();
     let module = context.create_module("tmp");
-    let codegen = CodeGen::new(&context, &builder, &module);
+    let _codegen = CodeGen::new(&context, &builder, &module);
 
     println!("Parse completed!");
 }

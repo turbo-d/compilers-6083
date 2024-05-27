@@ -132,8 +132,8 @@ impl LLParser {
     }
 
     fn procedure_declaration(&mut self, is_global: bool) -> Box<dyn ast::ASTNode> {
-        let (name, proc_type, params) = self.procedure_header(is_global);
-        let (decls, body) = self.procedure_body(proc_type.clone());
+        let (name, proc_type, params) = self.procedure_header();
+        let (decls, body) = self.procedure_body();
 
         Box::new(ast::ProcDecl {
             is_global: is_global,
@@ -145,7 +145,7 @@ impl LLParser {
         })
     }
 
-    fn procedure_header(&mut self, is_global: bool) -> (String, Types, Vec<ast::VarDecl>) {
+    fn procedure_header(&mut self) -> (String, Types, Vec<ast::VarDecl>) {
         if self.tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
@@ -227,7 +227,7 @@ impl LLParser {
 
     // TODO: Almost the same as program_body
     // first(procedure_body): "global", "procedure", "variable", "begin"
-    fn procedure_body(&mut self, proc_type: Types) -> (Vec<Box<dyn ast::ASTNode>>, Vec<Box<dyn ast::ASTNode>>) {
+    fn procedure_body(&mut self) -> (Vec<Box<dyn ast::ASTNode>>, Vec<Box<dyn ast::ASTNode>>) {
         let mut decls = Vec::new();
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
@@ -683,7 +683,7 @@ impl LLParser {
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
     fn factor(&mut self) -> Box<dyn ast::ASTNode> {
-        let mut factor_node: Box<dyn ast::ASTNode>;
+        let factor_node: Box<dyn ast::ASTNode>;
 
         let tok = self.tok.clone();
         match tok {
@@ -705,7 +705,7 @@ impl LLParser {
                 // consume minus
                 self.consume_tok();
 
-                let mut negate_operand_node: Box<dyn ast::ASTNode>;
+                let negate_operand_node: Box<dyn ast::ASTNode>;
                 let tok = self.tok.clone();
                 match tok {
                     Token::Identifier(_) => {
