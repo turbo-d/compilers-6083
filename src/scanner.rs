@@ -44,29 +44,42 @@ impl Scanner {
 
     // Ignore spaces, tabs, and newlines
     fn skip_whitespace(&mut self) {
-        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t' || self.stream.chars().nth(self.i).unwrap() == '\r') {
+        while self.matches(' ') || self.matches('\n') || self.matches('\t') || self.matches('\r') {
             self.i += 1;
         }
     }
 
-    fn is_digit(&self, c: char) -> bool {
+    fn is_digit(&self) -> bool {
+        if self.i >= self.stream.len() {
+            return false;
+        }
+
+        let c = self.stream.chars().nth(self.i).unwrap();
         if c >= '0' && c <= '9' {
             return true;
         }
+
         return false;
     }
 
-    fn is_alpha(&self, c: char) -> bool {
+    fn is_alpha(&self) -> bool {
+        if self.i >= self.stream.len() {
+            return false;
+        }
+
+        let c = self.stream.chars().nth(self.i).unwrap();
         if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' {
             return true;
         }
+
         return false;
     }
 
-    fn is_alphanumeric(&self, c: char) -> bool {
-        if self.is_digit(c) || self.is_alpha(c) {
+    fn is_alphanumeric(&self) -> bool {
+        if self.is_digit() || self.is_alpha() {
             return true;
         }
+
         return false;
     }
 
@@ -83,41 +96,53 @@ impl Scanner {
     //    self.i -= 1;
     //}
 
+    fn matches(&self, c: char) -> bool {
+        self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == c
+    }
+
+    fn not_matches(&self, c: char) -> bool {
+        self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() != c
+    }
+
+    fn peek_matches(&self, peek: usize, c: char) -> bool {
+        peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == c
+    }
+
     pub fn scan(&mut self) -> Token {
         // skip comments and whitespace
-        while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() == ' ' || self.stream.chars().nth(self.i).unwrap() == '\n' || self.stream.chars().nth(self.i).unwrap() == '\t' || self.stream.chars().nth(self.i).unwrap() == '/' || self.stream.chars().nth(self.i).unwrap() == '\r') {
+        while self.matches(' ') || self.matches('\n') || self.matches('\t') || self.matches('/') || self.matches('\r') {
             self.skip_whitespace();
 
             // Ignore comments
-            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+            if self.matches('/') {
                 self.i += 1;
 
                 // Ignore single-line comments
-                if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+                if self.matches('/') {
                     self.i += 1;
 
                     // skip everything until newline
-                    while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() != '\n') {
+                    while self.not_matches('\n') {
                         self.i += 1;
                     }
                 }
 
                 // Ignore multi-line comments
-                else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+                else if self.matches('*') {
                     // start multi-line comment
                     let mut nesting = 1;
                     self.i += 1;
 
                     while nesting > 0 {
                         // skip everything in between
-                        while self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() != '/' && self.stream.chars().nth(self.i).unwrap() != '*' {
+                        while self.not_matches('/') && self.not_matches('*') {
                             self.i += 1;
                         }
 
                         // multi-line comment close
-                        if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+                        if self.matches('*') {
                             self.i += 1;
-                            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+                            if self.matches('/') {
                                 // end multi-line comment
                                 nesting -= 1;
 
@@ -126,9 +151,9 @@ impl Scanner {
                         }
 
                         // multi-line comment open
-                        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '/' {
+                        else if self.matches('/') {
                             self.i += 1;
-                            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+                            if self.matches('*') {
                                 // nested multi-line comment
                                 nesting += 1;
 
@@ -148,41 +173,41 @@ impl Scanner {
         let start = self.i;
 
         // identifier and keywords
-        if self.i < self.stream.len() && self.is_alpha(self.stream.chars().nth(self.i).unwrap()) {
+        if self.is_alpha() {
             self.i += 1;
-            while self.i < self.stream.len() && (self.is_alphanumeric(self.stream.chars().nth(self.i).unwrap()) || self.stream.chars().nth(self.i).unwrap() == '_') {
+            while self.is_alphanumeric() || self.matches('_') {
                 self.i += 1;
             }
 
             let mut slice = &self.stream[start..self.i];
             if slice.to_lowercase() == "end" {
                 let mut peek = self.i;
-                if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == ' ' {
+                if self.peek_matches(peek, ' ') {
                     peek += 1;
-                    if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'f' || self.stream.chars().nth(peek).unwrap() == 'F'{
+                    if self.peek_matches(peek, 'f') || self.peek_matches(peek, 'F') {
                         let end = self.i + 4;
                         if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end for" {
                             slice = &self.stream[start..end];
                             self.i = end;
                         }
                     }
-                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'i' || self.stream.chars().nth(peek).unwrap() == 'I' {
+                    else if self.peek_matches(peek, 'i') || self.peek_matches(peek, 'I') {
                         let end = self.i + 3;
                         if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end if" {
                             slice = &self.stream[start..end];
                             self.i = end;
                         }
                     }
-                    else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'p' || self.stream.chars().nth(peek).unwrap() == 'P' {
+                    else if self.peek_matches(peek, 'p') || self.peek_matches(peek, 'P') {
                         peek += 3;
-                        if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'c' || self.stream.chars().nth(peek).unwrap() == 'C' {
+                        if self.peek_matches(peek, 'c') || self.peek_matches(peek, 'C') {
                             let end = self.i + 10;
                             if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end procedure" {
                                 slice = &self.stream[start..end];
                                 self.i = end;
                             }
                         }
-                        else if peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == 'g' {
+                        else if self.peek_matches(peek, 'g') {
                             let end = self.i + 8;
                             if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end program" {
                                 slice = &self.stream[start..end];
@@ -202,13 +227,13 @@ impl Scanner {
         }
 
         // number
-        else if self.i < self.stream.len() && self.is_digit(self.stream.chars().nth(self.i).unwrap()) {
-            while self.i < self.stream.len() && self.is_digit(self.stream.chars().nth(self.i).unwrap()) {
+        else if self.is_digit() {
+            while self.is_digit() {
                 self.i += 1;
             }
-            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '.' {
+            if self.matches('.') {
                 self.i += 1;
-                while self.i < self.stream.len() && self.is_digit(self.stream.chars().nth(self.i).unwrap()) {
+                while self.is_digit() {
                     self.i += 1;
                 }
             }
@@ -226,9 +251,9 @@ impl Scanner {
         }
 
         // string
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '"' {
+        else if self.matches('"') {
             self.i += 1;
-            while self.i < self.stream.len() && (self.stream.chars().nth(self.i).unwrap() != '"') {
+            while self.not_matches('"') {
                 self.i += 1;
             }
             self.i += 1;
@@ -237,9 +262,9 @@ impl Scanner {
         }
 
         // assignment and colon
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ':' {
+        else if self.matches(':') {
             self.i += 1;
-            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+            if self.matches('=') {
                 self.i += 1;
                 return Token::Assign;
             }
@@ -247,81 +272,81 @@ impl Scanner {
         }
 
         // semicolon
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ';' {
+        else if self.matches(';') {
             self.i += 1;
             return Token::Semicolon;
         }
 
        // period
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '.' {
+        else if self.matches('.') {
             self.i += 1;
             return Token::Period;
         }
 
        // comma
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ',' {
+        else if self.matches(',') {
             self.i += 1;
             return Token::Comma;
         }
 
         // left parenthesis
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '(' {
+        else if self.matches('(') {
             self.i += 1;
             return Token::LParen;
         }
 
         // right parenthesis
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ')' {
+        else if self.matches(')') {
             self.i += 1;
             return Token::RParen;
         }
 
         // left square bracket
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '[' {
+        else if self.matches('[') {
             self.i += 1;
             return Token::LSquare;
         }
 
         // right square bracket
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == ']' {
+        else if self.matches(']') {
             self.i += 1;
             return Token::RSquare;
         }
 
         // plus
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '+' {
+        else if self.matches('+') {
             self.i += 1;
             return Token::Add;
         }
 
         // minus
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '-' {
+        else if self.matches('-') {
             self.i += 1;
             return Token::Sub;
         }
 
         // multiply
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '*' {
+        else if self.matches('*') {
             self.i += 1;
             return Token::Mul;
         }
 
         // and
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '&' {
+        else if self.matches('&') {
             self.i += 1;
             return Token::And;
         }
 
         // or
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '|' {
+        else if self.matches('|') {
             self.i += 1;
             return Token::Or;
         }
 
         // lt and lte
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '<' {
+        else if self.matches('<') {
             self.i += 1;
-            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+            if self.matches('=') {
                 self.i += 1;
                 return Token::LTE;
             }
@@ -329,9 +354,9 @@ impl Scanner {
         }
 
         // gt and gte
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '>' {
+        else if self.matches('>') {
             self.i += 1;
-            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+            if self.matches('=') {
                 self.i += 1;
                 return Token::GTE;
             }
@@ -339,18 +364,18 @@ impl Scanner {
         }
 
         // assign and equality
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+        else if self.matches('=') {
             self.i += 1;
-            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+            if self.matches('=') {
                 self.i += 1;
                 return Token::Eq;
             }
         }
 
         // not equal
-        else if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '!' {
+        else if self.matches('!') {
             self.i += 1;
-            if self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == '=' {
+            if self.matches('=') {
                 self.i += 1;
                 return Token::NotEq;
             }
