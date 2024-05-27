@@ -352,7 +352,7 @@ impl LLParser {
         })
     }
 
-    fn destination(&mut self) -> Box<dyn ast::ASTNode> {
+    fn destination(&mut self) -> Box<dyn ast::DestNode> {
         let var_id = match &self.tok {
             Token::Identifier(id) => id.clone(),
             _ => panic!("Expected \"identifier\""),

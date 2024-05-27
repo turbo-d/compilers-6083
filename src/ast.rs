@@ -3,8 +3,8 @@ use crate::symtable::SymTable;
 use crate::types::Types;
 
 use inkwell::AddressSpace;
-use inkwell::types::BasicMetadataTypeEnum;
-use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, FloatValue, FunctionValue, IntValue};
+use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
+use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue};
 use inkwell::FloatPredicate;
 use inkwell::IntPredicate;
 
@@ -59,6 +59,10 @@ pub trait ASTNode {
     //fn visit<T>(&self, v: &impl ASTVisitor<T>) -> T;
     fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types;
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx>;
+}
+
+pub trait DestNode: ASTNode {
+    fn get_name(&self) -> String;
 }
 
 pub struct Program {
@@ -117,7 +121,10 @@ impl ASTNode for VarDecl {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
+        let parent_fn = cg.st.get_local_proc_data().clone();
+        let alloca = cg.create_entry_block_alloca(&parent_fn, self.name.as_str(), self.ty.clone());
+        cg.st.insert(self.name.clone(), (alloca, self.ty.clone()));
+        AnyValueEnum::from(alloca)
     }
 }
 
@@ -168,13 +175,12 @@ impl ASTNode for ProcDecl {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        let (ret_type, arg_types) = match self.ty.clone() {
-            Types::Proc(ret, args) => (ret, args),
+        let ret_type = match self.ty.clone() {
+            Types::Proc(ret, args) => ret,
             _ => panic!("Expected Proc type"),
         };
 
-        let args_types = self.params.iter()
-            .map(|p| {
+        let args_types = self.params.iter().map(|p| {
                 match p.ty.clone() {
                     Types::Int => BasicMetadataTypeEnum::from(cg.context.i64_type()),
                     Types::Float => BasicMetadataTypeEnum::from(cg.context.f64_type()),
@@ -221,30 +227,20 @@ impl ASTNode for ProcDecl {
         let entry = cg.context.append_basic_block(fn_val, "entry");
         cg.builder.position_at_end(entry);
 
+        cg.st.enter_scope(fn_val);
         //cg.st.reserve(self.params.len());
 
         for (i, arg) in fn_val.get_param_iter().enumerate() {
             let arg_name = self.params[i].name.as_str();
             arg.set_name(arg_name);
-            let alloca = cg.create_entry_block_alloca(&fn_val, arg_name);
+
+            //let alloca = cg.create_entry_block_alloca(&fn_val, arg_name);
+            let alloca = match PointerValue::try_from(self.params[i].code_gen(cg)) {
+                Ok(val) => val,
+                Err(_) => panic!("Expected PointerValue alloca."),
+            };
 
             cg.builder.build_store(alloca, arg).unwrap();
-
-            cg.st.insert(self.params[i].name.clone(), alloca);
-        }
-
-        if !fn_val.verify(true) {
-            unsafe {
-                fn_val.delete();
-            }
-
-            panic!("Invalid generated function.")
-        }
-
-        cg.st.enter_scope(fn_val);
-
-        for param in &self.params {
-            param.code_gen(cg);
         }
 
         for decl in &self.decls {
@@ -257,6 +253,14 @@ impl ASTNode for ProcDecl {
 
         cg.st.exit_scope();
 
+        if !fn_val.verify(true) {
+            unsafe {
+                fn_val.delete();
+            }
+
+            panic!("Invalid generated function.")
+        }
+
         AnyValueEnum::from(fn_val)
     }
 }
@@ -264,7 +268,7 @@ impl ASTNode for ProcDecl {
 pub trait Stmt {}
 
 pub struct AssignStmt {
-    pub dest: Box<dyn ASTNode>,
+    pub dest: Box<dyn DestNode>,
     pub expr: Box<dyn ASTNode>,
 }
 
@@ -305,7 +309,19 @@ impl ASTNode for AssignStmt {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
+        let alloca = match cg.st.get(&self.dest.get_name()) {
+            Some((var, _)) => var.clone(),
+            None => panic!("Identifer name not found"),
+        };
+
+        let val = match BasicValueEnum::try_from(self.expr.code_gen(cg)) {
+            Ok(val) => val,
+            Err(_) => panic!("Expected BasicValue in assignment."),
+        };
+
+        cg.builder.build_store(alloca, val).unwrap();
+
+        AnyValueEnum::from(val)
     }
 }
 
@@ -1053,6 +1069,12 @@ impl ASTNode for SubscriptOp {
     }
 }
 
+impl DestNode for SubscriptOp {
+    fn get_name(&self) -> String {
+        self.array.id.clone()
+    }
+}
+
 pub struct ProcCall {
     pub proc: Box<Var>,
     pub args: Vec<Box<dyn ASTNode>>,
@@ -1230,8 +1252,34 @@ impl ASTNode for Var {
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         match cg.st.get(&self.id) {
-            Some(var) => AnyValueEnum::from(cg.builder.build_load(cg.context.f64_type(), *var, self.id.as_str()).unwrap().into_float_value()),
+            Some((var, ty)) => {
+                let ty = match ty {
+                    Types::Int => BasicTypeEnum::from(cg.context.i64_type()),
+                    Types::Float => BasicTypeEnum::from(cg.context.f64_type()),
+                    //Types::String => BasicTypeEnum::from(cg.context.ptr_type(AddressSpace::default())), //TODO
+                    Types::String => BasicTypeEnum::from(cg.context.f64_type()), //TODO
+                    Types::Bool => BasicTypeEnum::from(cg.context.bool_type()),
+                    Types::Array(size, base_type) => {
+                        match **base_type {
+                            Types::Int => BasicTypeEnum::from(cg.context.i64_type().array_type(*size)),
+                            Types::Float => BasicTypeEnum::from(cg.context.f64_type().array_type(*size)),
+                            //Types::String => cg.context.ptr_type(AddressSpace::default()).array_type(*size).fn_type(args_types, false), //TODO
+                            Types::String => BasicTypeEnum::from(cg.context.f64_type().array_type(*size)), //TODO
+                            Types::Bool => BasicTypeEnum::from(cg.context.bool_type().array_type(*size)),
+                            _ => panic!("Unexpected base type for arrary type"),
+                        }
+                    }
+                    _ => panic!("Unexpected procedure return type"),
+                };
+                AnyValueEnum::from(cg.builder.build_load(ty, *var, self.id.as_str()).unwrap())
+            }
             None => panic!("Identifer name not found"),
         }
+    }
+}
+
+impl DestNode for Var {
+    fn get_name(&self) -> String {
+        self.id.clone()
     }
 }

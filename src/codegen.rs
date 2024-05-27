@@ -1,10 +1,11 @@
 use crate::symtable::SymTable;
+use crate::types::Types;
 
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::values::{FunctionValue, PointerValue};
-use inkwell::types::BasicMetadataTypeEnum;
+use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
 
 use std::collections::HashMap;
 
@@ -12,7 +13,7 @@ pub struct CodeGen<'a, 'ctx> {
     pub context: &'ctx Context,
     pub builder: &'a Builder<'ctx>,
     pub module: &'a Module<'ctx>,
-    pub st: SymTable<PointerValue<'ctx>, FunctionValue<'ctx>>,
+    pub st: SymTable<(PointerValue<'ctx>, Types), FunctionValue<'ctx>>,
 }
 
 impl<'a, 'ctx> CodeGen<'a, 'ctx> {
@@ -48,7 +49,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    pub fn create_entry_block_alloca(&self, fn_val: &FunctionValue<'ctx>, name: &str) -> PointerValue<'ctx> {
+    pub fn create_entry_block_alloca(&self, fn_val: &FunctionValue<'ctx>, name: &str, ty: Types) -> PointerValue<'ctx> {
         let builder = self.context.create_builder();
 
         let entry = fn_val.get_first_basic_block().unwrap();
@@ -58,7 +59,26 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             None => builder.position_at_end(entry),
         }
 
-        builder.build_alloca(self.context.f64_type(), name).unwrap()
+        let ty = match ty {
+            Types::Int => BasicTypeEnum::from(self.context.i64_type()),
+            Types::Float => BasicTypeEnum::from(self.context.f64_type()),
+            //Types::String => BasicTypeEnum::from(self.context.ptr_type(AddressSpace::default())), //TODO
+            Types::String => BasicTypeEnum::from(self.context.f64_type()), //TODO
+            Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
+            Types::Array(size, base_type) => {
+                match *base_type {
+                    Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(size)),
+                    Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(size)),
+                    //Types::String => cg.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
+                    Types::String => BasicTypeEnum::from(self.context.f64_type().array_type(size)), //TODO
+                    Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(size)),
+                    _ => panic!("Unexpected base type for array type"),
+                }
+            }
+            _ => panic!("Unexpected procedure return type"),
+        };
+
+        builder.build_alloca(ty, name).unwrap()
     }
 }
 
