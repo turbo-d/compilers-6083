@@ -89,7 +89,26 @@ impl ASTNode for Program {
     }
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
-        AnyValueEnum::from(cg.context.f64_type().const_float(0.0))
+        cg.module.set_name(self.name.as_str());
+
+        let args_types = Vec::<BasicMetadataTypeEnum>::new();
+        let args_types = args_types.as_slice();
+        let fn_type = cg.context.i64_type().fn_type(args_types, false);
+        let fn_val = cg.module.add_function("main", fn_type, None);
+
+        let entry = cg.context.append_basic_block(fn_val, "entry");
+        cg.builder.position_at_end(entry);
+
+        for decl in &self.decls {
+            decl.code_gen(cg);
+        }
+        cg.builder.position_at_end(entry);
+
+        for stmt in &self.body {
+            stmt.code_gen(cg);
+        }
+
+        AnyValueEnum::from(cg.context.i64_type().const_int(0, false))
     }
 }
 
