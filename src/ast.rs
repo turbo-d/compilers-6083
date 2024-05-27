@@ -246,6 +246,7 @@ impl ASTNode for ProcDecl {
         for decl in &self.decls {
             decl.code_gen(cg);
         }
+        cg.builder.position_at_end(entry);
 
         for stmt in &self.body {
             stmt.code_gen(cg);
