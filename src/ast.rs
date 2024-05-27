@@ -141,9 +141,34 @@ impl ASTNode for VarDecl {
 
     fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         let parent_fn = cg.st.get_local_proc_data().clone();
-        let alloca = cg.create_entry_block_alloca(&parent_fn, self.name.as_str(), self.ty.clone());
-        cg.st.insert(self.name.clone(), (alloca, self.ty.clone()));
-        AnyValueEnum::from(alloca)
+
+        if self.is_global {
+            let ty = match self.ty.clone() {
+                Types::Int => BasicTypeEnum::from(cg.context.i64_type()),
+                Types::Float => BasicTypeEnum::from(cg.context.f64_type()),
+                //Types::String => BasicTypeEnum::from(cg.context.ptr_type(AddressSpace::default())), //TODO
+                Types::String => BasicTypeEnum::from(cg.context.f64_type()), //TODO
+                Types::Bool => BasicTypeEnum::from(cg.context.bool_type()),
+                Types::Array(size, base_type) => {
+                    match *base_type {
+                        Types::Int => BasicTypeEnum::from(cg.context.i64_type().array_type(size)),
+                        Types::Float => BasicTypeEnum::from(cg.context.f64_type().array_type(size)),
+                        //Types::String => cg.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
+                        Types::String => BasicTypeEnum::from(cg.context.f64_type().array_type(size)), //TODO
+                        Types::Bool => BasicTypeEnum::from(cg.context.bool_type().array_type(size)),
+                        _ => panic!("Unexpected base type for arrary type"),
+                    }
+                }
+                _ => panic!("Unexpected procedure return type"),
+            };
+            let global = cg.module.add_global(ty, Some(AddressSpace::default()), self.name.as_str());
+            cg.st.insert_global(self.name.clone(), (global.as_pointer_value(), self.ty.clone()));
+            return AnyValueEnum::from(global.as_pointer_value())
+        } else {
+            let alloca = cg.create_entry_block_alloca(&parent_fn, self.name.as_str(), self.ty.clone());
+            cg.st.insert(self.name.clone(), (alloca, self.ty.clone()));
+            return AnyValueEnum::from(alloca)
+        }
     }
 }
 
