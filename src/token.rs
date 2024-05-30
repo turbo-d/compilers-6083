@@ -1,8 +1,9 @@
 use std::fmt;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Unknown,
+    Invalid(String),
     EOF,
     Program,
     Is,
@@ -57,6 +58,7 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Unknown => write!(f, "<\"Unknown\", Token::Unknown>"),
+            Token::Invalid(c) => write!(f, "<\"{}\", Token::Invalid>", c),
             Token::EOF => write!(f, "<\"EOF\", Token::EOF>"),
             Token::Program => write!(f, "<\"program\", Token::Program>"),
             Token::Is => write!(f, "<\"is\", Token::Is>"),
