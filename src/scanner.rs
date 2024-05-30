@@ -371,6 +371,7 @@ impl Scanner {
                 self.i += 1;
                 return Token::Eq;
             }
+            return Token::Invalid(String::from("="));
         }
 
         // not equal
@@ -380,6 +381,7 @@ impl Scanner {
                 self.i += 1;
                 return Token::NotEq;
             }
+            return Token::Invalid(String::from("!"));
         }
 
         // invalid char (this must be the last else if)
@@ -1037,6 +1039,26 @@ mod tests {
     }
 
     #[test]
+    fn scan_invalid_equals_sign() {
+        let mut s = Scanner::new(String::from("="));
+        let tok = s.scan();
+        match tok {
+            Token::Invalid(c) => assert_eq!(c, String::from("=")),
+            _ => panic!("Expected Token::Invalid")
+        }
+    }
+
+    #[test]
+    fn scan_invalid_exclamation_mark() {
+        let mut s = Scanner::new(String::from("!"));
+        let tok = s.scan();
+        match tok {
+            Token::Invalid(c) => assert_eq!(c, String::from("!")),
+            _ => panic!("Expected Token::Invalid")
+        }
+    }
+
+    #[test]
     fn scan_invalid_at_sign() {
         let mut s = Scanner::new(String::from("@"));
         let tok = s.scan();
@@ -1148,5 +1170,4 @@ mod tests {
 
     // TODO: tests for being in the middle of scanning a number, id, or string (or maybe other
     // multi-char tokens) and we hit the end of the char stream
-    // TODO: test for char pair tokens where the second char isn't correct eg !*
 }
