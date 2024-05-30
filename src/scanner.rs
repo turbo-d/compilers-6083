@@ -228,16 +228,17 @@ impl Scanner {
 
         // number
         else if self.is_digit() {
-            while self.is_digit() {
+            while self.is_digit() || self.matches('_') {
                 self.i += 1;
             }
             if self.matches('.') {
                 self.i += 1;
-                while self.is_digit() {
+                while self.is_digit() || self.matches('_') {
                     self.i += 1;
                 }
             }
             let slice = &self.stream[start..self.i];
+            let slice = slice.replace("_", "");
             let num: f32 = match slice.parse() {
                 Ok(v) => v,
                 Err(_) => panic!("Error parsing number"),
@@ -718,8 +719,28 @@ mod tests {
     }
 
     #[test]
+    fn scan_intliteral_multidigit_underscores() {
+        let mut s = Scanner::new(String::from("23_459_"));
+        let tok = s.scan();
+        match tok {
+            Token::IntLiteral(val) => assert_eq!(val, 23459),
+            _ => panic!("Expected Token::IntLiteral")
+        }
+    }
+
+    #[test]
     fn scan_floatliteral_multidigit_decimalpoint() {
         let mut s = Scanner::new(String::from("15429."));
+        let tok = s.scan();
+        match tok {
+            Token::FloatLiteral(val) => assert_eq!(val, 15429.),
+            _ => panic!("Expected Token::FloatLiteral")
+        }
+    }
+
+    #[test]
+    fn scan_floatliteral_multidigit_decimalpoint_underscores() {
+        let mut s = Scanner::new(String::from("15_42_9._"));
         let tok = s.scan();
         match tok {
             Token::FloatLiteral(val) => assert_eq!(val, 15429.),
@@ -738,8 +759,28 @@ mod tests {
     }
 
     #[test]
+    fn scan_floatliteral_multidigit_decimalpoint_singledigit_underscores() {
+        let mut s = Scanner::new(String::from("9__2345._1_"));
+        let tok = s.scan();
+        match tok {
+            Token::FloatLiteral(val) => assert_eq!(val, 92345.1),
+            _ => panic!("Expected Token::FloatLiteral")
+        }
+    }
+
+    #[test]
     fn scan_floatliteral_multidigit_decimalpoint_multidigit() {
         let mut s = Scanner::new(String::from("9345.23456"));
+        let tok = s.scan();
+        match tok {
+            Token::FloatLiteral(val) => assert_eq!(val, 9345.23456),
+            _ => panic!("Expected Token::FloatLiteral")
+        }
+    }
+
+    #[test]
+    fn scan_floatliteral_multidigit_decimalpoint_multidigit_underscores() {
+        let mut s = Scanner::new(String::from("934__5_.2_3456_"));
         let tok = s.scan();
         match tok {
             Token::FloatLiteral(val) => assert_eq!(val, 9345.23456),
@@ -860,6 +901,17 @@ mod tests {
     #[test]
     fn scan_eof() {
         let mut s = Scanner::new(String::from(""));
+        let tok = s.scan();
+        assert_eq!(tok, Token::EOF);
+    }
+
+    #[test]
+    fn scan_eof_repeated() {
+        let mut s = Scanner::new(String::from(""));
+        let tok = s.scan();
+        assert_eq!(tok, Token::EOF);
+        let tok = s.scan();
+        assert_eq!(tok, Token::EOF);
         let tok = s.scan();
         assert_eq!(tok, Token::EOF);
     }
@@ -1094,11 +1146,7 @@ mod tests {
         }
     }
 
-    // TODO: tests for unknown tokens
-    // TODO: underscores in numbers
-
     // TODO: tests for being in the middle of scanning a number, id, or string (or maybe other
     // multi-char tokens) and we hit the end of the char stream
     // TODO: test for char pair tokens where the second char isn't correct eg !*
-    // TODO: repeated EOF on repeated calls to scan on empty scanner
 }
