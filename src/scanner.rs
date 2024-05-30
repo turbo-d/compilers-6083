@@ -257,9 +257,14 @@ impl Scanner {
             while self.not_matches('"') {
                 self.i += 1;
             }
-            self.i += 1;
-            let slice = &self.stream[start+1..self.i-1];
-            return Token::String(String::from(slice));
+            if self.matches('"') {
+                self.i += 1;
+                let slice = &self.stream[start+1..self.i-1];
+                return Token::String(String::from(slice));
+            } else {
+                let slice = &self.stream[start..self.i];
+                return Token::Invalid(String::from(slice));
+            }
         }
 
         // assignment and colon
@@ -1168,6 +1173,17 @@ mod tests {
         }
     }
 
+    #[test]
+    fn scan_invalid_eofmidstring() {
+        let mut s = Scanner::new(String::from("\"this is a strin"));
+        let tok = s.scan();
+        match tok {
+            Token::Invalid(c) => assert_eq!(c, String::from("\"this is a strin")),
+            _ => panic!("Expected Token::Invalid")
+        }
+    }
+
     // TODO: tests for being in the middle of scanning a number, id, or string (or maybe other
     // multi-char tokens) and we hit the end of the char stream
+    // strings, 
 }
