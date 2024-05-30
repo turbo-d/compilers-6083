@@ -1182,8 +1182,4 @@ mod tests {
             _ => panic!("Expected Token::Invalid")
         }
     }
-
-    // TODO: tests for being in the middle of scanning a number, id, or string (or maybe other
-    // multi-char tokens) and we hit the end of the char stream
-    // strings, 
 }
