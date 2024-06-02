@@ -43,65 +43,110 @@ impl Scanner {
     }
 
     // Ignore spaces, tabs, and newlines
-    fn skip_whitespace(&mut self) {
-        while self.matches(' ') || self.matches('\n') || self.matches('\t') || self.matches('\r') {
-            self.i += 1;
+    fn skip_whitespace(&mut self) -> bool {
+        let start = self.i;
+        while let Some(c) = self.read_ch() {
+            if c == ' ' || c == '\n' || c == '\t' || c == '\r' {
+                continue;
+            } else {
+                self.unread_ch();
+                break;
+            }
         }
+        start != self.i
     }
 
-    fn is_digit(&self) -> bool {
-        if self.i >= self.stream.len() {
-            return false;
+    fn skip_comment(&mut self) -> bool {
+        let start = self.i;
+        if let Some(c) = self.read_ch() {
+            if c == '/' {
+                if let Some(c) = self.read_ch() {
+                    if c == '/' { // Ignore single-line comments
+                        while let Some(c) = self.read_ch() {
+                            // skip everything until newline
+                            if c != '\n' {
+                                continue;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    else if c == '*' { // Ignore multi-line comments
+                        let mut nesting = 1;
+                        while let Some(c) = self.read_ch() {
+                            if c == '/' {
+                                if let Some(c) = self.read_ch() {
+                                    if c == '*' {
+                                        // nested multi-line comment
+                                        nesting += 1;
+                                    }
+                                }
+                            } else if c == '*' {
+                                if let Some(c) = self.read_ch() {
+                                    if c == '/' {
+                                        // end multi-line comment
+                                        nesting -= 1;
+                                        if nesting == 0 {
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                continue;
+                            }
+                        }
+                    }
+                    else {
+                        self.unread_ch();
+                        self.unread_ch();
+                    }
+                } else {
+                    self.unread_ch();
+                }
+            }
+            else {
+                self.unread_ch();
+            }
         }
+        start != self.i
+    }
 
-        let c = self.stream.chars().nth(self.i).unwrap();
+    fn skip_whitespace_and_comments(&mut self) {
+        while self.skip_whitespace() || self.skip_comment() {}
+    }
+
+    fn is_digit(&self, c: char) -> bool {
         if c >= '0' && c <= '9' {
             return true;
         }
-
         return false;
     }
 
-    fn is_alpha(&self) -> bool {
-        if self.i >= self.stream.len() {
-            return false;
-        }
-
-        let c = self.stream.chars().nth(self.i).unwrap();
+    fn is_alpha(&self, c: char) -> bool {
         if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' {
             return true;
         }
-
         return false;
     }
 
-    fn is_alphanumeric(&self) -> bool {
-        if self.is_digit() || self.is_alpha() {
+    fn is_alphanumeric(&self, c: char) -> bool {
+        if self.is_digit(c) || self.is_alpha(c) {
             return true;
         }
-
         return false;
     }
 
-    //fn read_ch(&mut self) -> Option<char> {
-    //    if self.i <= self.stream.len() {
-    //        return None;
-    //    }
-    //    let c = self.stream.chars().nth(self.i);
-    //    self.i += 1;
-    //    return c;
-    //}
-
-    //fn unread_ch(&mut self) {
-    //    self.i -= 1;
-    //}
-
-    fn matches(&self, c: char) -> bool {
-        self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() == c
+    fn read_ch(&mut self) -> Option<char> {
+        if self.i >= self.stream.len() {
+            return None;
+        }
+        let c = self.stream.chars().nth(self.i);
+        self.i += 1;
+        return c;
     }
 
-    fn not_matches(&self, c: char) -> bool {
-        self.i < self.stream.len() && self.stream.chars().nth(self.i).unwrap() != c
+    fn unread_ch(&mut self) {
+        self.i -= 1;
     }
 
     fn peek_matches(&self, peek: usize, c: char) -> bool {
@@ -109,294 +154,229 @@ impl Scanner {
     }
 
     pub fn scan(&mut self) -> Token {
-        // skip comments and whitespace
-        while self.matches(' ') || self.matches('\n') || self.matches('\t') || self.matches('/') || self.matches('\r') {
-            self.skip_whitespace();
+        self.skip_whitespace_and_comments();
 
-            // Ignore comments
-            if self.matches('/') {
-                self.i += 1;
+        let c = match self.read_ch() {
+            Some(c) => c,
+            None => return Token::EOF,
+        };
 
-                // Ignore single-line comments
-                if self.matches('/') {
-                    self.i += 1;
-
-                    // skip everything until newline
-                    while self.not_matches('\n') {
-                        self.i += 1;
+        let start = self.i-1;
+        match c {
+            // identifier and keywords
+            'a'..='z' | 'A'..='Z' => {
+                while let Some(c) = self.read_ch() {
+                    if self.is_alphanumeric(c) || c == '_' {
+                        continue;
+                    } else {
+                        self.unread_ch();
+                        break;
                     }
                 }
 
-                // Ignore multi-line comments
-                else if self.matches('*') {
-                    // start multi-line comment
-                    let mut nesting = 1;
-                    self.i += 1;
-
-                    while nesting > 0 {
-                        // skip everything in between
-                        while self.not_matches('/') && self.not_matches('*') {
-                            self.i += 1;
-                        }
-
-                        // multi-line comment close
-                        if self.matches('*') {
-                            self.i += 1;
-                            if self.matches('/') {
-                                // end multi-line comment
-                                nesting -= 1;
-
-                                self.i += 1;
-                            }
-                        }
-
-                        // multi-line comment open
-                        else if self.matches('/') {
-                            self.i += 1;
-                            if self.matches('*') {
-                                // nested multi-line comment
-                                nesting += 1;
-
-                                self.i += 1;
-                            }
-                        }
-                    }
-                }
-
-                // div
-                else {
-                    return Token::Div;
-                }
-            }
-        }
-
-        let start = self.i;
-
-        // identifier and keywords
-        if self.is_alpha() {
-            self.i += 1;
-            while self.is_alphanumeric() || self.matches('_') {
-                self.i += 1;
-            }
-
-            let mut slice = &self.stream[start..self.i];
-            if slice.to_lowercase() == "end" {
-                let mut peek = self.i;
-                if self.peek_matches(peek, ' ') {
-                    peek += 1;
-                    if self.peek_matches(peek, 'f') || self.peek_matches(peek, 'F') {
-                        let end = self.i + 4;
-                        if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end for" {
-                            slice = &self.stream[start..end];
-                            self.i = end;
-                        }
-                    }
-                    else if self.peek_matches(peek, 'i') || self.peek_matches(peek, 'I') {
-                        let end = self.i + 3;
-                        if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end if" {
-                            slice = &self.stream[start..end];
-                            self.i = end;
-                        }
-                    }
-                    else if self.peek_matches(peek, 'p') || self.peek_matches(peek, 'P') {
-                        peek += 3;
-                        if self.peek_matches(peek, 'c') || self.peek_matches(peek, 'C') {
-                            let end = self.i + 10;
-                            if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end procedure" {
+                let mut slice = &self.stream[start..self.i];
+                if slice.to_lowercase() == "end" {
+                    let mut peek = self.i;
+                    if self.peek_matches(peek, ' ') {
+                        peek += 1;
+                        if self.peek_matches(peek, 'f') || self.peek_matches(peek, 'F') {
+                            let end = self.i + 4;
+                            if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end for" {
                                 slice = &self.stream[start..end];
                                 self.i = end;
                             }
                         }
-                        else if self.peek_matches(peek, 'g') {
-                            let end = self.i + 8;
-                            if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end program" {
+                        else if self.peek_matches(peek, 'i') || self.peek_matches(peek, 'I') {
+                            let end = self.i + 3;
+                            if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end if" {
                                 slice = &self.stream[start..end];
                                 self.i = end;
                             }
                         }
+                        else if self.peek_matches(peek, 'p') || self.peek_matches(peek, 'P') {
+                            peek += 3;
+                            if self.peek_matches(peek, 'c') || self.peek_matches(peek, 'C') {
+                                let end = self.i + 10;
+                                if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end procedure" {
+                                    slice = &self.stream[start..end];
+                                    self.i = end;
+                                }
+                            }
+                            else if self.peek_matches(peek, 'g') {
+                                let end = self.i + 8;
+                                if end - 1 < self.stream.len() && &self.stream[start..end].to_lowercase() == "end program" {
+                                    slice = &self.stream[start..end];
+                                    self.i = end;
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            match self.reserved_words.get(&slice.to_lowercase()) {
-                Some(tok) => return tok.clone(),
-                _ => (),
-            }
-
-            return Token::Identifier(String::from(slice.to_lowercase()));
-        }
-
-        // number
-        else if self.is_digit() {
-            while self.is_digit() || self.matches('_') {
-                self.i += 1;
-            }
-            if self.matches('.') {
-                self.i += 1;
-                while self.is_digit() || self.matches('_') {
-                    self.i += 1;
+                match self.reserved_words.get(&slice.to_lowercase()) {
+                    Some(tok) => return tok.clone(),
+                    _ => (),
                 }
-            }
-            let slice = &self.stream[start..self.i];
-            let slice = slice.replace("_", "");
-            let num: f32 = match slice.parse() {
-                Ok(v) => v,
-                Err(_) => panic!("Error parsing number"),
-            };
 
-            if !slice.contains(".") {
-                return Token::IntLiteral(num as i32);
-            }
+                return Token::Identifier(String::from(slice.to_lowercase()));
+            },
 
-            return Token::FloatLiteral(num);
-        }
+            // number
+            '0'..='9' => {
+                while let Some(c) = self.read_ch() {
+                    if self.is_digit(c) || c == '_' {
+                        continue;
+                    } else if c == '.' {
+                        while let Some(c) = self.read_ch() {
+                            if self.is_digit(c) || c == '_' {
+                                continue;
+                            } else {
+                                self.unread_ch();
+                                break;
+                            }
+                        }
+                        break;
+                    } else {
+                        self.unread_ch();
+                        break;
+                    }
+                }
 
-        // string
-        else if self.matches('"') {
-            self.i += 1;
-            while self.not_matches('"') {
-                self.i += 1;
-            }
-            if self.matches('"') {
-                self.i += 1;
-                let slice = &self.stream[start+1..self.i-1];
-                return Token::String(String::from(slice));
-            } else {
                 let slice = &self.stream[start..self.i];
-                return Token::Invalid(String::from(slice));
+                let slice = slice.replace("_", "");
+                let num: f32 = match slice.parse() {
+                    Ok(v) => v,
+                    Err(_) => panic!("Error parsing number"),
+                };
+
+                if !slice.contains(".") {
+                    return Token::IntLiteral(num as i32);
+                }
+
+                return Token::FloatLiteral(num);
+            },
+
+            // string
+            '"' => {
+                let mut c = match self.read_ch() {
+                    Some(c) => c,
+                    None => {
+                        let slice = &self.stream[start..self.i];
+                        return Token::Invalid(String::from(slice));
+                    },
+                };
+                while c != '"' {
+                    c = match self.read_ch() {
+                        Some(c) => c,
+                        None => {
+                            let slice = &self.stream[start..self.i];
+                            return Token::Invalid(String::from(slice));
+                        },
+                    };
+                }
+                let slice = &self.stream[start+1..self.i-1];
+                Token::String(String::from(slice))
+            },
+
+            // assignment and colon
+            ':' => {
+                match self.read_ch() {
+                    Some(c) => {
+                        match c {
+                            '=' => Token::Assign,
+                            _ => {
+                                self.unread_ch();
+                                Token::Colon
+                            },
+                        }
+                    },
+                    None => Token::Colon,
+                }
+            },
+
+            ';' => Token::Semicolon,
+            '.' => Token::Period,
+            ',' => Token::Comma,
+            '(' => Token::LParen,
+            ')' => Token::RParen,
+            '[' => Token::LSquare,
+            ']' => Token::RSquare,
+            '+' => Token::Add,
+            '-' => Token::Sub,
+            '*' => Token::Mul,
+            '/' => Token::Div,
+            '&' => Token::And,
+            '|' => Token::Or,
+            // lt and lte
+            '<' => {
+                match self.read_ch() {
+                    Some(c) => {
+                        match c {
+                            '=' => Token::LTE,
+                            _ => {
+                                self.unread_ch();
+                                Token::LT
+                            },
+                        }
+                    },
+                    None => Token::LT,
+                }
+            },
+
+            // gt and gte
+            '>' => {
+                match self.read_ch() {
+                    Some(c) => {
+                        match c {
+                            '=' => Token::GTE,
+                            _ => {
+                                self.unread_ch();
+                                Token::GT
+                            },
+                        }
+                    },
+                    None => Token::GT,
+                }
+            },
+
+            // assign and equality
+            '=' => {
+                match self.read_ch() {
+                    Some(c) => {
+                        match c {
+                            '=' => Token::Eq,
+                            _ => {
+                                self.unread_ch();
+                                Token::Invalid(String::from("="))
+                            },
+                        }
+                    },
+                    None => Token::Invalid(String::from("="))
+                }
+            },
+
+            // not equal
+            '!' => {
+                match self.read_ch() {
+                    Some(c) => {
+                        match c {
+                            '=' => Token::NotEq,
+                            _ => {
+                                self.unread_ch();
+                                Token::Invalid(String::from("!"))
+                            },
+                        }
+                    },
+                    None => Token::Invalid(String::from("!"))
+                }
+            },
+
+            // invalid char
+            _ => {
+                let slice = &self.stream[start..self.i];
+                Token::Invalid(String::from(slice))
             }
         }
-
-        // assignment and colon
-        else if self.matches(':') {
-            self.i += 1;
-            if self.matches('=') {
-                self.i += 1;
-                return Token::Assign;
-            }
-            return Token::Colon;
-        }
-
-        // semicolon
-        else if self.matches(';') {
-            self.i += 1;
-            return Token::Semicolon;
-        }
-
-       // period
-        else if self.matches('.') {
-            self.i += 1;
-            return Token::Period;
-        }
-
-       // comma
-        else if self.matches(',') {
-            self.i += 1;
-            return Token::Comma;
-        }
-
-        // left parenthesis
-        else if self.matches('(') {
-            self.i += 1;
-            return Token::LParen;
-        }
-
-        // right parenthesis
-        else if self.matches(')') {
-            self.i += 1;
-            return Token::RParen;
-        }
-
-        // left square bracket
-        else if self.matches('[') {
-            self.i += 1;
-            return Token::LSquare;
-        }
-
-        // right square bracket
-        else if self.matches(']') {
-            self.i += 1;
-            return Token::RSquare;
-        }
-
-        // plus
-        else if self.matches('+') {
-            self.i += 1;
-            return Token::Add;
-        }
-
-        // minus
-        else if self.matches('-') {
-            self.i += 1;
-            return Token::Sub;
-        }
-
-        // multiply
-        else if self.matches('*') {
-            self.i += 1;
-            return Token::Mul;
-        }
-
-        // and
-        else if self.matches('&') {
-            self.i += 1;
-            return Token::And;
-        }
-
-        // or
-        else if self.matches('|') {
-            self.i += 1;
-            return Token::Or;
-        }
-
-        // lt and lte
-        else if self.matches('<') {
-            self.i += 1;
-            if self.matches('=') {
-                self.i += 1;
-                return Token::LTE;
-            }
-            return Token::LT;
-        }
-
-        // gt and gte
-        else if self.matches('>') {
-            self.i += 1;
-            if self.matches('=') {
-                self.i += 1;
-                return Token::GTE;
-            }
-            return Token::GT;
-        }
-
-        // assign and equality
-        else if self.matches('=') {
-            self.i += 1;
-            if self.matches('=') {
-                self.i += 1;
-                return Token::Eq;
-            }
-            return Token::Invalid(String::from("="));
-        }
-
-        // not equal
-        else if self.matches('!') {
-            self.i += 1;
-            if self.matches('=') {
-                self.i += 1;
-                return Token::NotEq;
-            }
-            return Token::Invalid(String::from("!"));
-        }
-
-        // invalid char (this must be the last else if)
-        else if self.i < self.stream.len() {
-            self.i += 1;
-            let slice = &self.stream[start..self.i];
-            return Token::Invalid(String::from(slice));
-        }
-
-        return Token::EOF;
     }
 }
 
@@ -946,6 +926,16 @@ mod tests {
     #[test]
     fn scan_whitespace_linefeed() {
         let mut s = Scanner::new(String::from("\n\n\na\n\n\n"));
+        let tok = s.scan();
+        match tok {
+            Token::Identifier(id) => assert_eq!(id, String::from("a")),
+            _ => panic!("Expected Token::Identifier")
+        }
+    }
+
+    #[test]
+    fn scan_whitespace_aftersinglelinecomment() {
+        let mut s = Scanner::new(String::from("   \t\t // this is a comment\n  \t  a"));
         let tok = s.scan();
         match tok {
             Token::Identifier(id) => assert_eq!(id, String::from("a")),
