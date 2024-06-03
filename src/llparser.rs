@@ -1,4 +1,5 @@
-use crate::asttraitobjects as ast;
+//use crate::asttraitobjects as ast;
+use crate::ast::{Ast, RelationOp};
 use crate::scanner::Scanner;
 use crate::token::Token;
 use crate::types::Types;
@@ -18,7 +19,7 @@ impl LLParser {
         }
     }
 
-    pub fn parse(&mut self) -> Box<dyn ast::ASTNode> {
+    pub fn parse(&mut self) -> Box<Ast> {
         self.consume_tok();
 
         let prgm_node = self.program();
@@ -34,7 +35,7 @@ impl LLParser {
         self.tok = self.s.scan();
     }
 
-    fn program(&mut self) -> Box<dyn ast::ASTNode> {
+    fn program(&mut self) -> Box<Ast> {
         let name = self.program_header();
 
         let (decls, body) = self.program_body();
@@ -45,7 +46,7 @@ impl LLParser {
         }
         self.consume_tok();
 
-        Box::new(ast::Program {
+        Box::new(Ast::Program {
             name: name,
             decls: decls,
             body: body,
@@ -74,7 +75,7 @@ impl LLParser {
     }
 
     // first(program_body): "global", "procedure", "variable", "begin"
-    fn program_body(&mut self) -> (Vec<Box<dyn ast::ASTNode>>, Vec<Box<dyn ast::ASTNode>>) {
+    fn program_body(&mut self) -> (Vec<Box<Ast>>, Vec<Box<Ast>>) {
         let mut decls = Vec::new();
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
@@ -111,14 +112,14 @@ impl LLParser {
     }
 
     // first(declaration): "global", "procedure", "variable"
-    fn declaration(&mut self) -> Box<dyn ast::ASTNode> {
+    fn declaration(&mut self) -> Box<Ast> {
         let mut is_global = false;
         if self.tok == Token::Global {
             is_global = true;
             self.consume_tok();
         }
 
-        let decl_node: Box<dyn ast::ASTNode>;
+        let decl_node: Box<Ast>;
         if self.tok == Token::Procedure {
             decl_node = self.procedure_declaration(is_global);
         } else if self.tok == Token::Variable {
@@ -131,11 +132,11 @@ impl LLParser {
         decl_node
     }
 
-    fn procedure_declaration(&mut self, is_global: bool) -> Box<dyn ast::ASTNode> {
+    fn procedure_declaration(&mut self, is_global: bool) -> Box<Ast> {
         let (name, proc_type, params) = self.procedure_header();
         let (decls, body) = self.procedure_body();
 
-        Box::new(ast::ProcDecl {
+        Box::new(Ast::ProcDecl {
             is_global: is_global,
             name: name,
             ty: proc_type,
@@ -145,7 +146,7 @@ impl LLParser {
         })
     }
 
-    fn procedure_header(&mut self) -> (String, Types, Vec<ast::VarDecl>) {
+    fn procedure_header(&mut self) -> (String, Types, Vec<Ast>) {
         if self.tok != Token::Procedure {
             panic!("Expected \"procedure\"");
         }
@@ -206,7 +207,7 @@ impl LLParser {
     }
 
     // first(parameter_list): "variable"
-    fn parameter_list(&mut self) -> Vec<(Types, ast::VarDecl)> {
+    fn parameter_list(&mut self) -> Vec<(Types, Ast)> {
         let mut params = Vec::new();
 
         params.push(self.parameter());
@@ -221,13 +222,13 @@ impl LLParser {
         params
     }
 
-    fn parameter(&mut self) -> (Types, ast::VarDecl) {
+    fn parameter(&mut self) -> (Types, Ast) {
         self.variable_declaration(false)
     }
 
     // TODO: Almost the same as program_body
     // first(procedure_body): "global", "procedure", "variable", "begin"
-    fn procedure_body(&mut self) -> (Vec<Box<dyn ast::ASTNode>>, Vec<Box<dyn ast::ASTNode>>) {
+    fn procedure_body(&mut self) -> (Vec<Box<Ast>>, Vec<Box<Ast>>) {
         let mut decls = Vec::new();
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
@@ -263,7 +264,7 @@ impl LLParser {
         (decls, stmts)
     }
 
-    fn variable_declaration(&mut self, is_global: bool) -> (Types, ast::VarDecl) {
+    fn variable_declaration(&mut self, is_global: bool) -> (Types, Ast) {
         if self.tok != Token::Variable {
             panic!("Expected \"variable\"");
         }
@@ -310,7 +311,7 @@ impl LLParser {
             self.consume_tok();
         }
 
-        let var_decl_node = ast::VarDecl {
+        let var_decl_node = Ast::VarDecl {
             is_global: is_global,
             name: identifier,
             ty: parsed_type.clone(),
@@ -320,8 +321,8 @@ impl LLParser {
     }
 
     // first(statement): "identifier", "if", "for", "return"
-    fn statement(&mut self) -> Box<dyn ast::ASTNode> {
-        let stmt_node: Box<dyn ast::ASTNode>;
+    fn statement(&mut self) -> Box<Ast> {
+        let stmt_node: Box<Ast>;
         if matches!(self.tok, Token::Identifier(_)) {
             stmt_node = self.assignment_statement();
         } else if self.tok == Token::If {
@@ -336,7 +337,7 @@ impl LLParser {
         stmt_node
     }
 
-    fn assignment_statement(&mut self) -> Box<dyn ast::ASTNode> {
+    fn assignment_statement(&mut self) -> Box<Ast> {
         let dest_node = self.destination();
 
         if self.tok != Token::Assign {
@@ -346,20 +347,20 @@ impl LLParser {
 
         let expr_node = self.expr();
 
-        Box::new(ast::AssignStmt {
+        Box::new(Ast::AssignStmt {
             dest: dest_node,
             expr: expr_node,
         })
     }
 
-    fn destination(&mut self) -> Box<dyn ast::DestNode> {
+    fn destination(&mut self) -> Box<Ast> {
         let var_id = match &self.tok {
             Token::Identifier(id) => id.clone(),
             _ => panic!("Expected \"identifier\""),
         };
         self.consume_tok();
 
-        let var_node = Box::new(ast::Var {
+        let var_node = Box::new(Ast::Var {
             id: var_id,
         });
 
@@ -376,13 +377,13 @@ impl LLParser {
         }
         self.consume_tok();
 
-        Box::new(ast::SubscriptOp {
+        Box::new(Ast::SubscriptOp {
             array: var_node,
             index: expr_node,
         })
     }
 
-    fn if_statement(&mut self) -> Box<dyn ast::ASTNode> {
+    fn if_statement(&mut self) -> Box<Ast> {
         if self.tok != Token::If {
             panic!("Expected \"if\"");
         }
@@ -437,14 +438,14 @@ impl LLParser {
         }
         self.consume_tok();
 
-        Box::new(ast::IfStmt {
+        Box::new(Ast::IfStmt {
             cond: expr_node,
             then_body: then_body,
             else_body: else_body,
         })
     }
 
-    fn loop_statement(&mut self) -> Box<dyn ast::ASTNode> {
+    fn loop_statement(&mut self) -> Box<Ast> {
         if self.tok != Token::For {
             panic!("Expected \"for\"");
         }
@@ -485,14 +486,14 @@ impl LLParser {
         }
         self.consume_tok();
 
-        Box::new(ast::LoopStmt {
+        Box::new(Ast::LoopStmt {
             init: assign_stmt_node,
             cond: expr_node,
             body: body,
         })
     }
 
-    fn return_statement(&mut self) -> Box<dyn ast::ASTNode> {
+    fn return_statement(&mut self) -> Box<Ast> {
         if self.tok != Token::Return {
             panic!("Expected \"return\"");
         }
@@ -500,13 +501,13 @@ impl LLParser {
 
         let expr_node = self.expr();
 
-        Box::new(ast::ReturnStmt {
+        Box::new(Ast::ReturnStmt {
             expr: expr_node,
         })
     }
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn expr(&mut self) -> Box<dyn ast::ASTNode> {
+    fn expr(&mut self) -> Box<Ast> {
         let mut do_complement = false;
         if self.tok == Token::Not {
             do_complement = true;
@@ -519,7 +520,7 @@ impl LLParser {
         let expr_node = self.expr_prime(lhs_node);
 
         if do_complement {
-            return Box::new(ast::NotOp {
+            return Box::new(Ast::NotOp {
                 operand: expr_node,
             });
         }
@@ -527,7 +528,7 @@ impl LLParser {
         expr_node
     }
 
-    fn expr_prime(&mut self, lhs_node: Box<dyn ast::ASTNode>) -> Box<dyn ast::ASTNode> {
+    fn expr_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
         if self.tok != Token::And && self.tok != Token::Or {
             // null body production
             // TODO: check follow() for error checking
@@ -540,15 +541,15 @@ impl LLParser {
 
         let rhs_node = self.arith_op();
 
-        let expr_node: Box<dyn ast::ASTNode> = match op {
+        let expr_node: Box<Ast> = match op {
             Token::And => {
-                Box::new(ast::AndOp {
+                Box::new(Ast::AndOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
             }
             Token::Or => {
-                Box::new(ast::OrOp {
+                Box::new(Ast::OrOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
@@ -560,13 +561,13 @@ impl LLParser {
     }
 
     // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
-    fn arith_op(&mut self) -> Box<dyn ast::ASTNode> {
+    fn arith_op(&mut self) -> Box<Ast> {
         let lhs_node = self.relation();
 
         self.arith_op_prime(lhs_node)
     }
 
-    fn arith_op_prime(&mut self, lhs_node: Box<dyn ast::ASTNode>) -> Box<dyn ast::ASTNode> {
+    fn arith_op_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
         if self.tok != Token::Add && self.tok != Token::Sub {
             // null body production
             // TODO: check follow() for error checking
@@ -579,15 +580,15 @@ impl LLParser {
 
         let rhs_node = self.relation();
 
-        let arith_op_node: Box<dyn ast::ASTNode> = match op {
+        let arith_op_node: Box<Ast> = match op {
             Token::Add => {
-                Box::new(ast::AddOp {
+                Box::new(Ast::AddOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
             }
             Token::Sub => {
-                Box::new(ast::SubOp {
+                Box::new(Ast::SubOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
@@ -599,13 +600,13 @@ impl LLParser {
     }
 
     // first(relation): "(", "identifier", "-", "number", "string", "true", "false"
-    fn relation(&mut self) -> Box<dyn ast::ASTNode> {
+    fn relation(&mut self) -> Box<Ast> {
         let lhs_node = self.term();
 
         self.relation_prime(lhs_node)
     }
 
-    fn relation_prime(&mut self, lhs_node: Box<dyn ast::ASTNode>) -> Box<dyn ast::ASTNode> {
+    fn relation_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
         if self.tok != Token::LT && 
             self.tok != Token::LTE &&
             self.tok != Token::GT &&
@@ -624,16 +625,16 @@ impl LLParser {
         let rhs_node = self.term();
 
         let rel_op = match op {
-            Token::LT => ast::RelationOp::LT,
-            Token::LTE => ast::RelationOp::LTE,
-            Token::GT => ast::RelationOp::GT,
-            Token::GTE => ast::RelationOp::GTE,
-            Token::Eq => ast::RelationOp::Eq,
-            Token::NotEq => ast::RelationOp::NotEq,
+            Token::LT => RelationOp::LT,
+            Token::LTE => RelationOp::LTE,
+            Token::GT => RelationOp::GT,
+            Token::GTE => RelationOp::GTE,
+            Token::Eq => RelationOp::Eq,
+            Token::NotEq => RelationOp::NotEq,
             _ => panic!("Invalid relation token"),
         };
 
-        let rel_node = Box::new(ast::Relation {
+        let rel_node = Box::new(Ast::Relation {
             op: rel_op,
             lhs: lhs_node,
             rhs: rhs_node,
@@ -643,13 +644,13 @@ impl LLParser {
     }
 
     // first(term): "(", "identifier", "-", "number", "string", "true", "false"
-    fn term(&mut self) -> Box<dyn ast::ASTNode> {
+    fn term(&mut self) -> Box<Ast> {
         let lhs_node = self.factor();
 
         self.term_prime(lhs_node)
     }
 
-    fn term_prime(&mut self, lhs_node: Box<dyn ast::ASTNode>) -> Box<dyn ast::ASTNode> {
+    fn term_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
         if self.tok != Token::Mul && self.tok != Token::Div {
             // null body production
             // TODO: check follow() for error checking
@@ -662,15 +663,15 @@ impl LLParser {
 
         let rhs_node = self.factor();
 
-        let term_node: Box<dyn ast::ASTNode> = match op {
+        let term_node: Box<Ast> = match op {
             Token::Mul => {
-                Box::new(ast::MulOp {
+                Box::new(Ast::MulOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
             }
             Token::Div => {
-                Box::new(ast::DivOp {
+                Box::new(Ast::DivOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
@@ -682,8 +683,8 @@ impl LLParser {
     }
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
-    fn factor(&mut self) -> Box<dyn ast::ASTNode> {
-        let factor_node: Box<dyn ast::ASTNode>;
+    fn factor(&mut self) -> Box<Ast> {
+        let factor_node: Box<Ast>;
 
         let tok = self.tok.clone();
         match tok {
@@ -691,7 +692,7 @@ impl LLParser {
                 // consume identifier
                 self.consume_tok();
 
-                let var = Box::new(ast::Var {
+                let var = Box::new(Ast::Var {
                     id: id,
                 });
 
@@ -705,7 +706,7 @@ impl LLParser {
                 // consume minus
                 self.consume_tok();
 
-                let negate_operand_node: Box<dyn ast::ASTNode>;
+                let negate_operand_node: Box<Ast>;
                 let tok = self.tok.clone();
                 match tok {
                     Token::Identifier(_) => {
@@ -714,35 +715,35 @@ impl LLParser {
                     Token::IntLiteral(val) => {
                         // consume number
                         self.consume_tok();
-                        negate_operand_node = Box::new(ast::IntLiteral {
+                        negate_operand_node = Box::new(Ast::IntLiteral {
                             value: val,
                         });
                     }
                     Token::FloatLiteral(val) => {
                         // consume number
                         self.consume_tok();
-                        negate_operand_node = Box::new(ast::FloatLiteral {
+                        negate_operand_node = Box::new(Ast::FloatLiteral {
                             value: val,
                         });
                     }
                     _ => panic!("Expected \"identifier\" or \"number\" following \"-\"")
                 }
 
-                factor_node = Box::new(ast::NegateOp {
+                factor_node = Box::new(Ast::NegateOp {
                     operand: negate_operand_node,
                 });
             }
             Token::IntLiteral(val) => {
                 // consume number
                 self.consume_tok();
-                factor_node = Box::new(ast::IntLiteral {
+                factor_node = Box::new(Ast::IntLiteral {
                     value: val,
                 });
             }
             Token::FloatLiteral(val) => {
                 // consume number
                 self.consume_tok();
-                factor_node = Box::new(ast::FloatLiteral {
+                factor_node = Box::new(Ast::FloatLiteral {
                     value: val,
                 });
             }
@@ -760,21 +761,21 @@ impl LLParser {
             Token::String(val) => {
                 // consume string
                 self.consume_tok();
-                factor_node = Box::new(ast::StringLiteral {
+                factor_node = Box::new(Ast::StringLiteral {
                     value: val.clone(),
                 });
             }
             Token::True => {
                 // consume true
                 self.consume_tok();
-                factor_node = Box::new(ast::BoolLiteral {
+                factor_node = Box::new(Ast::BoolLiteral {
                     value: true,
                 });
             }
             Token::False => {
                 // consume false
                 self.consume_tok();
-                factor_node = Box::new(ast::BoolLiteral {
+                factor_node = Box::new(Ast::BoolLiteral {
                     value: false,
                 });
             }
@@ -784,7 +785,7 @@ impl LLParser {
         factor_node
     }
 
-    fn procedure_call_prime(&mut self, var_node: Box<ast::Var>) -> Box<dyn ast::ASTNode> {
+    fn procedure_call_prime(&mut self, var_node: Box<Ast>) -> Box<Ast> {
         // identifier already consumed
 
         if self.tok != Token::LParen {
@@ -811,14 +812,14 @@ impl LLParser {
         }
         self.consume_tok();
 
-        Box::new(ast::ProcCall {
+        Box::new(Ast::ProcCall {
             proc: var_node,
             args: args,
         })
     }
 
     // first(argument_list): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn argument_list(&mut self) -> Vec<Box<dyn ast::ASTNode>> {
+    fn argument_list(&mut self) -> Vec<Box<Ast>> {
         let mut args = Vec::new();
 
         //let (mut expr_type, mut expr_node) = self.expr();
@@ -837,7 +838,7 @@ impl LLParser {
         args
     }
 
-    fn name(&mut self) -> Box<dyn ast::ASTNode> {
+    fn name(&mut self) -> Box<Ast> {
         let var_id;
         match &self.tok {
             Token::Identifier(id) => var_id = id.clone(),
@@ -845,14 +846,14 @@ impl LLParser {
         }
         self.consume_tok();
 
-        let var = Box::new(ast::Var {
+        let var = Box::new(Ast::Var {
             id: var_id,
         });
 
         self.name_prime(var)
     }
 
-    fn name_prime(&mut self, var_node: Box<ast::Var>) -> Box<dyn ast::ASTNode> {
+    fn name_prime(&mut self, var_node: Box<Ast>) -> Box<Ast> {
         // identifier already consumed
 
         if self.tok != Token::LSquare {
@@ -868,7 +869,7 @@ impl LLParser {
         }
         self.consume_tok();
 
-        let sub_node = Box::new(ast::SubscriptOp {
+        let sub_node = Box::new(Ast::SubscriptOp {
             array: var_node,
             index: expr_node,
         });

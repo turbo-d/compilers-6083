@@ -18,11 +18,11 @@ pub enum RelationOp {
     NotEq,
 }
 
-pub enum ASTNode {
+pub enum Ast {
     Program {
         name: String,
-        decls: Vec<Box<ASTNode>>,
-        body: Vec<Box<ASTNode>>,
+        decls: Vec<Box<Ast>>,
+        body: Vec<Box<Ast>>,
     },
     VarDecl {
         is_global: bool,
@@ -34,72 +34,72 @@ pub enum ASTNode {
         name: String,
         ty: Types,
         //params: Vec<VarDecl>,
-        params: Vec<ASTNode>,
-        decls: Vec<Box<ASTNode>>,
-        body: Vec<Box<ASTNode>>,
+        params: Vec<Ast>,
+        decls: Vec<Box<Ast>>,
+        body: Vec<Box<Ast>>,
     },
     AssignStmt {
         //dest: Box<DestNode>,
-        dest: Box<ASTNode>,
-        expr: Box<ASTNode>,
+        dest: Box<Ast>,
+        expr: Box<Ast>,
     },
     IfStmt {
-        cond: Box<ASTNode>,
-        then_body: Vec<Box<ASTNode>>,
-        else_body: Vec<Box<ASTNode>>,
+        cond: Box<Ast>,
+        then_body: Vec<Box<Ast>>,
+        else_body: Vec<Box<Ast>>,
     },
     LoopStmt {
-        init: Box<ASTNode>,
-        cond: Box<ASTNode>,
-        body: Vec<Box<ASTNode>>,
+        init: Box<Ast>,
+        cond: Box<Ast>,
+        body: Vec<Box<Ast>>,
     },
     ReturnStmt {
-        expr: Box<ASTNode>,
+        expr: Box<Ast>,
     },
     AndOp {
-        lhs: Box<ASTNode>,
-        rhs: Box<ASTNode>,
+        lhs: Box<Ast>,
+        rhs: Box<Ast>,
     },
     OrOp {
-        lhs: Box<ASTNode>,
-        rhs: Box<ASTNode>,
+        lhs: Box<Ast>,
+        rhs: Box<Ast>,
     },
     NotOp {
-        operand: Box<ASTNode>,
+        operand: Box<Ast>,
     },
     AddOp {
-        lhs: Box<ASTNode>,
-        rhs: Box<ASTNode>,
+        lhs: Box<Ast>,
+        rhs: Box<Ast>,
     },
     SubOp {
-        lhs: Box<ASTNode>,
-        rhs: Box<ASTNode>,
+        lhs: Box<Ast>,
+        rhs: Box<Ast>,
     },
     MulOp {
-        lhs: Box<ASTNode>,
-        rhs: Box<ASTNode>,
+        lhs: Box<Ast>,
+        rhs: Box<Ast>,
     },
     DivOp {
-        lhs: Box<ASTNode>,
-        rhs: Box<ASTNode>,
+        lhs: Box<Ast>,
+        rhs: Box<Ast>,
     },
     Relation {
         op: RelationOp,
-        lhs: Box<ASTNode>,
-        rhs: Box<ASTNode>,
+        lhs: Box<Ast>,
+        rhs: Box<Ast>,
     },
     NegateOp {
-        operand: Box<ASTNode>,
+        operand: Box<Ast>,
     },
     SubscriptOp {
         //array: Box<Var>,
-        array: Box<ASTNode>,
-        index: Box<ASTNode>,
+        array: Box<Ast>,
+        index: Box<Ast>,
     },
     ProcCall {
         //proc: Box<Var>,
-        proc: Box<ASTNode>,
-        args: Vec<Box<ASTNode>>,
+        proc: Box<Ast>,
+        args: Vec<Box<Ast>>,
     },
     IntLiteral {
         value: i32,
@@ -118,10 +118,10 @@ pub enum ASTNode {
     },
 }
 
-impl ASTNode {
+impl Ast {
     pub fn type_check(&self, st: &mut SymTable<Types, Types>) -> Types {
         match self {
-            ASTNode::Program { decls, body, .. } => {
+            Ast::Program { decls, body, .. } => {
                 for decl in decls.iter() {
                     decl.type_check(st);
                 }
@@ -132,7 +132,7 @@ impl ASTNode {
 
                 Types::Unknown
             }
-            ASTNode::VarDecl { is_global, name, ty } => {
+            Ast::VarDecl { is_global, name, ty } => {
                 let result: Result<(), String>;
                 if *is_global {
                     result = st.insert_global(name.clone(), ty.clone());
@@ -147,7 +147,7 @@ impl ASTNode {
 
                 ty.clone()
             },
-            ASTNode::ProcDecl { is_global, name, ty, params, decls, body } => {
+            Ast::ProcDecl { is_global, name, ty, params, decls, body } => {
                 let result: Result<(), String>;
                 if *is_global {
                     result = st.insert_global(name.clone(), ty.clone());
@@ -178,7 +178,7 @@ impl ASTNode {
 
                 ty.clone()
             },
-            ASTNode::AssignStmt { dest, expr } => {
+            Ast::AssignStmt { dest, expr } => {
                 let dest_type = dest.type_check(st);
                 let expr_type = expr.type_check(st);
                 match dest_type {
@@ -206,7 +206,7 @@ impl ASTNode {
                 }
                 Types::Unknown
             },
-            ASTNode::IfStmt { cond, then_body, else_body } => {
+            Ast::IfStmt { cond, then_body, else_body } => {
                 let cond_expr_type = cond.type_check(st);
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
                     panic!("The conditional expression must be of bool or integer type");
@@ -219,7 +219,7 @@ impl ASTNode {
                 }
                 Types::Unknown
             },
-            ASTNode::LoopStmt { init, cond, body } => {
+            Ast::LoopStmt { init, cond, body } => {
                 init.type_check(st);
                 let cond_expr_type = cond.type_check(st);
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
@@ -230,7 +230,7 @@ impl ASTNode {
                 }
                 Types::Unknown
             },
-            ASTNode::ReturnStmt { expr } => {
+            Ast::ReturnStmt { expr } => {
                 let expr_type = expr.type_check(st);
                 let owning_proc_type = st.get_local_proc_data();
 
@@ -263,7 +263,7 @@ impl ASTNode {
 
                 Types::Unknown
             },
-            ASTNode::AndOp { lhs, rhs } => {
+            Ast::AndOp { lhs, rhs } => {
                 let lhs_type = lhs.type_check(st);
                 let rhs_type = rhs.type_check(st);
 
@@ -277,7 +277,7 @@ impl ASTNode {
 
                 Types::Int
             },
-            ASTNode::OrOp { lhs, rhs } => {
+            Ast::OrOp { lhs, rhs } => {
                 let lhs_type = lhs.type_check(st);
                 let rhs_type = rhs.type_check(st);
 
@@ -291,7 +291,7 @@ impl ASTNode {
 
                 Types::Int
             },
-            ASTNode::NotOp { operand } => {
+            Ast::NotOp { operand } => {
                 let operand_type = operand.type_check(st);
 
                 if operand_type != Types::Int {
@@ -300,7 +300,7 @@ impl ASTNode {
 
                 Types::Int
             },
-            ASTNode::AddOp { lhs, rhs } => {
+            Ast::AddOp { lhs, rhs } => {
                 let lhs_type = lhs.type_check(st);
                 let rhs_type = rhs.type_check(st);
 
@@ -318,7 +318,7 @@ impl ASTNode {
                 }
                 op_type
             },
-            ASTNode::SubOp { lhs, rhs } => {
+            Ast::SubOp { lhs, rhs } => {
                 let lhs_type = lhs.type_check(st);
                 let rhs_type = rhs.type_check(st);
 
@@ -336,7 +336,7 @@ impl ASTNode {
                 }
                 op_type
             },
-            ASTNode::MulOp { lhs, rhs } => {
+            Ast::MulOp { lhs, rhs } => {
                 let lhs_type = lhs.type_check(st);
                 let rhs_type = rhs.type_check(st);
 
@@ -353,7 +353,7 @@ impl ASTNode {
                 }
                 Types::Float
             },
-            ASTNode::DivOp { lhs, rhs } => {
+            Ast::DivOp { lhs, rhs } => {
                 let lhs_type = lhs.type_check(st);
                 let rhs_type = rhs.type_check(st);
 
@@ -367,7 +367,7 @@ impl ASTNode {
 
                 Types::Float
             },
-            ASTNode::Relation { op, lhs, rhs } => {
+            Ast::Relation { op, lhs, rhs } => {
                 let lhs_type = lhs.type_check(st);
                 let rhs_type = rhs.type_check(st);
 
@@ -400,11 +400,11 @@ impl ASTNode {
 
                 Types::Bool
             },
-            ASTNode::NegateOp { operand } => {
+            Ast::NegateOp { operand } => {
                 // TODO: Type checking for negation operand. Same as arithmetic.
                 operand.type_check(st)
             },
-            ASTNode::SubscriptOp { array, index } => {
+            Ast::SubscriptOp { array, index } => {
                 let array_type = array.type_check(st);
                 let expr_type = index.type_check(st);
 
@@ -420,7 +420,7 @@ impl ASTNode {
 
                 array_type
             },
-            ASTNode::ProcCall { proc, args } => {
+            Ast::ProcCall { proc, args } => {
                 let proc_type = proc.type_check(st);
                 let mut arg_types = Vec::new();
                 for arg in args.iter() {
@@ -446,11 +446,11 @@ impl ASTNode {
                     _ => panic!("Expected procedure type"),
                 }
             },
-            ASTNode::IntLiteral { .. } => Types::Int,
-            ASTNode::FloatLiteral { .. } => Types::Float,
-            ASTNode::BoolLiteral { .. } => Types::Bool,
-            ASTNode::StringLiteral { .. } => Types::String,
-            ASTNode::Var { id } => {
+            Ast::IntLiteral { .. } => Types::Int,
+            Ast::FloatLiteral { .. } => Types::Float,
+            Ast::BoolLiteral { .. } => Types::Bool,
+            Ast::StringLiteral { .. } => Types::String,
+            Ast::Var { id } => {
                 match st.get(id) {
                     Some(types) => types.clone(),
                     None => panic!("Missing declaration for {id}"),
@@ -461,7 +461,7 @@ impl ASTNode {
 
     pub fn code_gen<'a, 'ctx>(&self, cg: &mut CodeGen<'a, 'ctx>) -> AnyValueEnum<'ctx> {
         match self {
-            ASTNode::Program { name, decls, body, } => {
+            Ast::Program { name, decls, body, } => {
                 cg.module.set_name(name.as_str());
 
                 let args_types = Vec::<BasicMetadataTypeEnum>::new();
@@ -483,7 +483,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(cg.context.i64_type().const_int(0, false))
             }
-            ASTNode::VarDecl { is_global, name, ty } => {
+            Ast::VarDecl { is_global, name, ty } => {
                 let parent_fn = cg.st.get_local_proc_data().clone();
 
                 if *is_global {
@@ -514,7 +514,7 @@ impl ASTNode {
                     return AnyValueEnum::from(alloca)
                 }
             },
-            ASTNode::ProcDecl { name, ty, params, decls, body, ..} => {
+            Ast::ProcDecl { name, ty, params, decls, body, ..} => {
                 let ret_type = match ty.clone() {
                     Types::Proc(ret, _) => ret,
                     _ => panic!("Expected Proc type"),
@@ -522,8 +522,8 @@ impl ASTNode {
 
                 let args_types = params.iter().map(|p| {
                         let ty = match p {
-                            ASTNode::VarDecl { ty, .. } => ty,
-                            _ => panic!("Expected ASTNode::VarDecl for AST::ProcDecl params"),
+                            Ast::VarDecl { ty, .. } => ty,
+                            _ => panic!("Expected Ast::VarDecl for AST::ProcDecl params"),
                         };
 
                         match ty.clone() {
@@ -577,8 +577,8 @@ impl ASTNode {
 
                 for (i, arg) in fn_val.get_param_iter().enumerate() {
                     let arg_name = match &params[i] {
-                        ASTNode::VarDecl { name, .. } => name,
-                        _ => panic!("Expected ASTNode::VarDecl for AST::ProcDecl params"),
+                        Ast::VarDecl { name, .. } => name,
+                        _ => panic!("Expected Ast::VarDecl for AST::ProcDecl params"),
                     };
                     arg.set_name(arg_name.as_str());
 
@@ -612,16 +612,16 @@ impl ASTNode {
 
                 AnyValueEnum::from(fn_val)
             },
-            ASTNode::AssignStmt { dest, expr } => {
+            Ast::AssignStmt { dest, expr } => {
                 let name = match **dest {
-                    ASTNode::Var { ref id } => id,
-                    ASTNode::SubscriptOp { ref array, .. } => {
+                    Ast::Var { ref id } => id,
+                    Ast::SubscriptOp { ref array, .. } => {
                         match **array {
-                            ASTNode::Var { ref id } => id,
-                            _ => panic!("Expected ASTNode::Var for AST::SubscriptOp array"),
+                            Ast::Var { ref id } => id,
+                            _ => panic!("Expected Ast::Var for AST::SubscriptOp array"),
                         }
                     },
-                    _ => panic!("Expected ASTNode::Var or ASTNode::SubscriptOp for AST::AssignStmt dest"),
+                    _ => panic!("Expected Ast::Var or Ast::SubscriptOp for AST::AssignStmt dest"),
                 };
 
                 let alloca = match cg.st.get(name) {
@@ -638,7 +638,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(val)
             },
-            ASTNode::IfStmt { cond, then_body, else_body } => {
+            Ast::IfStmt { cond, then_body, else_body } => {
                 let parent = cg.st.get_local_proc_data().clone();
 
                 let cond = match IntValue::try_from(cond.code_gen(cg)) {
@@ -677,7 +677,7 @@ impl ASTNode {
                 //AnyValueEnum::from(phi.as_basic_value().into_float_value())
                 AnyValueEnum::from(cg.context.i64_type().const_int(0, false))
             },
-            ASTNode::LoopStmt { init, cond, body } => {
+            Ast::LoopStmt { init, cond, body } => {
                 let parent = cg.st.get_local_proc_data().clone();
 
                 init.code_gen(cg);
@@ -704,7 +704,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(cg.context.i64_type().const_int(0, false))
             },
-            ASTNode::ReturnStmt { expr } => {
+            Ast::ReturnStmt { expr } => {
                 let val = match BasicValueEnum::try_from(expr.code_gen(cg)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected BasicValue in assignment."),
@@ -712,7 +712,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(cg.builder.build_return(Some(&val)).unwrap())
             },
-            ASTNode::AndOp { lhs, rhs } => {
+            Ast::AndOp { lhs, rhs } => {
                 let lhs = match IntValue::try_from(lhs.code_gen(cg)) {
                     Ok(val) => val,
                     Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
@@ -724,7 +724,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(cg.builder.build_and(lhs, rhs, "tmpand").unwrap())
             },
-            ASTNode::OrOp { lhs, rhs } => {
+            Ast::OrOp { lhs, rhs } => {
                 let lhs = match IntValue::try_from(lhs.code_gen(cg)) {
                     Ok(val) => val,
                     Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
@@ -736,7 +736,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(cg.builder.build_or(lhs, rhs, "tmpor").unwrap())
             },
-            ASTNode::NotOp { operand } => {
+            Ast::NotOp { operand } => {
                 let val = match IntValue::try_from(operand.code_gen(cg)) {
                     Ok(val) => val,
                     Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
@@ -744,7 +744,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(cg.builder.build_not(val, "tmpnot").unwrap())
             },
-            ASTNode::AddOp { lhs, rhs } => {
+            Ast::AddOp { lhs, rhs } => {
                 let lhs = lhs.code_gen(cg);
                 let rhs = rhs.code_gen(cg);
 
@@ -774,7 +774,7 @@ impl ASTNode {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            ASTNode::SubOp { lhs, rhs } => {
+            Ast::SubOp { lhs, rhs } => {
                 let lhs = lhs.code_gen(cg);
                 let rhs = rhs.code_gen(cg);
 
@@ -804,7 +804,7 @@ impl ASTNode {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            ASTNode::MulOp { lhs, rhs } => {
+            Ast::MulOp { lhs, rhs } => {
                 let lhs = lhs.code_gen(cg);
                 let rhs = rhs.code_gen(cg);
 
@@ -834,7 +834,7 @@ impl ASTNode {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            ASTNode::DivOp { lhs, rhs } => {
+            Ast::DivOp { lhs, rhs } => {
                 let lhs = match FloatValue::try_from(lhs.code_gen(cg)) {
                     Ok(val) => val,
                     Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
@@ -846,7 +846,7 @@ impl ASTNode {
 
                 AnyValueEnum::from(cg.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap())
             },
-            ASTNode::Relation { op, lhs, rhs } => {
+            Ast::Relation { op, lhs, rhs } => {
                 let lhs = lhs.code_gen(cg);
                 let rhs = rhs.code_gen(cg);
 
@@ -895,7 +895,7 @@ impl ASTNode {
 
                 panic!("Relational operators not supported on these operands");
             },
-            ASTNode::NegateOp { operand } => {
+            Ast::NegateOp { operand } => {
                 let val = operand.code_gen(cg);
 
                 if val.is_int_value() {
@@ -916,13 +916,13 @@ impl ASTNode {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            ASTNode::SubscriptOp { .. } => {
+            Ast::SubscriptOp { .. } => {
                 AnyValueEnum::from(cg.context.i64_type().const_int(0, false))
             },
-            ASTNode::ProcCall { proc, args } => {
+            Ast::ProcCall { proc, args } => {
                 let id = match **proc {
-                    ASTNode::Var { ref id } => id,
-                    _ => panic!("Expected ASTNode::Var for proc"),
+                    Ast::Var { ref id } => id,
+                    _ => panic!("Expected Ast::Var for proc"),
                 };
 
                 match cg.module.get_function(id.as_str()) {
@@ -954,11 +954,11 @@ impl ASTNode {
                     None => panic!("Unknown function."),
                 }
             },
-            ASTNode::IntLiteral { value } => AnyValueEnum::from(cg.context.i64_type().const_int(*value as u64, false)),
-            ASTNode::FloatLiteral { value } => AnyValueEnum::from(cg.context.f64_type().const_float(*value as f64)),
-            ASTNode::BoolLiteral { value } => AnyValueEnum::from(cg.context.bool_type().const_int(*value as u64, false)),
-            ASTNode::StringLiteral { .. } => AnyValueEnum::from(cg.context.f64_type().const_float(0.0)),
-            ASTNode::Var { id } => {
+            Ast::IntLiteral { value } => AnyValueEnum::from(cg.context.i64_type().const_int(*value as u64, false)),
+            Ast::FloatLiteral { value } => AnyValueEnum::from(cg.context.f64_type().const_float(*value as f64)),
+            Ast::BoolLiteral { value } => AnyValueEnum::from(cg.context.bool_type().const_int(*value as u64, false)),
+            Ast::StringLiteral { .. } => AnyValueEnum::from(cg.context.f64_type().const_float(0.0)),
+            Ast::Var { id } => {
                 match cg.st.get(id) {
                     Some((var, ty)) => {
                         let ty = match ty {
