@@ -10,7 +10,6 @@ use compiler::token::Token;
 use compiler::typechecker::TypeChecker;
 
 use inkwell::context::Context;
-//use inkwell::module::Module;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -59,12 +58,13 @@ fn main() {
     let ast = p.parse();
 
     let mut tc = TypeChecker::new();
-    tc.visit_ast(&ast);
+    ast.accept(&mut tc);
 
     let context = Context::create();
     let builder = context.create_builder();
     let module = context.create_module("tmp");
-    let _codegen = CodeGen::new(&context, &builder, &module);
+    let mut codegen = CodeGen::new(&context, &builder, &module);
+    ast.accept(&mut codegen);
 
     println!("Parse completed!");
 }

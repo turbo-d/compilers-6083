@@ -1,4 +1,4 @@
-use crate::ast::{Ast, RelationOp};
+use crate::ast::{Ast, AstVisitor, RelationOp};
 use crate::symtable::SymTable;
 use crate::types::Types;
 
@@ -25,8 +25,10 @@ impl TypeChecker {
             st
         }
     }
+}
 
-    pub fn visit_ast(&mut self, ast: &Ast) -> Types {
+impl AstVisitor<Types> for TypeChecker {
+    fn visit_ast(&mut self, ast: &Ast) -> Types {
         match ast {
             Ast::Program { decls, body, .. } => {
                 for decl in decls.iter() {
