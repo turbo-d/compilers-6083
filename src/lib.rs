@@ -1,3 +1,4 @@
+pub mod ast;
 pub mod asttraitobjects;
 pub mod codegen;
 pub mod llparser;
