@@ -1,4 +1,3 @@
-//use crate::asttraitobjects as ast;
 use crate::ast::{Ast, RelationOp};
 use crate::scanner::Scanner;
 use crate::token::Token;

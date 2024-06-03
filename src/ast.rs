@@ -18,6 +18,25 @@ pub enum RelationOp {
     NotEq,
 }
 
+impl SymTable<Types, Types> {
+    pub fn new_with_runtime() -> SymTable<Types, Types> {
+        let mut st = SymTable::new(Types::Proc(Box::new(Types::Int), Vec::new()));
+        // TODO: Delete this once runtime is finished.
+        // This is just for testing
+        let _ = st.insert_global(String::from("getbool"), Types::Proc(Box::new(Types::Bool), Vec::new()));
+        let _ = st.insert_global(String::from("getinteger"), Types::Proc(Box::new(Types::Int), Vec::new()));
+        let _ = st.insert_global(String::from("getfloat"), Types::Proc(Box::new(Types::Float), Vec::new()));
+        let _ = st.insert_global(String::from("getstring"), Types::Proc(Box::new(Types::String), Vec::new()));
+        let _ = st.insert_global(String::from("putbool"), Types::Proc(Box::new(Types::Bool), vec![Types::Bool]));
+        let _ = st.insert_global(String::from("putinteger"), Types::Proc(Box::new(Types::Bool), vec![Types::Int]));
+        let _ = st.insert_global(String::from("putfloat"), Types::Proc(Box::new(Types::Bool), vec![Types::Float]));
+        let _ = st.insert_global(String::from("putstring"), Types::Proc(Box::new(Types::Bool), vec![Types::String]));
+        let _ = st.insert_global(String::from("sqrt"), Types::Proc(Box::new(Types::Float), vec![Types::Int]));
+
+        st
+    }
+}
+
 pub enum Ast {
     Program {
         name: String,
