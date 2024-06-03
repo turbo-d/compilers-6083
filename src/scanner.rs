@@ -6,6 +6,7 @@ pub struct Scanner {
     stream: String,
     i: usize,
     reserved_words: HashMap<String, Token>,
+    line: u32,
 }
 
 impl Scanner {
@@ -39,6 +40,7 @@ impl Scanner {
             stream: contents,
             i: 0,
             reserved_words: reserved_words,
+            line: 1,
         }
     }
 
@@ -140,9 +142,12 @@ impl Scanner {
         if self.i >= self.stream.len() {
             return None;
         }
-        let c = self.stream.chars().nth(self.i);
+        let c = self.stream.chars().nth(self.i).unwrap();
         self.i += 1;
-        return c;
+        if c == '\n' {
+            self.line += 1;
+        }
+        return Some(c);
     }
 
     fn unread_ch(&mut self) {
@@ -151,6 +156,10 @@ impl Scanner {
 
     fn peek_matches(&self, peek: usize, c: char) -> bool {
         peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == c
+    }
+
+    pub fn line(&self) -> u32 {
+        self.line
     }
 
     pub fn scan(&mut self) -> Token {
