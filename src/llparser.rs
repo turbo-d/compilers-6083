@@ -1,4 +1,4 @@
-use crate::ast;
+use crate::asttraitobjects as ast;
 use crate::scanner::Scanner;
 use crate::token::Token;
 use crate::types::Types;
