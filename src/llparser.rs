@@ -877,5 +877,16 @@ impl LLParser {
     }
 }
 
-// TODO: tests
-// TODO: error handling and recovery
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn llparse_test() {
+        let s = Scanner::new(String::from("a+b"));
+        let mut p = LLParser::new(s);
+        p.consume_tok();
+        let _ast = p.expr();
+        //assert!(true);
+    }
+}
