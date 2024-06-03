@@ -51,7 +51,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         }
     }
 
-    pub fn create_entry_block_alloca(&self, fn_val: &FunctionValue<'ctx>, name: &str, ty: Types) -> PointerValue<'ctx> {
+    fn create_entry_block_alloca(&self, fn_val: &FunctionValue<'ctx>, name: &str, ty: Types) -> PointerValue<'ctx> {
         let builder = self.context.create_builder();
 
         let entry = fn_val.get_first_basic_block().unwrap();
