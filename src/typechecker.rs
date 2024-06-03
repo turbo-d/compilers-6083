@@ -1,14 +1,14 @@
-use crate::ast::*; //TODO
+use crate::ast::{Ast, RelationOp};
 use crate::symtable::SymTable;
 use crate::types::Types;
 
 pub struct TypeChecker {
-    st: SymTable,
+    st: SymTable<Types, Types>,
 }
 
 impl TypeChecker {
     pub fn new() -> TypeChecker {
-        let mut st = SymTable::new();
+        let mut st = SymTable::new(Types::Proc(Box::new(Types::Int), Vec::new()));
         // TODO: Delete this once runtime is finished.
         // This is just for testing
         let _ = st.insert_global(String::from("getbool"), Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -22,146 +22,347 @@ impl TypeChecker {
         let _ = st.insert_global(String::from("sqrt"), Types::Proc(Box::new(Types::Float), vec![Types::Int]));
 
         TypeChecker {
-            st: st,
+            st
         }
     }
-}
 
-impl ASTVisitor<Types> for TypeChecker {
-    fn visit_program(&self, p: &Program) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_var_decl(&self, d: &VarDecl) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_proc_decl(&self, d: &ProcDecl) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_assign_stmt(&self, s: &AssignStmt) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_if_stmt(&self, s: &IfStmt) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_loop_stmt(&self, s: &LoopStmt) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_return_stmt(&self, s: &ReturnStmt) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_and_op(&self, s: &AndOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_or_op(&self, s: &OrOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_not_op(&self, s: &NotOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_add_op(&self, s: &AddOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_sub_op(&self, s: &SubOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_mul_op(&self, s: &MulOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_div_op(&self, s: &DivOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_relation(&self, s: &Relation) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_negate_op(&self, s: &NegateOp) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_subscript_op(&self, op: &SubscriptOp) -> Types {
-        let array_type = op.array.visit(self);
-        let expr_type = op.index.visit(self);
-
-        match array_type {
-            Types::Array(_, _) => (),
-            _ => panic!("Indexing can only be performed on array types"),
-        }
-
-        match expr_type {
-            Types::Int => (),
-            _ => panic!("Array index must be of integer type"),
-        }
-
-        array_type
-    }
-
-    fn visit_proc_call(&self, pc: &ProcCall) -> Types {
-        let proc_type = pc.proc.visit(self);
-        let mut arg_types = Vec::new();
-        for arg in pc.args {
-            arg_types.push(arg.visit(self));
-        }
-
-        let return_type: Types;
-        match proc_type {
-            Types::Proc(out_type, param_types) => {
-                let n_args = arg_types.len();
-                let n_params = param_types.len();
-                if n_args != n_params {
-                    panic!("Incorrect number of arguments");
+    pub fn visit_ast(&mut self, ast: &Ast) -> Types {
+        match ast {
+            Ast::Program { decls, body, .. } => {
+                for decl in decls.iter() {
+                    self.visit_ast(decl);
                 }
 
-                for (i, (arg_type, param_type)) in arg_types.iter().zip(param_types.iter()).enumerate() {
-                    if arg_type != param_type {
-                        panic!("Type mismatch in argument {i}. (0-indexed)");
+                for stmt in body.iter() {
+                    self.visit_ast(stmt);
+                }
+
+                Types::Unknown
+            }
+            Ast::VarDecl { is_global, name, ty } => {
+                let result: Result<(), String>;
+                if *is_global {
+                    result = self.st.insert_global(name.clone(), ty.clone());
+                } else {
+                    result = self.st.insert(name.clone(), ty.clone());
+                }
+
+                match result {
+                    Ok(_) => (),
+                    Err(_) => panic!("Duplicate declaration. {name} is already declared in this scope"),
+                }
+
+                ty.clone()
+            },
+            Ast::ProcDecl { is_global, name, ty, params, decls, body } => {
+                let result: Result<(), String>;
+                if *is_global {
+                    result = self.st.insert_global(name.clone(), ty.clone());
+                } else {
+                    result = self.st.insert(name.clone(), ty.clone());
+                }
+
+                match result {
+                    Ok(_) => (),
+                    Err(_) => panic!("Duplicate declaration. {name} is already declared in this scope"),
+                }
+
+                self.st.enter_scope(ty.clone());
+
+                for param in params.iter() {
+                    self.visit_ast(param);
+                }
+
+                for decl in decls.iter() {
+                    self.visit_ast(decl);
+                }
+
+                for stmt in body.iter() {
+                    self.visit_ast(stmt);
+                }
+
+                self.st.exit_scope();
+
+                ty.clone()
+            },
+            Ast::AssignStmt { dest, expr } => {
+                let dest_type = self.visit_ast(dest);
+                let expr_type = self.visit_ast(expr);
+                match dest_type {
+                    Types::Bool => {
+                        if expr_type != Types::Bool && expr_type != Types::Int {
+                            panic!("Type mismatch. Expression must be of bool or integer type");
+                        }
+                    }
+                    Types::Int => {
+                        if expr_type != Types::Int && expr_type != Types::Bool {
+                            panic!("Type mismatch. Expression must be of integer, float, or bool type");
+                        }
+                    }
+                    Types::Float => {
+                        if expr_type != Types::Float && expr_type != Types::Int {
+                            panic!("Type mismatch. Expression must be of float or integer type");
+                        }
+                    }
+                    Types::String => {
+                        if expr_type != Types::String {
+                            panic!("Type mismatch. Expression must be of string type");
+                        }
+                    }
+                    _ => panic!("Assignment not supported for this operand type"),
+                }
+                Types::Unknown
+            },
+            Ast::IfStmt { cond, then_body, else_body } => {
+                let cond_expr_type = self.visit_ast(cond);
+                if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
+                    panic!("The conditional expression must be of bool or integer type");
+                }
+                for stmt in then_body.iter() {
+                    self.visit_ast(stmt);
+                }
+                for stmt in else_body.iter() {
+                    self.visit_ast(stmt);
+                }
+                Types::Unknown
+            },
+            Ast::LoopStmt { init, cond, body } => {
+                self.visit_ast(init);
+                let cond_expr_type = self.visit_ast(cond);
+                if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
+                    panic!("The conditional expression must be of bool or integer type");
+                }
+                for stmt in body.iter() {
+                    self.visit_ast(stmt);
+                }
+                Types::Unknown
+            },
+            Ast::ReturnStmt { expr } => {
+                let expr_type = self.visit_ast(expr);
+                let owning_proc_type = self.st.get_local_proc_data();
+
+                // Same compatibility rules as assignment
+                if let Types::Proc(return_type, _) = owning_proc_type {
+                    match **return_type {
+                        Types::Bool => {
+                            if expr_type != Types::Bool && expr_type != Types::Int {
+                                panic!("Expression type does not match the return type of the owning procedure");
+                            }
+                        }
+                        Types::Int => {
+                            if expr_type != Types::Int && expr_type != Types::Bool {
+                                panic!("Expression type does not match the return type of the owning procedure");
+                            }
+                        }
+                        Types::Float => {
+                            if expr_type != Types::Float && expr_type != Types::Int {
+                                panic!("Expression type does not match the return type of the owning procedure");
+                            }
+                        }
+                        Types::String => {
+                            if expr_type != Types::String {
+                                panic!("Expression type does not match the return type of the owning procedure");
+                            }
+                        }
+                        _ => panic!("Returns not supported for this operand type"),
                     }
                 }
 
-                return_type = *out_type;
-            }
-            _ => panic!("Expected procedure type"),
+                Types::Unknown
+            },
+            Ast::AndOp { lhs, rhs } => {
+                let lhs_type = self.visit_ast(lhs);
+                let rhs_type = self.visit_ast(rhs);
+
+                if lhs_type != Types::Int {
+                    panic!("Bitwise operations can only be performed on operands of integer type");
+                }
+
+                if rhs_type != Types::Int {
+                    panic!("Bitwise operations can only be performed on operands of integer type");
+                }
+
+                Types::Int
+            },
+            Ast::OrOp { lhs, rhs } => {
+                let lhs_type = self.visit_ast(lhs);
+                let rhs_type = self.visit_ast(rhs);
+
+                if lhs_type != Types::Int {
+                    panic!("Bitwise operations can only be performed on operands of integer type");
+                }
+
+                if rhs_type != Types::Int {
+                    panic!("Bitwise operations can only be performed on operands of integer type");
+                }
+
+                Types::Int
+            },
+            Ast::NotOp { operand } => {
+                let operand_type = self.visit_ast(operand);
+
+                if operand_type != Types::Int {
+                    panic!("Bitwise operations can only be performed on operands of integer type");
+                }
+
+                Types::Int
+            },
+            Ast::AddOp { lhs, rhs } => {
+                let lhs_type = self.visit_ast(lhs);
+                let rhs_type = self.visit_ast(rhs);
+
+                if lhs_type != Types::Int && lhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                if rhs_type != Types::Int && rhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                let mut op_type = Types::Float;
+                if lhs_type == Types::Int && rhs_type == Types::Int {
+                    op_type = Types::Int;
+                }
+                op_type
+            },
+            Ast::SubOp { lhs, rhs } => {
+                let lhs_type = self.visit_ast(lhs);
+                let rhs_type = self.visit_ast(rhs);
+
+                if lhs_type != Types::Int && lhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                if rhs_type != Types::Int && rhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                let mut op_type = Types::Float;
+                if lhs_type == Types::Int && rhs_type == Types::Int {
+                    op_type = Types::Int;
+                }
+                op_type
+            },
+            Ast::MulOp { lhs, rhs } => {
+                let lhs_type = self.visit_ast(lhs);
+                let rhs_type = self.visit_ast(rhs);
+
+                if lhs_type != Types::Int && lhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                if rhs_type != Types::Int && rhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                if lhs_type == Types::Int && rhs_type == Types::Int {
+                    return Types::Int
+                }
+                Types::Float
+            },
+            Ast::DivOp { lhs, rhs } => {
+                let lhs_type = self.visit_ast(lhs);
+                let rhs_type = self.visit_ast(rhs);
+
+                if lhs_type != Types::Int && lhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                if rhs_type != Types::Int && rhs_type != Types::Float {
+                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                }
+
+                Types::Float
+            },
+            Ast::Relation { op, lhs, rhs } => {
+                let lhs_type = self.visit_ast(lhs);
+                let rhs_type = self.visit_ast(rhs);
+
+                match lhs_type {
+                    Types::Bool => {
+                        if rhs_type != Types::Bool && rhs_type != Types::Int {
+                            panic!("Type mismatch. Right operand must be of bool or integer type");
+                        }
+                    }
+                    Types::Int => {
+                        if rhs_type != Types::Int && rhs_type != Types::Bool {
+                            panic!("Type mismatch. Right operand must be of integer or bool type");
+                        }
+                    }
+                    Types::Float => {
+                        if rhs_type != Types::Float {
+                            panic!("Type mismatch. Right operand must be of float type");
+                        }
+                    }
+                    Types::String => {
+                        if *op != RelationOp::Eq && *op != RelationOp::NotEq {
+                            panic!("Operator not supported for operands of string type. Only == and != are supported for operands of string type");
+                        }
+                        if rhs_type != Types::String {
+                            panic!("Type mismatch. Right operand must be of string type");
+                        }
+                    }
+                    _ => panic!("Relational operators not supported for this operand type"),
+                }
+
+                Types::Bool
+            },
+            Ast::NegateOp { operand } => {
+                // TODO: Type checking for negation operand. Same as arithmetic.
+                self.visit_ast(operand)
+            },
+            Ast::SubscriptOp { array, index } => {
+                let array_type = self.visit_ast(array);
+                let expr_type = self.visit_ast(index);
+
+                match array_type {
+                    Types::Array(_, _) => (),
+                    _ => panic!("Indexing can only be performed on array types"),
+                }
+
+                match expr_type {
+                    Types::Int => (),
+                    _ => panic!("Array index must be of integer type"),
+                }
+
+                array_type
+            },
+            Ast::ProcCall { proc, args } => {
+                let proc_type = self.visit_ast(proc);
+                let mut arg_types = Vec::new();
+                for arg in args.iter() {
+                    arg_types.push(self.visit_ast(arg));
+                }
+
+                match proc_type {
+                    Types::Proc(out_type, param_types) => {
+                        let n_args = arg_types.len();
+                        let n_params = param_types.len();
+                        if n_args != n_params {
+                            panic!("Incorrect number of arguments");
+                        }
+
+                        for (i, (arg_type, param_type)) in arg_types.iter().zip(param_types.iter()).enumerate() {
+                            if arg_type != param_type {
+                                panic!("Type mismatch in argument {i}. (0-indexed)");
+                            }
+                        }
+
+                        *out_type
+                    }
+                    _ => panic!("Expected procedure type"),
+                }
+            },
+            Ast::IntLiteral { .. } => Types::Int,
+            Ast::FloatLiteral { .. } => Types::Float,
+            Ast::BoolLiteral { .. } => Types::Bool,
+            Ast::StringLiteral { .. } => Types::String,
+            Ast::Var { id } => {
+                match self.st.get(id) {
+                    Some(types) => types.clone(),
+                    None => panic!("Missing declaration for {id}"),
+                }
+            },
         }
-        return_type
-    }
-
-    fn visit_int_literal(&self, s: &IntLiteral) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_float_literal(&self, s: &FloatLiteral) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_string_literal(&self, s: &StringLiteral) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_bool_literal(&self, s: &BoolLiteral) -> Types {
-        Types::Unknown
-    }
-
-    fn visit_var(&self, var: &Var) -> Types {
-        let parsed_type: Types;
-        match self.st.get(var.id) {
-            Some(types) => {
-                parsed_type = types.clone();
-            }
-            None => panic!("Missing declaration for {}", var.id),
-        }
-        parsed_type
     }
 }

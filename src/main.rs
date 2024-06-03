@@ -6,10 +6,8 @@ use std::io::Write;
 use compiler::codegen::CodeGen;
 use compiler::llparser::LLParser;
 use compiler::scanner::Scanner;
-use compiler::symtable::SymTable;
 use compiler::token::Token;
-//use compiler::typechecker::TypeChecker;
-use compiler::types::Types;
+use compiler::typechecker::TypeChecker;
 
 use inkwell::context::Context;
 //use inkwell::module::Module;
@@ -60,8 +58,8 @@ fn main() {
     let mut p = LLParser::new(s);
     let ast = p.parse();
 
-    let mut st = SymTable::<Types, Types>::new_with_runtime();
-    ast.type_check(&mut st);
+    let mut tc = TypeChecker::new();
+    tc.visit_ast(&ast);
 
     let context = Context::create();
     let builder = context.create_builder();
