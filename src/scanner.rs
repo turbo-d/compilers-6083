@@ -48,7 +48,10 @@ impl Scanner {
     fn skip_whitespace(&mut self) -> bool {
         let start = self.i;
         while let Some(c) = self.read_ch() {
-            if c == ' ' || c == '\n' || c == '\t' || c == '\r' {
+            if c == '\n' {
+                self.line += 1;
+                continue;
+            } else if c == ' ' || c == '\t' || c == '\r' {
                 continue;
             } else {
                 self.unread_ch();
@@ -69,6 +72,7 @@ impl Scanner {
                             if c != '\n' {
                                 continue;
                             } else {
+                                self.line += 1;
                                 break;
                             }
                         }
@@ -93,6 +97,9 @@ impl Scanner {
                                         }
                                     }
                                 }
+                            } else if c == '\n' {
+                                self.line += 1;
+                                continue;
                             } else {
                                 continue;
                             }
@@ -144,9 +151,6 @@ impl Scanner {
         }
         let c = self.stream.chars().nth(self.i).unwrap();
         self.i += 1;
-        if c == '\n' {
-            self.line += 1;
-        }
         return Some(c);
     }
 
@@ -1177,7 +1181,70 @@ mod tests {
         let mut s = Scanner::new(String::from("\"this is a strin"));
         let tok = s.scan();
         match tok {
-            Token::Invalid(c) => assert_eq!(c, String::from("\"this is a strin")),
+            Token::Invalid(s) => assert_eq!(s, String::from("\"this is a strin")),
+            _ => panic!("Expected Token::Invalid")
+        }
+    }
+
+    #[test]
+    fn scan_linecount_newline() {
+        let mut s = Scanner::new(String::from("line_1_identifier \n\n\n line_4_identifier"));
+        let tok = s.scan();
+        match tok {
+            Token::Identifier(id) => {
+                assert_eq!(id, String::from("line_1_identifier"));
+                assert_eq!(s.line(), 1);
+            }
+            _ => panic!("Expected Token::Invalid")
+        }
+        let tok = s.scan();
+        match tok {
+            Token::Identifier(id) => {
+                assert_eq!(id, String::from("line_4_identifier"));
+                assert_eq!(s.line(), 4);
+            }
+            _ => panic!("Expected Token::Invalid")
+        }
+    }
+
+    #[test]
+    fn scan_linecount_singlelinecomment() {
+        let mut s = Scanner::new(String::from("line_1_identifier // this is a comment \n line_2_identifier"));
+        let tok = s.scan();
+        match tok {
+            Token::Identifier(id) => {
+                assert_eq!(id, String::from("line_1_identifier"));
+                assert_eq!(s.line(), 1);
+            }
+            _ => panic!("Expected Token::Invalid")
+        }
+        let tok = s.scan();
+        match tok {
+            Token::Identifier(id) => {
+                assert_eq!(id, String::from("line_2_identifier"));
+                assert_eq!(s.line(), 2);
+            }
+            _ => panic!("Expected Token::Invalid")
+        }
+    }
+
+    #[test]
+    fn scan_linecount_multilinecomment() {
+        let mut s = Scanner::new(String::from("line_1_identifier /* this\nis\na\ncomment\n*/ line_5_identifier"));
+        let tok = s.scan();
+        match tok {
+            Token::Identifier(id) => {
+                assert_eq!(id, String::from("line_1_identifier"));
+                assert_eq!(s.line(), 1);
+            }
+            _ => panic!("Expected Token::Invalid")
+        }
+        let tok = s.scan();
+        match tok {
+            Token::Identifier(id) => {
+                assert_eq!(id, String::from("line_5_identifier"));
+                assert_eq!(s.line(), 5);
+            }
             _ => panic!("Expected Token::Invalid")
         }
     }
