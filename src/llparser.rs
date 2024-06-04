@@ -1,17 +1,17 @@
 use crate::ast::{Ast, RelationOp};
-use crate::scanner::Scanner;
+use crate::scanner::Scan;
 use crate::token::Token;
 use crate::types::Types;
 
 use std::vec::Vec;
 
 pub struct LLParser {
-    s: Scanner,
+    s: Box<dyn Scan>,
     tok: Token,
 }
 
 impl LLParser {
-    pub fn new(s: Scanner) -> LLParser {
+    pub fn new(s: Box<dyn Scan>) -> LLParser {
         LLParser {
             s,
             tok: Token::Unknown,
@@ -881,10 +881,41 @@ impl LLParser {
 mod tests {
     use super::*;
 
+    struct TestScanner {
+        toks: Vec<Token>,
+        i: usize,
+        line: u32,
+    }
+
+    impl TestScanner {
+        fn new(toks: Vec<Token>) -> TestScanner {
+            TestScanner {
+                toks,
+                i: 0,
+                line: 1,
+            }
+        }
+    }
+
+    impl Scan for TestScanner {
+        fn scan(&mut self) -> Token {
+            if self.i < self.toks.len() {
+                self.i += 1;
+                self.toks[self.i-1].clone()
+            } else {
+                Token::Unknown
+            }
+        }
+
+        fn line(&self) -> u32 {
+            self.line
+        }
+    }
+
     #[test]
     fn llparse_test() {
-        let s = Scanner::new(String::from("a+b"));
-        let mut p = LLParser::new(s);
+        let s = TestScanner::new(vec![Token::Identifier(String::from("a")), Token::Add, Token::Identifier(String::from("b"))]);
+        let mut p = LLParser::new(Box::new(s));
         p.consume_tok();
         let _ast = p.expr();
         //assert!(true);

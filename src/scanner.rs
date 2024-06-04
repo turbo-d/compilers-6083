@@ -2,6 +2,11 @@ use crate::token::Token;
 
 use std::collections::HashMap;
 
+pub trait Scan {
+    fn scan(&mut self) -> Token;
+    fn line(&self) -> u32;
+}
+
 pub struct Scanner {
     stream: String,
     i: usize,
@@ -161,12 +166,14 @@ impl Scanner {
     fn peek_matches(&self, peek: usize, c: char) -> bool {
         peek < self.stream.len() && self.stream.chars().nth(peek).unwrap() == c
     }
+}
 
-    pub fn line(&self) -> u32 {
+impl Scan for Scanner {
+    fn line(&self) -> u32 {
         self.line
     }
 
-    pub fn scan(&mut self) -> Token {
+    fn scan(&mut self) -> Token {
         self.skip_whitespace_and_comments();
 
         let c = match self.read_ch() {

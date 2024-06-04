@@ -5,7 +5,7 @@ use std::io::Write;
 
 use compiler::codegen::CodeGen;
 use compiler::llparser::LLParser;
-use compiler::scanner::Scanner;
+use compiler::scanner::{Scan, Scanner};
 use compiler::token::Token;
 use compiler::typechecker::TypeChecker;
 
@@ -54,7 +54,7 @@ fn main() {
     }
 
     let s = Scanner::new(contents);
-    let mut p = LLParser::new(s);
+    let mut p = LLParser::new(Box::new(s));
     let ast = p.parse();
 
     if debug {
