@@ -39,7 +39,7 @@ fn main() {
             print!("\n");
         }
         out_line = scan_line;
-        print!("<{tok:?}> ");
+        print!("{tok:?}, ");
         while tok != Token::EOF {
             tok = s.scan();
             let scan_line = s.line();
@@ -47,7 +47,7 @@ fn main() {
                 print!("\n");
             }
             out_line = scan_line;
-            print!("<{tok:?}> ");
+            print!("{tok:?}, ");
         }
         print!("\n");
         io::stdout().flush().unwrap();
@@ -57,8 +57,16 @@ fn main() {
     let mut p = LLParser::new(s);
     let ast = p.parse();
 
+    if debug {
+        println!("{ast}");
+    }
+
     let mut tc = TypeChecker::new();
     ast.accept(&mut tc);
+
+    if debug {
+        println!("{ast}");
+    }
 
     let context = Context::create();
     let builder = context.create_builder();
