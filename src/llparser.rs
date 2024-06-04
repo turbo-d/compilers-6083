@@ -1,13 +1,18 @@
 use crate::ast::{Ast, RelationOp};
+use crate::error::CompilerError;
 use crate::scanner::Scan;
 use crate::token::Token;
 use crate::types::Types;
 
 use std::vec::Vec;
 
+#[derive(Debug)]
+pub struct TerminalError;
+
 pub struct LLParser {
     s: Box<dyn Scan>,
     tok: Token,
+    errs: Vec<CompilerError>,
 }
 
 impl LLParser {
@@ -15,103 +20,116 @@ impl LLParser {
         LLParser {
             s,
             tok: Token::Unknown,
+            errs: Vec::<CompilerError>::new(),
         }
     }
 
-    pub fn parse(&mut self) -> Box<Ast> {
+    pub fn get_errors(&self) -> &Vec<CompilerError> {
+        &self.errs
+    }
+
+    pub fn parse(&mut self) -> Result<Box<Ast>, TerminalError> {
         self.consume_tok();
 
-        let prgm_node = self.program();
+        let prgm_node = self.program()?;
 
         if self.tok != Token::EOF {
-            eprintln!("Extraneous trailing characters");
+            self.errs.push(CompilerError::Warning { line: self.s.line(), msg: String::from("Extraneous trailing characters") });
         }
 
-        prgm_node
+        Ok(prgm_node)
     }
 
     fn consume_tok(&mut self) {
         self.tok = self.s.scan();
     }
 
-    fn program(&mut self) -> Box<Ast> {
-        let name = self.program_header();
+    fn program(&mut self) -> Result<Box<Ast>, TerminalError> {
+        let name = self.program_header()?;
 
-        let (decls, body) = self.program_body();
+        let (decls, body) = self.program_body()?;
 
         if self.tok != Token::Period {
-            // TODO: Probably want to warn here instead
-            panic!("Expected \".\"");
+            self.errs.push(CompilerError::Warning { line: self.s.line(), msg: String::from("Expected \".\"") });
         }
         self.consume_tok();
 
-        Box::new(Ast::Program {
+        Ok(Box::new(Ast::Program {
             name: name,
             decls: decls,
             body: body,
-        })
+        }))
     }
 
-    fn program_header(&mut self) -> String {
+    fn program_header(&mut self) -> Result<String, TerminalError> {
         if self.tok != Token::Program {
-            panic!("Expected \"program\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"program\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let identifier: String;
         match &self.tok {
             Token::Identifier(id) => identifier = id.clone(),
-            _ => panic!("Expected \"identifier\""),
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+                return Err(TerminalError);
+            },
         }
         self.consume_tok();
 
         if self.tok != Token::Is {
-            panic!("Expected \"is\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"is\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        identifier
+        Ok(identifier)
     }
 
     // first(program_body): "global", "procedure", "variable", "begin"
-    fn program_body(&mut self) -> (Vec<Box<Ast>>, Vec<Box<Ast>>) {
+    fn program_body(&mut self) -> Result<(Vec<Box<Ast>>, Vec<Box<Ast>>), TerminalError> {
         let mut decls = Vec::new();
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
-            decls.push(self.declaration());
+            decls.push(self.declaration()?);
 
             if self.tok != Token::Semicolon {
-                panic!("Expected \";\"");
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::Begin {
-            panic!("Expected \"begin\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"begin\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut stmts = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            stmts.push(self.statement());
+            stmts.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
-                panic!("Expected \";\"");
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::EndProgram {
-            panic!("Expected \"end program\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"end program\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        (decls, stmts)
+        Ok((decls, stmts))
     }
 
     // first(declaration): "global", "procedure", "variable"
-    fn declaration(&mut self) -> Box<Ast> {
+    fn declaration(&mut self) -> Result<Box<Ast>, TerminalError> {
         let mut is_global = false;
         if self.tok == Token::Global {
             is_global = true;
@@ -120,74 +138,82 @@ impl LLParser {
 
         let decl_node: Box<Ast>;
         if self.tok == Token::Procedure {
-            decl_node = self.procedure_declaration(is_global);
+            decl_node = self.procedure_declaration(is_global)?;
         } else if self.tok == Token::Variable {
-            let (_, var_decl_node) = self.variable_declaration(is_global);
+            let (_, var_decl_node) = self.variable_declaration(is_global)?;
             decl_node = Box::new(var_decl_node);
         } else {
-            panic!("Expected \"Procedure declaration or Variable declaration\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"Procedure declaration or Variable declaration\"") });
+            return Err(TerminalError);
         }
 
-        decl_node
+        Ok(decl_node)
     }
 
-    fn procedure_declaration(&mut self, is_global: bool) -> Box<Ast> {
-        let (name, proc_type, params) = self.procedure_header();
-        let (decls, body) = self.procedure_body();
+    fn procedure_declaration(&mut self, is_global: bool) -> Result<Box<Ast>, TerminalError> {
+        let (name, proc_type, params) = self.procedure_header()?;
+        let (decls, body) = self.procedure_body()?;
 
-        Box::new(Ast::ProcDecl {
+        Ok(Box::new(Ast::ProcDecl {
             is_global: is_global,
             name: name,
             ty: proc_type,
             params: params,
             decls: decls,
             body: body,
-        })
+        }))
     }
 
-    fn procedure_header(&mut self) -> (String, Types, Vec<Ast>) {
+    fn procedure_header(&mut self) -> Result<(String, Types, Vec<Ast>), TerminalError> {
         if self.tok != Token::Procedure {
-            panic!("Expected \"procedure\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"procedure\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let identifier: String;
         match &self.tok {
             Token::Identifier(id) => identifier = id.clone(),
-            _ => panic!("Expected \"identifier\""),
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+                return Err(TerminalError);
+            },
         }
         self.consume_tok();
 
         if self.tok != Token::Colon {
-            panic!("Expected \":\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \":\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        let return_type = self.type_mark();
+        let return_type = self.type_mark()?;
 
         if self.tok != Token::LParen {
-            panic!("Expected \"(\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut params = Vec::new();
         // first(parameter_list)
         if self.tok == Token::Variable {
-            params = self.parameter_list();
+            params = self.parameter_list()?;
         }
 
         if self.tok != Token::RParen {
-            panic!("Expected \")\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let (param_types, param_nodes): (Vec<_>, Vec<_>) = params.into_iter().unzip();
         let parsed_type = Types::Proc(Box::new(return_type), param_types);
 
-        (identifier, parsed_type, param_nodes)
+        Ok((identifier, parsed_type, param_nodes))
     }
 
-    fn type_mark(&mut self) -> Types {
+    fn type_mark(&mut self) -> Result<Types, TerminalError> {
         let parsed_type: Types;
         if self.tok == Token::IntType {
             parsed_type = Types::Int;
@@ -198,90 +224,100 @@ impl LLParser {
         } else if self.tok == Token::BoolType {
             parsed_type = Types::Bool;
         } else {
-            panic!("Expected \"type\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"type\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        return parsed_type;
+        Ok(parsed_type)
     }
 
     // first(parameter_list): "variable"
-    fn parameter_list(&mut self) -> Vec<(Types, Ast)> {
+    fn parameter_list(&mut self) -> Result<Vec<(Types, Ast)>, TerminalError> {
         let mut params = Vec::new();
 
-        params.push(self.parameter());
+        params.push(self.parameter()?);
 
         while self.tok == Token::Comma {
             //consume comma
             self.consume_tok();
 
-            params.push(self.parameter());
+            params.push(self.parameter()?);
         }
 
-        params
+        Ok(params)
     }
 
-    fn parameter(&mut self) -> (Types, Ast) {
+    fn parameter(&mut self) -> Result<(Types, Ast), TerminalError> {
         self.variable_declaration(false)
     }
 
     // TODO: Almost the same as program_body
     // first(procedure_body): "global", "procedure", "variable", "begin"
-    fn procedure_body(&mut self) -> (Vec<Box<Ast>>, Vec<Box<Ast>>) {
+    fn procedure_body(&mut self) -> Result<(Vec<Box<Ast>>, Vec<Box<Ast>>), TerminalError> {
         let mut decls = Vec::new();
         // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
-            decls.push(self.declaration());
+            decls.push(self.declaration()?);
 
             if self.tok != Token::Semicolon {
-                panic!("Expected \";\"");
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::Begin {
-            panic!("Expected \"begin\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"begin\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut stmts = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            stmts.push(self.statement());
+            stmts.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
-                panic!("Expected \";\"");
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::EndProcedure {
-            panic!("Expected \"end procedure\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"end procedure\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        (decls, stmts)
+        Ok((decls, stmts))
     }
 
-    fn variable_declaration(&mut self, is_global: bool) -> (Types, Ast) {
+    fn variable_declaration(&mut self, is_global: bool) -> Result<(Types, Ast), TerminalError> {
         if self.tok != Token::Variable {
-            panic!("Expected \"variable\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"variable\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let identifier: String;
         match &self.tok {
             Token::Identifier(id) => identifier = id.clone(),
-            _ => panic!("Expected \"identifier\""),
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+                return Err(TerminalError);
+            },
         }
         self.consume_tok();
 
         if self.tok != Token::Colon {
-            panic!("Expected \":\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \":\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        let mut parsed_type = self.type_mark();
+        let mut parsed_type = self.type_mark()?;
 
         if self.tok == Token::LSquare {
             // consume LSquare
@@ -296,16 +332,24 @@ impl LLParser {
                         let bound = num as u32;
                         parsed_type = Types::Array(bound, Box::new(parsed_type));
                     } else {
-                        panic!("Array size must be non-negative")
+                        self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Array size must be non-negative") });
+                        return Err(TerminalError);
                     }
                 }
-                Token::FloatLiteral(_) => panic!("Array size must be a non-negative integer value"),
-                _ => panic!("Expected \"number\""),
+                Token::FloatLiteral(_) => {
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Array size must be a non-negative integer value") });
+                    return Err(TerminalError);
+                },
+                _ => {
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"number\"") });
+                    return Err(TerminalError);
+                },
             }
             self.consume_tok();
 
             if self.tok != Token::RSquare {
-                panic!("Expected \"]\"");
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"]\"") });
+                return Err(TerminalError);
             }
             self.consume_tok();
         }
@@ -316,46 +360,51 @@ impl LLParser {
             ty: parsed_type.clone(),
         };
 
-        (parsed_type, var_decl_node)
+        Ok((parsed_type, var_decl_node))
     }
 
     // first(statement): "identifier", "if", "for", "return"
-    fn statement(&mut self) -> Box<Ast> {
+    fn statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         let stmt_node: Box<Ast>;
         if matches!(self.tok, Token::Identifier(_)) {
-            stmt_node = self.assignment_statement();
+            stmt_node = self.assignment_statement()?;
         } else if self.tok == Token::If {
-            stmt_node = self.if_statement();
+            stmt_node = self.if_statement()?;
         } else if self.tok == Token::For {
-            stmt_node = self.loop_statement();
+            stmt_node = self.loop_statement()?;
         } else if self.tok == Token::Return {
-            stmt_node = self.return_statement();
+            stmt_node = self.return_statement()?;
         } else {
-            panic!("Expected \"statement\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"statement\"") });
+            return Err(TerminalError);
         }
-        stmt_node
+        Ok(stmt_node)
     }
 
-    fn assignment_statement(&mut self) -> Box<Ast> {
-        let dest_node = self.destination();
+    fn assignment_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
+        let dest_node = self.destination()?;
 
         if self.tok != Token::Assign {
-            panic!("Expected \":=\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \":=\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        let expr_node = self.expr();
+        let expr_node = self.expr()?;
 
-        Box::new(Ast::AssignStmt {
+        Ok(Box::new(Ast::AssignStmt {
             dest: dest_node,
             expr: expr_node,
-        })
+        }))
     }
 
-    fn destination(&mut self) -> Box<Ast> {
+    fn destination(&mut self) -> Result<Box<Ast>, TerminalError> {
         let var_id = match &self.tok {
             Token::Identifier(id) => id.clone(),
-            _ => panic!("Expected \"identifier\""),
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+                return Err(TerminalError);
+            },
         };
         self.consume_tok();
 
@@ -364,54 +413,60 @@ impl LLParser {
         });
 
         if self.tok != Token::LSquare {
-            return var_node;
+            return Ok(var_node);
         }
         // consume LSquare
         self.consume_tok();
 
-        let expr_node = self.expr();
+        let expr_node = self.expr()?;
 
         if self.tok != Token::RSquare {
-            panic!("Expected \"]\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"]\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        Box::new(Ast::SubscriptOp {
+        Ok(Box::new(Ast::SubscriptOp {
             array: var_node,
             index: expr_node,
-        })
+        }))
     }
 
-    fn if_statement(&mut self) -> Box<Ast> {
+    fn if_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::If {
-            panic!("Expected \"if\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"if\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         if self.tok != Token::LParen {
-            panic!("Expected \"(\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        let expr_node = self.expr();
+        let expr_node = self.expr()?;
 
         if self.tok != Token::RParen {
-            panic!("Expected \")\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         if self.tok != Token::Then {
-            panic!("Expected \"then\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"then\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut then_body = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            then_body.push(self.statement());
+            then_body.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
-                panic!("Expected \";\"");
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                return Err(TerminalError);
             }
             self.consume_tok();
         }
@@ -423,90 +478,99 @@ impl LLParser {
 
             // first(statement)
             while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-                else_body.push(self.statement());
+                else_body.push(self.statement()?);
 
                 if self.tok != Token::Semicolon {
-                    panic!("Expected \";\"");
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                    return Err(TerminalError);
                 }
                 self.consume_tok();
             }
         }
 
         if self.tok != Token::EndIf {
-            panic!("Expected \"end if\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"end if\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        Box::new(Ast::IfStmt {
+        Ok(Box::new(Ast::IfStmt {
             cond: expr_node,
             then_body: then_body,
             else_body: else_body,
-        })
+        }))
     }
 
-    fn loop_statement(&mut self) -> Box<Ast> {
+    fn loop_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::For {
-            panic!("Expected \"for\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"for\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         if self.tok != Token::LParen {
-            panic!("Expected \"(\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        let assign_stmt_node = self.assignment_statement();
+        let assign_stmt_node = self.assignment_statement()?;
 
         if self.tok != Token::Semicolon {
-            panic!("Expected \";\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        let expr_node = self.expr();
+        let expr_node = self.expr()?;
 
         if self.tok != Token::RParen {
-            panic!("Expected \")\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut body = Vec::new();
         // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
-            body.push(self.statement());
+            body.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
-                panic!("Expected \";\"");
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::EndFor {
-            panic!("Expected \"end for\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"end for\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        Box::new(Ast::LoopStmt {
+        Ok(Box::new(Ast::LoopStmt {
             init: assign_stmt_node,
             cond: expr_node,
             body: body,
-        })
+        }))
     }
 
-    fn return_statement(&mut self) -> Box<Ast> {
+    fn return_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::Return {
-            panic!("Expected \"return\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"return\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        let expr_node = self.expr();
+        let expr_node = self.expr()?;
 
-        Box::new(Ast::ReturnStmt {
+        Ok(Box::new(Ast::ReturnStmt {
             expr: expr_node,
-        })
+        }))
     }
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn expr(&mut self) -> Box<Ast> {
+    fn expr(&mut self) -> Result<Box<Ast>, TerminalError> {
         let mut do_complement = false;
         if self.tok == Token::Not {
             do_complement = true;
@@ -514,31 +578,31 @@ impl LLParser {
             self.consume_tok();
         }
 
-        let lhs_node = self.arith_op();
+        let lhs_node = self.arith_op()?;
 
-        let expr_node = self.expr_prime(lhs_node);
+        let expr_node = self.expr_prime(lhs_node)?;
 
         if do_complement {
-            return Box::new(Ast::NotOp {
+            return Ok(Box::new(Ast::NotOp {
                 operand: expr_node,
-            });
+            }));
         }
 
-        expr_node
+        Ok(expr_node)
     }
 
-    fn expr_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
+    fn expr_prime(&mut self, lhs_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::And && self.tok != Token::Or {
             // null body production
             // TODO: check follow() for error checking
-            return lhs_node;
+            return Ok(lhs_node);
         }
 
         let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let rhs_node = self.arith_op();
+        let rhs_node = self.arith_op()?;
 
         let expr_node: Box<Ast> = match op {
             Token::And => {
@@ -560,24 +624,24 @@ impl LLParser {
     }
 
     // first(arith_op): "(", "identifier", "-", "number", "string", "true", "false"
-    fn arith_op(&mut self) -> Box<Ast> {
-        let lhs_node = self.relation();
+    fn arith_op(&mut self) -> Result<Box<Ast>, TerminalError> {
+        let lhs_node = self.relation()?;
 
         self.arith_op_prime(lhs_node)
     }
 
-    fn arith_op_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
+    fn arith_op_prime(&mut self, lhs_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::Add && self.tok != Token::Sub {
             // null body production
             // TODO: check follow() for error checking
-            return lhs_node;
+            return Ok(lhs_node);
         }
 
         let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let rhs_node = self.relation();
+        let rhs_node = self.relation()?;
 
         let arith_op_node: Box<Ast> = match op {
             Token::Add => {
@@ -599,13 +663,13 @@ impl LLParser {
     }
 
     // first(relation): "(", "identifier", "-", "number", "string", "true", "false"
-    fn relation(&mut self) -> Box<Ast> {
-        let lhs_node = self.term();
+    fn relation(&mut self) -> Result<Box<Ast>, TerminalError> {
+        let lhs_node = self.term()?;
 
         self.relation_prime(lhs_node)
     }
 
-    fn relation_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
+    fn relation_prime(&mut self, lhs_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::LT && 
             self.tok != Token::LTE &&
             self.tok != Token::GT &&
@@ -614,14 +678,14 @@ impl LLParser {
             self.tok != Token::NotEq {
             // null body production
             // TODO: check follow() for error checking
-            return lhs_node;
+            return Ok(lhs_node);
         }
 
         let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let rhs_node = self.term();
+        let rhs_node = self.term()?;
 
         let rel_op = match op {
             Token::LT => RelationOp::LT,
@@ -630,7 +694,10 @@ impl LLParser {
             Token::GTE => RelationOp::GTE,
             Token::Eq => RelationOp::Eq,
             Token::NotEq => RelationOp::NotEq,
-            _ => panic!("Invalid relation token"),
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected a relational operator") });
+                return Err(TerminalError);
+            },
         };
 
         let rel_node = Box::new(Ast::Relation {
@@ -643,24 +710,24 @@ impl LLParser {
     }
 
     // first(term): "(", "identifier", "-", "number", "string", "true", "false"
-    fn term(&mut self) -> Box<Ast> {
-        let lhs_node = self.factor();
+    fn term(&mut self) -> Result<Box<Ast>, TerminalError> {
+        let lhs_node = self.factor()?;
 
         self.term_prime(lhs_node)
     }
 
-    fn term_prime(&mut self, lhs_node: Box<Ast>) -> Box<Ast> {
+    fn term_prime(&mut self, lhs_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::Mul && self.tok != Token::Div {
             // null body production
             // TODO: check follow() for error checking
-            return lhs_node;
+            return Ok(lhs_node);
         }
 
         let op = self.tok.clone();
         // consume token
         self.consume_tok();
 
-        let rhs_node = self.factor();
+        let rhs_node = self.factor()?;
 
         let term_node: Box<Ast> = match op {
             Token::Mul => {
@@ -682,7 +749,7 @@ impl LLParser {
     }
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
-    fn factor(&mut self) -> Box<Ast> {
+    fn factor(&mut self) -> Result<Box<Ast>, TerminalError> {
         let factor_node: Box<Ast>;
 
         let tok = self.tok.clone();
@@ -696,9 +763,9 @@ impl LLParser {
                 });
 
                 if self.tok == Token::LParen {
-                    factor_node = self.procedure_call_prime(var);
+                    factor_node = self.procedure_call_prime(var)?;
                 } else {
-                    factor_node = self.name_prime(var);
+                    factor_node = self.name_prime(var)?;
                 }
             }
             Token::Sub => {
@@ -709,7 +776,7 @@ impl LLParser {
                 let tok = self.tok.clone();
                 match tok {
                     Token::Identifier(_) => {
-                        negate_operand_node = self.name();
+                        negate_operand_node = self.name()?;
                     }
                     Token::IntLiteral(val) => {
                         // consume number
@@ -725,7 +792,10 @@ impl LLParser {
                             value: val,
                         });
                     }
-                    _ => panic!("Expected \"identifier\" or \"number\" following \"-\"")
+                    _ => {
+                        self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\" or \"number\" following \"-\"") });
+                        return Err(TerminalError);
+                    },
                 }
 
                 factor_node = Box::new(Ast::NegateOp {
@@ -750,10 +820,11 @@ impl LLParser {
                 // consume left paren
                 self.consume_tok();
 
-                factor_node = self.expr();
+                factor_node = self.expr()?;
 
                 if self.tok != Token::RParen {
-                    panic!("Expected \")\"");
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+                    return Err(TerminalError);
                 }
                 self.consume_tok();
             }
@@ -778,17 +849,21 @@ impl LLParser {
                     value: false,
                 });
             }
-            _ => panic!("Expected \"factor\""),
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"factor\"") });
+                return Err(TerminalError);
+            },
         }
 
-        factor_node
+        Ok(factor_node)
     }
 
-    fn procedure_call_prime(&mut self, var_node: Box<Ast>) -> Box<Ast> {
+    fn procedure_call_prime(&mut self, var_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
         // identifier already consumed
 
         if self.tok != Token::LParen {
-            panic!("Expected \"(\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
@@ -803,27 +878,28 @@ impl LLParser {
             self.tok == Token::True ||
             self.tok == Token::False ||
             self.tok == Token::Sub {
-            args = self.argument_list();
+            args = self.argument_list()?;
         }
 
         if self.tok != Token::RParen {
-            panic!("Expected \")\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
-        Box::new(Ast::ProcCall {
+        Ok(Box::new(Ast::ProcCall {
             proc: var_node,
             args: args,
-        })
+        }))
     }
 
     // first(argument_list): "not", "(", "identifier", "-", "number", "string", "true", "false"
-    fn argument_list(&mut self) -> Vec<Box<Ast>> {
+    fn argument_list(&mut self) -> Result<Vec<Box<Ast>>, TerminalError> {
         let mut args = Vec::new();
 
         //let (mut expr_type, mut expr_node) = self.expr();
         //arg_types.push(expr_type);
-        args.push(self.expr());
+        args.push(self.expr()?);
 
         while self.tok == Token::Comma {
             //consume comma
@@ -831,17 +907,20 @@ impl LLParser {
 
             //(expr_type, expr_node) = self.expr();
             //arg_types.push(expr_type);
-            args.push(self.expr());
+            args.push(self.expr()?);
         }
 
-        args
+        Ok(args)
     }
 
-    fn name(&mut self) -> Box<Ast> {
+    fn name(&mut self) -> Result<Box<Ast>, TerminalError> {
         let var_id;
         match &self.tok {
             Token::Identifier(id) => var_id = id.clone(),
-            _ => panic!("Expected \"identifier\""),
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+                return Err(TerminalError);
+            },
         }
         self.consume_tok();
 
@@ -852,19 +931,20 @@ impl LLParser {
         self.name_prime(var)
     }
 
-    fn name_prime(&mut self, var_node: Box<Ast>) -> Box<Ast> {
+    fn name_prime(&mut self, var_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
         // identifier already consumed
 
         if self.tok != Token::LSquare {
-            return var_node;
+            return Ok(var_node);
         }
         // consume LSquare
         self.consume_tok();
 
-        let expr_node = self.expr();
+        let expr_node = self.expr()?;
 
         if self.tok != Token::RSquare {
-            panic!("Expected \"]\"");
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"]\"") });
+            return Err(TerminalError);
         }
         self.consume_tok();
 
@@ -873,7 +953,7 @@ impl LLParser {
             index: expr_node,
         });
 
-        sub_node
+        Ok(sub_node)
     }
 }
 
@@ -918,7 +998,10 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
         p.consume_tok();
 
-        let act_ast = p.expr();
+        let act_ast = match p.expr() {
+            Ok(ast) => ast,
+            Err(_) => panic!(""),
+        };
 
         let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { id: String::from("a") }),

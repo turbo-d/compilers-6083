@@ -55,7 +55,10 @@ fn main() {
 
     let s = Scanner::new(contents);
     let mut p = LLParser::new(Box::new(s));
-    let ast = p.parse();
+    let ast = match p.parse() {
+        Ok(ast) => ast,
+        Err(_) => panic!("Parse failed"),
+    };
 
     if debug {
         println!("{ast}");
