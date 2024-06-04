@@ -917,7 +917,14 @@ mod tests {
         let s = TestScanner::new(vec![Token::Identifier(String::from("a")), Token::Add, Token::Identifier(String::from("b"))]);
         let mut p = LLParser::new(Box::new(s));
         p.consume_tok();
-        let _ast = p.expr();
-        //assert!(true);
+
+        let act_ast = p.expr();
+
+        let exp_ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { id: String::from("a") }),
+            rhs: Box::new(Ast::Var { id: String::from("b") }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
     }
 }

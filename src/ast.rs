@@ -26,6 +26,7 @@ impl fmt::Display for RelationOp {
     }
 }
 
+#[derive(PartialEq, Debug)]
 pub enum Ast {
     Program {
         name: String,

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::vec::Vec;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Types {
     Unknown,
     None,
