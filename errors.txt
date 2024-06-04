@@ -1,0 +1,30 @@
+Feature errors:
+Part of the compilers user facing features is to report to the user errors in their
+program.
+
+Parser:
+1. No errors. Parse is successful
+2. Warning. Something is wrong, but we are 100% sure that we can still do correct
+code gen. Warn the user about the issue.
+- Missing period at end of program.
+- Extraneous trailing characters after period, but before EOF.
+3. Resync error. Something is wrong, and we're pretty sure that we can fix the error
+ourselves. We attempt to fix it, and continue with the parse and semantic checking
+with the hope that the fix was correct, and that we can either successfully
+validate the rest of the program, or find more errors to report. We do not perform
+code gen because we are not 100% certain that things are okay. Report the error to
+the user.
+- Only required to have one instance of this.
+- Maybe an illegal character in the middle of or at the end of an identifier.
+4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
+likely going to cause more trouble for the user than good to try and fix it and keep
+parsing and semantic checking. As soon as the error is encountered, immediately stop
+parsing or semantic checking and report the error to the user.
+
+Internal Errors:
+Errors to be logged for development only. These are not errors relating to mistakes
+in the users source program. These are errors in the implementation of the compiler
+itself. Things like failed assertions. We should bias towards crashing, unless we
+are 100% certain the error will not result in invalid code. We would rather crash
+and refuse to do code gen, than generate invalid code and let the user believe the
+generated code is valid.
