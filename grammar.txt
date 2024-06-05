@@ -26,9 +26,10 @@ factor ::= identifier name_prime |
 			- float_literal
 			int_literal
 			float_literal
-			( expr )
 			string_literal
-			bool_literal
+			true
+			false
+			( expr )
 procedure_call_prime ::= ( argument_list )
 name ::= identifier name_prime
 name_prime ::= [ expr ] |

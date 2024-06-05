@@ -750,12 +750,9 @@ impl LLParser {
 
     // first(factor): "(", "identifier", "-", "number", "string", "true", "false"
     fn factor(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let factor_node: Box<Ast>;
-
         let tok = self.tok.clone();
         match tok {
             Token::Identifier(id) => {
-                // consume identifier
                 self.consume_tok();
 
                 let var = Box::new(Ast::Var {
@@ -763,99 +760,87 @@ impl LLParser {
                 });
 
                 if self.tok == Token::LParen {
-                    factor_node = self.procedure_call_prime(var)?;
+                    Ok(self.procedure_call_prime(var)?)
                 } else {
-                    factor_node = self.name_prime(var)?;
+                    Ok(self.name_prime(var)?)
                 }
             }
             Token::Sub => {
-                // consume minus
                 self.consume_tok();
 
-                let negate_operand_node: Box<Ast>;
                 let tok = self.tok.clone();
-                match tok {
-                    Token::Identifier(_) => {
-                        negate_operand_node = self.name()?;
-                    }
+                let negate_operand_node = match tok {
+                    Token::Identifier(_) => self.name()?,
                     Token::IntLiteral(val) => {
-                        // consume number
                         self.consume_tok();
-                        negate_operand_node = Box::new(Ast::IntLiteral {
+                        Box::new(Ast::IntLiteral {
                             value: val,
-                        });
+                        })
                     }
                     Token::FloatLiteral(val) => {
-                        // consume number
                         self.consume_tok();
-                        negate_operand_node = Box::new(Ast::FloatLiteral {
+                        Box::new(Ast::FloatLiteral {
                             value: val,
-                        });
+                        })
                     }
-                    _ => {
-                        self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\" or \"number\" following \"-\"") });
+                    tok => {
+                        self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier or numeric literal following -, found {tok}") });
                         return Err(TerminalError);
                     },
-                }
+                };
 
-                factor_node = Box::new(Ast::NegateOp {
+                Ok(Box::new(Ast::NegateOp {
                     operand: negate_operand_node,
-                });
+                }))
             }
             Token::IntLiteral(val) => {
-                // consume number
                 self.consume_tok();
-                factor_node = Box::new(Ast::IntLiteral {
+                Ok(Box::new(Ast::IntLiteral {
                     value: val,
-                });
+                }))
             }
             Token::FloatLiteral(val) => {
-                // consume number
                 self.consume_tok();
-                factor_node = Box::new(Ast::FloatLiteral {
+                Ok(Box::new(Ast::FloatLiteral {
                     value: val,
-                });
+                }))
             }
             Token::LParen => {
-                // consume left paren
                 self.consume_tok();
 
-                factor_node = self.expr()?;
+                let factor_node = self.expr()?;
 
                 if self.tok != Token::RParen {
-                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ), found {}", self.tok) });
                     return Err(TerminalError);
                 }
                 self.consume_tok();
+
+                Ok(factor_node)
             }
             Token::String(val) => {
-                // consume string
                 self.consume_tok();
-                factor_node = Box::new(Ast::StringLiteral {
+                Ok(Box::new(Ast::StringLiteral {
                     value: val.clone(),
-                });
+                }))
             }
             Token::True => {
-                // consume true
                 self.consume_tok();
-                factor_node = Box::new(Ast::BoolLiteral {
+                Ok(Box::new(Ast::BoolLiteral {
                     value: true,
-                });
+                }))
             }
             Token::False => {
-                // consume false
                 self.consume_tok();
-                factor_node = Box::new(Ast::BoolLiteral {
+                Ok(Box::new(Ast::BoolLiteral {
                     value: false,
-                });
+                }))
             }
-            _ => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"factor\"") });
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected one of: (, -, numeric literal, string literal, boolean literal, identifier, found {tok}") });
                 return Err(TerminalError);
             },
         }
-
-        Ok(factor_node)
     }
 
     fn procedure_call_prime(&mut self, var_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
@@ -1001,6 +986,266 @@ mod tests {
         });
 
         assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_name() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_proc_call() {
+        let toks = vec![
+            Token::Identifier(String::from("foo")),
+            Token::LParen,
+            Token::RParen,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_neg_name() {
+        let toks = vec![
+            Token::Sub,
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::Var { 
+                id: String::from("a")
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_neg_intliteral() {
+        let toks = vec![
+            Token::Sub,
+            Token::IntLiteral(5),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_neg_floatliteral() {
+        let toks = vec![
+            Token::Sub,
+            Token::FloatLiteral(5.0),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::FloatLiteral { 
+                value: 5.0,
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_intliteral() {
+        let toks = vec![
+            Token::IntLiteral(5),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IntLiteral { 
+            value: 5,
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_floatliteral() {
+        let toks = vec![
+            Token::FloatLiteral(5.0),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::FloatLiteral { 
+            value: 5.0,
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_stringliteral() {
+        let toks = vec![
+            Token::String(String::from("test")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::StringLiteral { 
+            value: String::from("test"),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_true() {
+        let toks = vec![
+            Token::True,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::BoolLiteral { 
+            value: true,
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_false() {
+        let toks = vec![
+            Token::False,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::BoolLiteral { 
+            value: false,
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_parenthesizedexpr() {
+        let toks = vec![
+            Token::LParen,
+            Token::Identifier(String::from("a")),
+            Token::RParen,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.factor().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_factor_err_invalidnegation() {
+        let toks = vec![
+            Token::Sub,
+            Token::Unknown
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.factor().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected identifier or numeric literal following -, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_factor_err_missingrparen() {
+        let toks = vec![
+            Token::LParen,
+            Token::Identifier(String::from("a")),
+            Token::Unknown
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.factor().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ), found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_factor_err_invalidfirstterminal() {
+        let toks = vec![
+            Token::Unknown
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.factor().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected one of: (, -, numeric literal, string literal, boolean literal, identifier, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
