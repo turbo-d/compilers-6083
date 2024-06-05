@@ -22,6 +22,7 @@ impl LLParser {
             tok: Token::Unknown,
             errs: Vec::<CompilerError>::new(),
         };
+        // prime the parser with the first token
         ll.consume_tok();
         ll
     }
@@ -503,13 +504,13 @@ impl LLParser {
 
     fn loop_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::For {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"for\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing for keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         if self.tok != Token::LParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected (, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -517,7 +518,7 @@ impl LLParser {
         let assign_stmt_node = self.assignment_statement()?;
 
         if self.tok != Token::Semicolon {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ; after loop initialization statement, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -525,25 +526,24 @@ impl LLParser {
         let expr_node = self.expr()?;
 
         if self.tok != Token::RParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ), found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut body = Vec::new();
-        // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             body.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected ;") });
                 return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::EndFor {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"end for\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing end for keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -945,6 +945,292 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_loop_statement_emptybody() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Semicolon,
+            Token::True,
+            Token::RParen,
+            Token::EndFor,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.loop_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("i") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_loop_statement_singlestmtbody() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Semicolon,
+            Token::True,
+            Token::RParen,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::EndFor,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.loop_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("i") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            body: vec![
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("a") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 1,
+                    }),
+                }),
+            ],
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_loop_statement_multistmtbody() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Semicolon,
+            Token::True,
+            Token::RParen,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::Identifier(String::from("b")),
+            Token::Assign,
+            Token::IntLiteral(2),
+            Token::Semicolon,
+            Token::EndFor,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.loop_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("i") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            body: vec![
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("a") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 1,
+                    }),
+                }),
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("b") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 2,
+                    }),
+                }),
+            ],
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_loop_statement_err_missingfor() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.loop_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing for keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_loop_statement_err_missinglparen() {
+        let toks = vec![
+            Token::For,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.loop_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected (, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_loop_statement_err_missinginitsemicolon() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.loop_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ; after loop initialization statement, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_loop_statement_err_missingrparen() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Semicolon,
+            Token::True,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.loop_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ), found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_loop_statement_err_missingbodystmtsemicolon() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Semicolon,
+            Token::True,
+            Token::RParen,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.loop_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Expected ;") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_loop_statement_err_missingendfor() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Semicolon,
+            Token::True,
+            Token::RParen,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.loop_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing end for keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
