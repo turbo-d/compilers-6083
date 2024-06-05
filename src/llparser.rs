@@ -386,7 +386,7 @@ impl LLParser {
         let dest_node = self.destination()?;
 
         if self.tok != Token::Assign {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \":=\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected :=, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -402,8 +402,8 @@ impl LLParser {
     fn destination(&mut self) -> Result<Box<Ast>, TerminalError> {
         let var_id = match &self.tok {
             Token::Identifier(id) => id.clone(),
-            _ => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
                 return Err(TerminalError);
             },
         };
@@ -416,13 +416,12 @@ impl LLParser {
         if self.tok != Token::LSquare {
             return Ok(var_node);
         }
-        // consume LSquare
         self.consume_tok();
 
         let expr_node = self.expr()?;
 
         if self.tok != Token::RSquare {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"]\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ], found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -942,6 +941,130 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_assignment_statement() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.assignment_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::AssignStmt { 
+            dest: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            expr: Box::new(Ast::IntLiteral { 
+                value: 1,
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_assignment_statement_err_missingassignmentoperator() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.assignment_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected :=, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_destination_nosubscript() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.destination().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_destination_withsubscript() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+            Token::LSquare,
+            Token::IntLiteral(1),
+            Token::RSquare,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.destination().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::SubscriptOp { 
+            array: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            index: Box::new(Ast::IntLiteral {
+                value: 1,
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_destination_err_missingidentifier() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.destination().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_destination_err_missingrsquare() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+            Token::LSquare,
+            Token::IntLiteral(1),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.destination().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ], found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]

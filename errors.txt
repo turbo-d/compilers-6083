@@ -24,10 +24,12 @@ the user.
 	- = in place of a == or != in relation
 	- = in place of a := in assignment statement
 	- Missing return keyword if last stmt in program or procedure body
-	- Missing semicolon after body statment
+	- Missing semicolon after body statement
 	- Missing end if, end for, end procedure, end program
 	- Missing for loop parenthesis
 	- Missing if parenthesis
+	- Missing then in if statement
+	- Curly bracket instead of square bracket in name_prime or destination
 4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
 likely going to cause more trouble for the user than good to try and fix it and keep
 parsing and semantic checking. As soon as the error is encountered, immediately stop
