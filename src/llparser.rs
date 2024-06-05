@@ -718,32 +718,26 @@ impl LLParser {
 
     fn term_prime(&mut self, lhs_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::Mul && self.tok != Token::Div {
-            // null body production
-            // TODO: check follow() for error checking
             return Ok(lhs_node);
         }
 
         let op = self.tok.clone();
-        // consume token
         self.consume_tok();
 
         let rhs_node = self.factor()?;
 
-        let term_node: Box<Ast> = match op {
-            Token::Mul => {
+        let term_node =
+            if op == Token::Mul {
                 Box::new(Ast::MulOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
-            }
-            Token::Div => {
+            } else {
                 Box::new(Ast::DivOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
-            }
-            _ => panic!("Cannot create ast node"),
-        };
+            };
 
         self.term_prime(term_node)
     }
@@ -970,7 +964,7 @@ mod tests {
         let toks = vec![
             Token::Identifier(String::from("a")),
             Token::Add,
-            Token::Identifier(String::from("b"))
+            Token::Identifier(String::from("b")),
         ];
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
@@ -983,6 +977,166 @@ mod tests {
         let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { id: String::from("a") }),
             rhs: Box::new(Ast::Var { id: String::from("b") }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_term() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.term().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_term_prime_null() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.name_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_term_prime_singlemul() {
+        let toks = vec![
+            Token::Mul,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.term_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::MulOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_term_prime_multimul() {
+        let toks = vec![
+            Token::Mul,
+            Token::Identifier(String::from("b")),
+            Token::Mul,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.term_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::MulOp {
+            lhs: Box::new(Ast::MulOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_term_prime_singlediv() {
+        let toks = vec![
+            Token::Div,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.term_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::DivOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_term_prime_multidiv() {
+        let toks = vec![
+            Token::Div,
+            Token::Identifier(String::from("b")),
+            Token::Div,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.term_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::DivOp {
+            lhs: Box::new(Ast::DivOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
         });
 
         assert_eq!(act_ast, exp_ast);
@@ -1195,7 +1349,7 @@ mod tests {
     fn llparse_factor_err_invalidnegation() {
         let toks = vec![
             Token::Sub,
-            Token::Unknown
+            Token::Unknown,
         ];
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
@@ -1215,7 +1369,7 @@ mod tests {
         let toks = vec![
             Token::LParen,
             Token::Identifier(String::from("a")),
-            Token::Unknown
+            Token::Unknown,
         ];
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
@@ -1233,7 +1387,7 @@ mod tests {
     #[test]
     fn llparse_factor_err_invalidfirstterminal() {
         let toks = vec![
-            Token::Unknown
+            Token::Unknown,
         ];
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
@@ -1508,4 +1662,6 @@ mod tests {
 
         assert_eq!(act_errs, exp_errs);
     }
+
+    //TODO: expr tests for operator associativity
 }
