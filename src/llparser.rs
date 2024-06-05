@@ -859,16 +859,13 @@ impl LLParser {
     }
 
     fn procedure_call_prime(&mut self, var_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
-        // identifier already consumed
-
         if self.tok != Token::LParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected (, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut args = Vec::new();
-        // first(argument_list)
         if matches!(self.tok, Token::Identifier(_)) ||
             matches!(self.tok, Token::IntLiteral(_)) || 
             matches!(self.tok, Token::FloatLiteral(_)) || 
@@ -882,7 +879,7 @@ impl LLParser {
         }
 
         if self.tok != Token::RParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ), found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -1004,6 +1001,111 @@ mod tests {
         });
 
         assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_procedure_call_prime_noargs() {
+        let toks = vec![
+            Token::LParen,
+            Token::RParen,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("foo") 
+        });
+
+        let act_ast = p.procedure_call_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_procedure_call_prime_withargs() {
+        let toks = vec![
+            Token::LParen,
+            Token::Identifier(String::from("a")),
+            Token::Comma,
+            Token::Identifier(String::from("b")),
+            Token::RParen,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("foo") 
+        });
+
+        let act_ast = p.procedure_call_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: vec![
+                Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            ],
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_procedure_call_err_missinglparen() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("foo") 
+        });
+
+        p.procedure_call_prime(in_ast).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected (, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_call_err_missingrparen() {
+        let toks = vec![
+            Token::LParen,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("foo") 
+        });
+
+        p.procedure_call_prime(in_ast).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ), found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]

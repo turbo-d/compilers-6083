@@ -19,6 +19,17 @@ term ::= factor term_prime |
 term_prime ::= * factor term_prime |
 				/ factor term_prime |
 				null
+factor ::= identifier name_prime |
+			identifier procedure_call_prime |
+			- identifier
+			- int_literal
+			- float_literal
+			int_literal
+			float_literal
+			( expr )
+			string_literal
+			bool_literal
+procedure_call_prime ::= ( argument_list )
 name ::= identifier name_prime
 name_prime ::= [ expr ] |
 				null
