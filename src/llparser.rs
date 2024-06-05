@@ -676,13 +676,10 @@ impl LLParser {
             self.tok != Token::GTE &&
             self.tok != Token::Eq &&
             self.tok != Token::NotEq {
-            // null body production
-            // TODO: check follow() for error checking
             return Ok(lhs_node);
         }
 
         let op = self.tok.clone();
-        // consume token
         self.consume_tok();
 
         let rhs_node = self.term()?;
@@ -693,11 +690,7 @@ impl LLParser {
             Token::GT => RelationOp::GT,
             Token::GTE => RelationOp::GTE,
             Token::Eq => RelationOp::Eq,
-            Token::NotEq => RelationOp::NotEq,
-            _ => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected a relational operator") });
-                return Err(TerminalError);
-            },
+            _ => RelationOp::NotEq,
         };
 
         let rel_node = Box::new(Ast::Relation {
@@ -726,18 +719,20 @@ impl LLParser {
 
         let rhs_node = self.factor()?;
 
-        let term_node =
-            if op == Token::Mul {
+        let term_node: Box<Ast> = match op {
+            Token::Mul => {
                 Box::new(Ast::MulOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
-            } else {
+            }
+            _ => {
                 Box::new(Ast::DivOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
                 })
-            };
+            }
+        };
 
         self.term_prime(term_node)
     }
@@ -983,6 +978,428 @@ mod tests {
     }
 
     #[test]
+    fn llparse_relation() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.relation().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_null() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_singlelt() {
+        let toks = vec![
+            Token::LT,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::LT,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_multilt() {
+        let toks = vec![
+            Token::LT,
+            Token::Identifier(String::from("b")),
+            Token::LT,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::LT,
+            lhs: Box::new(Ast::Relation {
+                op: RelationOp::LT,
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_singlelte() {
+        let toks = vec![
+            Token::LTE,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::LTE,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_multilte() {
+        let toks = vec![
+            Token::LTE,
+            Token::Identifier(String::from("b")),
+            Token::LTE,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::LTE,
+            lhs: Box::new(Ast::Relation {
+                op: RelationOp::LTE,
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_singlegt() {
+        let toks = vec![
+            Token::GT,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::GT,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_multigt() {
+        let toks = vec![
+            Token::GT,
+            Token::Identifier(String::from("b")),
+            Token::GT,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::GT,
+            lhs: Box::new(Ast::Relation {
+                op: RelationOp::GT,
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_singlegte() {
+        let toks = vec![
+            Token::GTE,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::GTE,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_multigte() {
+        let toks = vec![
+            Token::GTE,
+            Token::Identifier(String::from("b")),
+            Token::GTE,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::GTE,
+            lhs: Box::new(Ast::Relation {
+                op: RelationOp::GTE,
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_singleeq() {
+        let toks = vec![
+            Token::Eq,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_multieq() {
+        let toks = vec![
+            Token::Eq,
+            Token::Identifier(String::from("b")),
+            Token::Eq,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Relation {
+                op: RelationOp::Eq,
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_singlenoteq() {
+        let toks = vec![
+            Token::NotEq,
+            Token::Identifier(String::from("b")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::NotEq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_relation_prime_multinoteq() {
+        let toks = vec![
+            Token::NotEq,
+            Token::Identifier(String::from("b")),
+            Token::NotEq,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::NotEq,
+            lhs: Box::new(Ast::Relation {
+                op: RelationOp::NotEq,
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
     fn llparse_term() {
         let toks = vec![
             Token::Identifier(String::from("a")),
@@ -1011,7 +1428,7 @@ mod tests {
             id: String::from("a") 
         });
 
-        let act_ast = p.name_prime(in_ast).expect("Parse failed");
+        let act_ast = p.term_prime(in_ast).expect("Parse failed");
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
@@ -1663,5 +2080,6 @@ mod tests {
         assert_eq!(act_errs, exp_errs);
     }
 
-    //TODO: expr tests for operator associativity
+    //TODO: maybe, mixed operator associativity tests
+    //TODO: expr tests for operator precedence
 }
