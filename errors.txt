@@ -21,6 +21,8 @@ the user.
 	- Attempted negation of proc call
 	- Negation of string, or bool. Ignore negation.
 	- Negation of identifier that doesn't exist. Did they mean _identifier?.
+	- = in place of a == or != in relation
+	- = in place of a := in assignment statement
 4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
 likely going to cause more trouble for the user than good to try and fix it and keep
 parsing and semantic checking. As soon as the error is encountered, immediately stop
