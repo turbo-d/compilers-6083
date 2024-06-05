@@ -557,7 +557,7 @@ impl LLParser {
 
     fn return_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::Return {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"return\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing return keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -948,26 +948,41 @@ mod tests {
     }
 
     #[test]
-    fn llparse_test() {
+    fn llparse_return_statement() {
         let toks = vec![
+            Token::Return,
             Token::Identifier(String::from("a")),
-            Token::Add,
-            Token::Identifier(String::from("b")),
         ];
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
 
-        let act_ast = match p.expr() {
-            Ok(ast) => ast,
-            Err(_) => panic!(""),
-        };
+        let act_ast = p.return_statement().expect("Parse failed");
 
-        let exp_ast = Box::new(Ast::AddOp {
-            lhs: Box::new(Ast::Var { id: String::from("a") }),
-            rhs: Box::new(Ast::Var { id: String::from("b") }),
+        let exp_ast = Box::new(Ast::ReturnStmt { 
+            expr: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
         });
 
         assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_return_statement_err_noreturnkeyword() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.return_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing return keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
