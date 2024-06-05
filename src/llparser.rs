@@ -435,13 +435,13 @@ impl LLParser {
 
     fn if_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::If {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"if\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing if keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         if self.tok != Token::LParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected (, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -449,24 +449,23 @@ impl LLParser {
         let expr_node = self.expr()?;
 
         if self.tok != Token::RParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ), found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         if self.tok != Token::Then {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"then\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing then keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut then_body = Vec::new();
-        // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             then_body.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected ;") });
                 return Err(TerminalError);
             }
             self.consume_tok();
@@ -474,15 +473,13 @@ impl LLParser {
 
         let mut else_body = Vec::new();
         if self.tok == Token::Else {
-            // consume else
             self.consume_tok();
 
-            // first(statement)
             while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
                 else_body.push(self.statement()?);
 
                 if self.tok != Token::Semicolon {
-                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected ;") });
                     return Err(TerminalError);
                 }
                 self.consume_tok();
@@ -490,7 +487,7 @@ impl LLParser {
         }
 
         if self.tok != Token::EndIf {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"end if\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing end if keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -945,6 +942,397 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_if_statement_emptythen_noelse() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::EndIf,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.if_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_if_statement_singlestmtthen_noelse() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::EndIf,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.if_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: vec![
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("a") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 1,
+                    }),
+                }),
+            ],
+            else_body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_if_statement_multistmtthen_noelse() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::Identifier(String::from("b")),
+            Token::Assign,
+            Token::IntLiteral(2),
+            Token::Semicolon,
+            Token::EndIf,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.if_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: vec![
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("a") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 1,
+                    }),
+                }),
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("b") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 2,
+                    }),
+                }),
+            ],
+            else_body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_if_statement_emptythen_emptyelse() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Else,
+            Token::EndIf,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.if_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_if_statement_emptythen_singlestmtelse() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Else,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::EndIf,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.if_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: Vec::new(),
+            else_body: vec![
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("a") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 1,
+                    }),
+                }),
+            ],
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_if_statement_emptythen_multistmtelse() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Else,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::Identifier(String::from("b")),
+            Token::Assign,
+            Token::IntLiteral(2),
+            Token::Semicolon,
+            Token::EndIf,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.if_statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: Vec::new(),
+            else_body: vec![
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("a") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 1,
+                    }),
+                }),
+                Box::new(Ast::AssignStmt { 
+                    dest: Box::new(Ast::Var { 
+                        id: String::from("b") 
+                    }),
+                    expr: Box::new(Ast::IntLiteral { 
+                        value: 2,
+                    }),
+                }),
+            ],
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_if_statement_err_missingif() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.if_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing if keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_if_statement_err_missinglparen() {
+        let toks = vec![
+            Token::If,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.if_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected (, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_if_statement_err_missingrparen() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.if_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ), found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_if_statement_err_missingthen() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.if_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing then keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_if_statement_err_missingthenbodystmtsemicolon() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.if_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Expected ;") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_if_statement_err_missingelsebodystmtsemicolon() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Else,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.if_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Expected ;") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_if_statement_err_missingendif() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.if_statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing end if keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
