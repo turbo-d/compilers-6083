@@ -16,6 +16,7 @@ code gen because we are not 100% certain that things are okay. Report the error 
 the user.
 - Only required to have one instance of this.
 - Maybe an illegal character in the middle of or at the end of an identifier.
+- Maybe missing comma in an argument_list
 4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
 likely going to cause more trouble for the user than good to try and fix it and keep
 parsing and semantic checking. As soon as the error is encountered, immediately stop

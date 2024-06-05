@@ -897,16 +897,11 @@ impl LLParser {
     fn argument_list(&mut self) -> Result<Vec<Box<Ast>>, TerminalError> {
         let mut args = Vec::new();
 
-        //let (mut expr_type, mut expr_node) = self.expr();
-        //arg_types.push(expr_type);
         args.push(self.expr()?);
 
         while self.tok == Token::Comma {
-            //consume comma
             self.consume_tok();
 
-            //(expr_type, expr_node) = self.expr();
-            //arg_types.push(expr_type);
             args.push(self.expr()?);
         }
 
@@ -1009,6 +1004,54 @@ mod tests {
         });
 
         assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_argument_list_singleexpr() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_vec_ast = p.argument_list().expect("Parse failed");
+
+        let exp_vec_ast = vec![
+            Box::new(Ast::Var { 
+                id: String::from("a") 
+            })
+        ];
+
+        assert_eq!(act_vec_ast, exp_vec_ast);
+    }
+
+    #[test]
+    fn llparse_argument_list_multiexpr() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+            Token::Comma,
+            Token::Identifier(String::from("b")),
+            Token::Comma,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_vec_ast = p.argument_list().expect("Parse failed");
+
+        let exp_vec_ast = vec![
+            Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+            Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        ];
+
+        assert_eq!(act_vec_ast, exp_vec_ast);
     }
 
     #[test]
