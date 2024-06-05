@@ -17,11 +17,13 @@ pub struct LLParser {
 
 impl LLParser {
     pub fn new(s: Box<dyn Scan>) -> LLParser {
-        LLParser {
+        let mut ll = LLParser {
             s,
             tok: Token::Unknown,
             errs: Vec::<CompilerError>::new(),
-        }
+        };
+        ll.consume_tok();
+        ll
     }
 
     pub fn get_errors(&self) -> &Vec<CompilerError> {
@@ -29,8 +31,6 @@ impl LLParser {
     }
 
     pub fn parse(&mut self) -> Result<Box<Ast>, TerminalError> {
-        self.consume_tok();
-
         let prgm_node = self.program()?;
 
         if self.tok != Token::EOF {
@@ -914,14 +914,13 @@ impl LLParser {
     }
 
     fn name(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let var_id;
-        match &self.tok {
-            Token::Identifier(id) => var_id = id.clone(),
-            _ => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+        let var_id = match &self.tok {
+            Token::Identifier(id) => id.clone(),
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
                 return Err(TerminalError);
             },
-        }
+        };
         self.consume_tok();
 
         let var = Box::new(Ast::Var {
@@ -932,18 +931,15 @@ impl LLParser {
     }
 
     fn name_prime(&mut self, var_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
-        // identifier already consumed
-
         if self.tok != Token::LSquare {
             return Ok(var_node);
         }
-        // consume LSquare
         self.consume_tok();
 
         let expr_node = self.expr()?;
 
         if self.tok != Token::RSquare {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"]\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ], found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -994,9 +990,13 @@ mod tests {
 
     #[test]
     fn llparse_test() {
-        let s = TestScanner::new(vec![Token::Identifier(String::from("a")), Token::Add, Token::Identifier(String::from("b"))]);
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+            Token::Add,
+            Token::Identifier(String::from("b"))
+        ];
+        let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
-        p.consume_tok();
 
         let act_ast = match p.expr() {
             Ok(ast) => ast,
@@ -1009,5 +1009,113 @@ mod tests {
         });
 
         assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_name() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.name().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_name_err_missingidentifier() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.name().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_name_prime_null() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.name_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_name_prime_subscript() {
+        let toks = vec![
+            Token::LSquare,
+            Token::IntLiteral(1),
+            Token::RSquare,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.name_prime(in_ast).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::SubscriptOp { 
+            array: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            index: Box::new(Ast::IntLiteral {
+                value: 1,
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_name_prime_err_missingrsquare() {
+        let toks = vec![
+            Token::LSquare,
+            Token::IntLiteral(1),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        p.name_prime(in_ast).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ], found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 }

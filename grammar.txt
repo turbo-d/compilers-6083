@@ -19,3 +19,6 @@ term ::= factor term_prime |
 term_prime ::= * factor term_prime |
 				/ factor term_prime |
 				null
+name ::= identifier name_prime
+name_prime ::= [ expr ] |
+				null
