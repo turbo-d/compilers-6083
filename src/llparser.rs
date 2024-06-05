@@ -366,20 +366,16 @@ impl LLParser {
 
     // first(statement): "identifier", "if", "for", "return"
     fn statement(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let stmt_node: Box<Ast>;
-        if matches!(self.tok, Token::Identifier(_)) {
-            stmt_node = self.assignment_statement()?;
-        } else if self.tok == Token::If {
-            stmt_node = self.if_statement()?;
-        } else if self.tok == Token::For {
-            stmt_node = self.loop_statement()?;
-        } else if self.tok == Token::Return {
-            stmt_node = self.return_statement()?;
-        } else {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"statement\"") });
-            return Err(TerminalError);
+        match &self.tok {
+            Token::Identifier(_) => Ok(self.assignment_statement()?),
+            Token::If => Ok(self.if_statement()?),
+            Token::For => Ok(self.loop_statement()?),
+            Token::Return => Ok(self.return_statement()?),
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected statement (assignment, if, for, or return), found {tok}") });
+                return Err(TerminalError);
+            },
         }
-        Ok(stmt_node)
     }
 
     fn assignment_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
@@ -941,6 +937,130 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_statement_assign() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::AssignStmt { 
+            dest: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            expr: Box::new(Ast::IntLiteral { 
+                value: 1,
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_statement_if() {
+        let toks = vec![
+            Token::If,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::Then,
+            Token::EndIf,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_statement_for() {
+        let toks = vec![
+            Token::For,
+            Token::LParen,
+            Token::Identifier(String::from("i")),
+            Token::Assign,
+            Token::IntLiteral(5),
+            Token::Semicolon,
+            Token::True,
+            Token::RParen,
+            Token::EndFor,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("i") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_statement_return() {
+        let toks = vec![
+            Token::Return,
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.statement().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::ReturnStmt { 
+            expr: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_statement_err_invalidstatement() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.statement().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected statement (assignment, if, for, or return), found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
