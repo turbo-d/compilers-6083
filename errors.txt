@@ -31,6 +31,8 @@ the user.
 	- Missing then in if statement
 	- Curly bracket instead of square bracket in variable_declaration, name_prime, destination
 	- int instead of integer in type_mark
+	- boolean instead of bool in type_mark
+	- double instead of float in type_mark
 	- Missing colon in variable_declaration
 	- Negative int value in array type of var decl
 	- Float value in array type of var decl

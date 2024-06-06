@@ -215,22 +215,28 @@ impl LLParser {
     }
 
     fn type_mark(&mut self) -> Result<Types, TerminalError> {
-        let parsed_type: Types;
-        if self.tok == Token::IntType {
-            parsed_type = Types::Int;
-        } else if self.tok == Token::FloatType {
-            parsed_type = Types::Float;
-        } else if self.tok == Token::StringType {
-            parsed_type = Types::String;
-        } else if self.tok == Token::BoolType {
-            parsed_type = Types::Bool;
-        } else {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"type\"") });
-            return Err(TerminalError);
+        match &self.tok {
+            Token::IntType => {
+                self.consume_tok();
+                Ok(Types::Int)
+            },
+            Token::FloatType => {
+                self.consume_tok();
+                Ok(Types::Float)
+            },
+            Token::StringType => {
+                self.consume_tok();
+                Ok(Types::String)
+            },
+            Token::BoolType => {
+                self.consume_tok();
+                Ok(Types::Bool)
+            },
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected type (integer, float, string, bool), found {tok}") });
+                Err(TerminalError)
+            },
         }
-        self.consume_tok();
-
-        Ok(parsed_type)
     }
 
     // first(parameter_list): "variable"
@@ -240,7 +246,6 @@ impl LLParser {
         params.push(self.parameter()?);
 
         while self.tok == Token::Comma {
-            //consume comma
             self.consume_tok();
 
             params.push(self.parameter()?);
@@ -367,7 +372,7 @@ impl LLParser {
             Token::Return => Ok(self.return_statement()?),
             tok => {
                 self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected statement (assignment, if, for, or return), found {tok}") });
-                return Err(TerminalError);
+                Err(TerminalError)
             },
         }
     }
@@ -806,7 +811,7 @@ impl LLParser {
             }
             tok => {
                 self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected one of: (, -, numeric literal, string literal, boolean literal, identifier, found {tok}") });
-                return Err(TerminalError);
+                Err(TerminalError)
             },
         }
     }
@@ -931,6 +936,156 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_type_mark_int() {
+        let toks = vec![
+            Token::IntType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_type = p.type_mark().expect("Parse failed");
+
+        assert_eq!(act_type, Types::Int);
+    }
+
+    #[test]
+    fn llparse_type_mark_float() {
+        let toks = vec![
+            Token::FloatType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_type = p.type_mark().expect("Parse failed");
+
+        assert_eq!(act_type, Types::Float);
+    }
+
+    #[test]
+    fn llparse_type_mark_string() {
+        let toks = vec![
+            Token::StringType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_type = p.type_mark().expect("Parse failed");
+
+        assert_eq!(act_type, Types::String);
+    }
+
+    #[test]
+    fn llparse_type_mark_bool() {
+        let toks = vec![
+            Token::BoolType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_type = p.type_mark().expect("Parse failed");
+
+        assert_eq!(act_type, Types::Bool);
+    }
+
+    #[test]
+    fn llparse_type_mark_err_invalidtype() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.type_mark().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected type (integer, float, string, bool), found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_parameter_list_singleparam() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_params = p.parameter_list().expect("Parse failed");
+        let (act_vec_type, act_vec_ast): (Vec<_>, Vec<_>) = act_params.into_iter().unzip();
+
+        let exp_vec_type = vec![
+            Types::Int,
+        ];
+        let exp_vec_ast = vec![
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("a"),
+                ty: Types::Int,
+            }),
+        ];
+
+        assert_eq!(act_vec_type, exp_vec_type);
+        assert_eq!(act_vec_ast, exp_vec_ast);
+    }
+
+    #[test]
+    fn llparse_parameter_list_multiparam() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::Comma,
+            Token::Variable,
+            Token::Identifier(String::from("b")),
+            Token::Colon,
+            Token::IntType,
+            Token::Comma,
+            Token::Variable,
+            Token::Identifier(String::from("c")),
+            Token::Colon,
+            Token::IntType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_params = p.parameter_list().expect("Parse failed");
+        let (act_vec_type, act_vec_ast): (Vec<_>, Vec<_>) = act_params.into_iter().unzip();
+
+        let exp_vec_type = vec![
+            Types::Int,
+            Types::Int,
+            Types::Int,
+        ];
+        let exp_vec_ast = vec![
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("a"),
+                ty: Types::Int,
+            }),
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("b"),
+                ty: Types::Int,
+            }),
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("c"),
+                ty: Types::Int,
+            }),
+        ];
+
+        assert_eq!(act_vec_type, exp_vec_type);
+        assert_eq!(act_vec_ast, exp_vec_ast);
     }
 
     #[test]
