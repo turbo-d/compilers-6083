@@ -34,3 +34,7 @@ procedure_call_prime ::= ( argument_list )
 name ::= identifier name_prime
 name_prime ::= [ expr ] |
 				null
+
+# resync error extensions:
+identifier ::= (invalid)* id (id | invalid)*
+id := [a-zA-Z][a-zA-Z0-9_]*

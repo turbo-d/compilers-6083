@@ -897,6 +897,54 @@ impl LLParser {
 
         Ok(sub_node)
     }
+
+    fn identifier(&mut self) -> Result<String, TerminalError> {
+        let mut ident = String::new();
+        let mut has_invalid_chars = false;
+        let mut num_idents = 0;
+        match &self.tok {
+            Token::Identifier(id) => {
+                num_idents += 1;
+                ident.push_str(id);
+            },
+            Token::Invalid(val) => {
+                has_invalid_chars = true;
+                if val == "_" {
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Identifiers cannot begin with _") });
+                }
+                ident.push_str(val);
+            },
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
+                return Err(TerminalError);
+            },
+        }
+        self.consume_tok();
+
+        while matches!(self.tok, Token::Identifier(_)) || matches!(self.tok, Token::Invalid(_)) {
+            if let Token::Identifier(id) = &self.tok {
+                num_idents += 1;
+                ident.push_str(id);
+            } else if let Token::Invalid(val) = &self.tok {
+                has_invalid_chars = true;
+                ident.push_str(val);
+            }
+            self.consume_tok();
+        }
+
+        if num_idents == 0 {
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected identifier, found invalid chars") });
+            return Err(TerminalError);
+        }
+
+        if has_invalid_chars {
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Identifier {ident} contains invalid chars") });
+        } else if num_idents > 1 {
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {num_idents} identifiers") });
+        }
+
+        Ok(ident)
+    }
 }
 
 #[cfg(test)]
@@ -4759,6 +4807,105 @@ mod tests {
             CompilerError::Error { line: 1, msg: format!("Expected ], found {}", Token::Unknown) }
         ];
 
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_identifier() {
+        let toks = vec![
+            Token::Identifier(String::from("a")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_id = p.identifier().expect("Parse failed");
+
+        let exp_id = String::from("a");
+
+        assert_eq!(act_id, exp_id);
+    }
+
+    #[test]
+    fn llparse_identifier_err_missingidentifier() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.identifier().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_identifier_err_whitespaceseparatedidentifiers() {
+        let toks = vec![
+            Token::Identifier(String::from("spl")),
+            Token::Identifier(String::from("it")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_id = p.identifier().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_id = String::from("split");
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Expected identifier, found 2 identifiers") }
+        ];
+
+        assert_eq!(act_id, exp_id);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_identifier_err_invalidchars() {
+        let toks = vec![
+            Token::Identifier(String::from("spl")),
+            Token::Invalid(String::from("@")),
+            Token::Identifier(String::from("it")),
+            Token::Invalid(String::from("#")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_id = p.identifier().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_id = String::from("spl@it#");
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Identifier {} contains invalid chars", exp_id) },
+        ];
+
+        assert_eq!(act_id, exp_id);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_identifier_err_leadingunderscore() {
+        let toks = vec![
+            Token::Invalid(String::from("_")),
+            Token::Identifier(String::from("private_var")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_id = p.identifier().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_id = String::from("_private_var");
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Identifiers cannot begin with _") },
+            CompilerError::Error { line: 1, msg: format!("Identifier {} contains invalid chars", exp_id) },
+        ];
+
+        assert_eq!(act_id, exp_id);
         assert_eq!(act_errs, exp_errs);
     }
 
