@@ -167,23 +167,22 @@ impl LLParser {
 
     fn procedure_header(&mut self) -> Result<(String, Types, Vec<Box<Ast>>), TerminalError> {
         if self.tok != Token::Procedure {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"procedure\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing procedure keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
 
-        let identifier: String;
-        match &self.tok {
-            Token::Identifier(id) => identifier = id.clone(),
-            _ => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+        let identifier = match &self.tok {
+            Token::Identifier(id) => id.clone(),
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
                 return Err(TerminalError);
             },
-        }
+        };
         self.consume_tok();
 
         if self.tok != Token::Colon {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \":\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected :, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -191,19 +190,18 @@ impl LLParser {
         let return_type = self.type_mark()?;
 
         if self.tok != Token::LParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"(\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected (, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut params = Vec::new();
-        // first(parameter_list)
         if self.tok == Token::Variable {
             params = self.parameter_list()?;
         }
 
         if self.tok != Token::RParen {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \")\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ), found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -936,6 +934,182 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_procedure_header_noparams() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Colon,
+            Token::IntType,
+            Token::LParen,
+            Token::RParen,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_name, act_ty, act_params) = p.procedure_header().expect("Parse failed");
+
+        let exp_name = String::from("foo");
+        let exp_ty = Types::Proc(Box::new(Types::Int), vec![]);
+        let exp_params = vec![];
+
+        assert_eq!(act_name, exp_name);
+        assert_eq!(act_ty, exp_ty);
+        assert_eq!(act_params, exp_params);
+    }
+
+    #[test]
+    fn llparse_procedure_header_withparams() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Colon,
+            Token::IntType,
+            Token::LParen,
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::Comma,
+            Token::Variable,
+            Token::Identifier(String::from("b")),
+            Token::Colon,
+            Token::IntType,
+            Token::RParen,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_name, act_ty, act_params) = p.procedure_header().expect("Parse failed");
+
+        let exp_name = String::from("foo");
+        let exp_ty = Types::Proc(
+            Box::new(Types::Int),
+            vec![
+                Types::Int,
+                Types::Int,
+            ],
+        );
+        let exp_params = vec![
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("a"),
+                ty: Types::Int,
+            }),
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("b"),
+                ty: Types::Int,
+            }),
+        ];
+
+        assert_eq!(act_name, exp_name);
+        assert_eq!(act_ty, exp_ty);
+        assert_eq!(act_params, exp_params);
+    }
+
+    #[test]
+    fn llparse_procedure_header_err_missingprocedure() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_header().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing procedure keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_header_err_missingidentifier() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_header().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_header_err_missingcolon() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_header().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected :, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_header_err_missinglparen() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Colon,
+            Token::IntType,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_header().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected (, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_header_err_missingrparen() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Colon,
+            Token::IntType,
+            Token::LParen,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_header().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ), found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]

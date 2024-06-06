@@ -34,10 +34,13 @@ the user.
 	- boolean instead of bool in type_mark
 	- double instead of float in type_mark
 	- Missing colon in variable_declaration
+	- Missing variable keyword in var decl
 	- Negative int value in array type of var decl
 	- Float value in array type of var decl
 	- In general a neg in front of a int lit or float lit
 	- Missing begin keyword in program body or procedure body
+	- Missing procedure keyword in proc decl
+	- Missing colon in proc decl
 4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
 likely going to cause more trouble for the user than good to try and fix it and keep
 parsing and semantic checking. As soon as the error is encountered, immediately stop
