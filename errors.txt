@@ -25,6 +25,7 @@ the user.
 	- = in place of a := in assignment statement
 	- Missing return keyword if last stmt in program or procedure body
 	- Missing semicolon after body statement
+	- Missing semicolon after declaration
 	- Missing end if, end for, end procedure, end program
 	- Missing for loop parenthesis
 	- Missing if parenthesis
@@ -41,6 +42,7 @@ the user.
 	- Missing begin keyword in program body or procedure body
 	- Missing procedure keyword in proc decl
 	- Missing colon in proc decl
+	- Missing program or is keyword in program_header
 4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
 likely going to cause more trouble for the user than good to try and fix it and keep
 parsing and semantic checking. As soon as the error is encountered, immediately stop
