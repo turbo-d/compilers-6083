@@ -43,7 +43,7 @@ pub enum Ast {
         name: String,
         ty: Types,
         //params: Vec<VarDecl>,
-        params: Vec<Ast>,
+        params: Vec<Box<Ast>>,
         decls: Vec<Box<Ast>>,
         body: Vec<Box<Ast>>,
     },

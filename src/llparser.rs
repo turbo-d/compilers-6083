@@ -142,7 +142,7 @@ impl LLParser {
             decl_node = self.procedure_declaration(is_global)?;
         } else if self.tok == Token::Variable {
             let (_, var_decl_node) = self.variable_declaration(is_global)?;
-            decl_node = Box::new(var_decl_node);
+            decl_node = var_decl_node;
         } else {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"Procedure declaration or Variable declaration\"") });
             return Err(TerminalError);
@@ -165,7 +165,7 @@ impl LLParser {
         }))
     }
 
-    fn procedure_header(&mut self) -> Result<(String, Types, Vec<Ast>), TerminalError> {
+    fn procedure_header(&mut self) -> Result<(String, Types, Vec<Box<Ast>>), TerminalError> {
         if self.tok != Token::Procedure {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"procedure\"") });
             return Err(TerminalError);
@@ -234,7 +234,7 @@ impl LLParser {
     }
 
     // first(parameter_list): "variable"
-    fn parameter_list(&mut self) -> Result<Vec<(Types, Ast)>, TerminalError> {
+    fn parameter_list(&mut self) -> Result<Vec<(Types, Box<Ast>)>, TerminalError> {
         let mut params = Vec::new();
 
         params.push(self.parameter()?);
@@ -249,7 +249,7 @@ impl LLParser {
         Ok(params)
     }
 
-    fn parameter(&mut self) -> Result<(Types, Ast), TerminalError> {
+    fn parameter(&mut self) -> Result<(Types, Box<Ast>), TerminalError> {
         self.variable_declaration(false)
     }
 
@@ -295,25 +295,24 @@ impl LLParser {
         Ok((decls, stmts))
     }
 
-    fn variable_declaration(&mut self, is_global: bool) -> Result<(Types, Ast), TerminalError> {
+    fn variable_declaration(&mut self, is_global: bool) -> Result<(Types, Box<Ast>), TerminalError> {
         if self.tok != Token::Variable {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"variable\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing variable keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
 
-        let identifier: String;
-        match &self.tok {
-            Token::Identifier(id) => identifier = id.clone(),
-            _ => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"identifier\"") });
+        let identifier = match &self.tok {
+            Token::Identifier(id) => id.clone(),
+            tok => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
                 return Err(TerminalError);
             },
-        }
+        };
         self.consume_tok();
 
         if self.tok != Token::Colon {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \":\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected :, found {}", self.tok) });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -324,8 +323,6 @@ impl LLParser {
             // consume LSquare
             self.consume_tok();
 
-            // TODO: Move to type checking (semantic checking)?
-            // bound (inlined production expansion)
             match &self.tok {
                 Token::IntLiteral(num) => {
                     let num = num.clone();
@@ -338,28 +335,28 @@ impl LLParser {
                     }
                 }
                 Token::FloatLiteral(_) => {
-                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Array size must be a non-negative integer value") });
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected integer literal, found {}", self.tok) });
                     return Err(TerminalError);
                 },
-                _ => {
-                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"number\"") });
+                tok => {
+                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected integer literal, found {tok}") });
                     return Err(TerminalError);
                 },
             }
             self.consume_tok();
 
             if self.tok != Token::RSquare {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"]\"") });
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ], found {}", self.tok) });
                 return Err(TerminalError);
             }
             self.consume_tok();
         }
 
-        let var_decl_node = Ast::VarDecl {
+        let var_decl_node = Box::new(Ast::VarDecl {
             is_global: is_global,
             name: identifier,
             ty: parsed_type.clone(),
-        };
+        });
 
         Ok((parsed_type, var_decl_node))
     }
@@ -937,6 +934,161 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_variable_declaration_scalar() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_ty, act_ast) = p.variable_declaration(false).expect("Parse failed");
+
+        let exp_ty = Types::Int;
+        let exp_ast = Box::new(Ast::VarDecl { 
+            is_global: false,
+            name: String::from("a"),
+            ty: Types::Int,
+        });
+
+        assert_eq!(act_ty, exp_ty);
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_variable_declaration_array() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::LSquare,
+            Token::IntLiteral(5),
+            Token::RSquare,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_ty, act_ast) = p.variable_declaration(false).expect("Parse failed");
+
+        let exp_ty = Types::Array(5, Box::new(Types::Int));
+        let exp_ast = Box::new(Ast::VarDecl { 
+            is_global: false,
+            name: String::from("a"),
+            ty: Types::Array(5, Box::new(Types::Int)),
+        });
+
+        assert_eq!(act_ty, exp_ty);
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_variable_declaration_err_missingvariable() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.variable_declaration(false).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing variable keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_variable_declaration_err_missingidentifier() {
+        let toks = vec![
+            Token::Variable,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.variable_declaration(false).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_variable_declaration_err_missingcolon() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.variable_declaration(false).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected :, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_variable_declaration_err_invalidarraybound() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::LSquare,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.variable_declaration(false).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected integer literal, found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_variable_declaration_err_missingrsquare() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::LSquare,
+            Token::IntLiteral(5),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.variable_declaration(false).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expected ], found {}", Token::Unknown) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]

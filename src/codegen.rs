@@ -147,8 +147,8 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 };
 
                 let args_types = params.iter().map(|p| {
-                        let ty = match p {
-                            Ast::VarDecl { ty, .. } => ty,
+                        let ty = match **p {
+                            Ast::VarDecl { ref ty, .. } => ty,
                             _ => panic!("Expected Ast::VarDecl for AST::ProcDecl params"),
                         };
 
@@ -202,8 +202,8 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 //self.st.reserve(self.params.len());
 
                 for (i, arg) in fn_val.get_param_iter().enumerate() {
-                    let arg_name = match &params[i] {
-                        Ast::VarDecl { name, .. } => name,
+                    let arg_name = match *params[i] {
+                        Ast::VarDecl { ref name, .. } => name,
                         _ => panic!("Expected Ast::VarDecl for AST::ProcDecl params"),
                     };
                     arg.set_name(arg_name.as_str());

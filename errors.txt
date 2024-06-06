@@ -29,7 +29,12 @@ the user.
 	- Missing for loop parenthesis
 	- Missing if parenthesis
 	- Missing then in if statement
-	- Curly bracket instead of square bracket in name_prime or destination
+	- Curly bracket instead of square bracket in variable_declaration, name_prime, destination
+	- int instead of integer in type_mark
+	- Missing colon in variable_declaration
+	- Negative int value in array type of var decl
+	- Float value in array type of var decl
+	- In general a neg in front of a int lit or float lit
 4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
 likely going to cause more trouble for the user than good to try and fix it and keep
 parsing and semantic checking. As soon as the error is encountered, immediately stop
