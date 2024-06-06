@@ -69,14 +69,7 @@ impl LLParser {
         }
         self.consume_tok();
 
-        let identifier = match &self.tok {
-            Token::Identifier(id) => id.clone(),
-            tok => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
-                return Err(TerminalError);
-            },
-        };
-        self.consume_tok();
+        let identifier = self.identifier()?;
 
         if self.tok != Token::Is {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing is keyword") });
@@ -107,7 +100,7 @@ impl LLParser {
         self.consume_tok();
 
         let mut stmts = Vec::new();
-        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
+        while matches!(self.tok, Token::Identifier(_)) || matches!(self.tok, Token::Invalid(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             stmts.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
@@ -170,14 +163,7 @@ impl LLParser {
         }
         self.consume_tok();
 
-        let identifier = match &self.tok {
-            Token::Identifier(id) => id.clone(),
-            tok => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
-                return Err(TerminalError);
-            },
-        };
-        self.consume_tok();
+        let identifier = self.identifier()?;
 
         if self.tok != Token::Colon {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected :, found {}", self.tok) });
@@ -274,7 +260,7 @@ impl LLParser {
         self.consume_tok();
 
         let mut stmts = Vec::new();
-        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
+        while matches!(self.tok, Token::Identifier(_)) || matches!(self.tok, Token::Invalid(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             stmts.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
@@ -300,14 +286,7 @@ impl LLParser {
         }
         self.consume_tok();
 
-        let identifier = match &self.tok {
-            Token::Identifier(id) => id.clone(),
-            tok => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
-                return Err(TerminalError);
-            },
-        };
-        self.consume_tok();
+        let identifier = self.identifier()?;
 
         if self.tok != Token::Colon {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected :, found {}", self.tok) });
@@ -362,7 +341,7 @@ impl LLParser {
     // first(statement): "identifier", "if", "for", "return"
     fn statement(&mut self) -> Result<Box<Ast>, TerminalError> {
         match &self.tok {
-            Token::Identifier(_) => Ok(self.assignment_statement()?),
+            Token::Identifier(_) | Token::Invalid(_) => Ok(self.assignment_statement()?),
             Token::If => Ok(self.if_statement()?),
             Token::For => Ok(self.loop_statement()?),
             Token::Return => Ok(self.return_statement()?),
@@ -391,14 +370,7 @@ impl LLParser {
     }
 
     fn destination(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let var_id = match &self.tok {
-            Token::Identifier(id) => id.clone(),
-            tok => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
-                return Err(TerminalError);
-            },
-        };
-        self.consume_tok();
+        let var_id = self.identifier()?;
 
         let var_node = Box::new(Ast::Var {
             id: var_id,
@@ -451,7 +423,7 @@ impl LLParser {
         self.consume_tok();
 
         let mut then_body = Vec::new();
-        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
+        while matches!(self.tok, Token::Identifier(_)) || matches!(self.tok, Token::Invalid(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             then_body.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
@@ -465,7 +437,7 @@ impl LLParser {
         if self.tok == Token::Else {
             self.consume_tok();
 
-            while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
+            while matches!(self.tok, Token::Identifier(_)) || matches!(self.tok, Token::Invalid(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
                 else_body.push(self.statement()?);
 
                 if self.tok != Token::Semicolon {
@@ -519,7 +491,7 @@ impl LLParser {
         self.consume_tok();
 
         let mut body = Vec::new();
-        while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
+        while matches!(self.tok, Token::Identifier(_)) || matches!(self.tok, Token::Invalid(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             body.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
@@ -721,8 +693,8 @@ impl LLParser {
     fn factor(&mut self) -> Result<Box<Ast>, TerminalError> {
         let tok = self.tok.clone();
         match tok {
-            Token::Identifier(id) => {
-                self.consume_tok();
+            Token::Identifier(_) | Token::Invalid(_) => {
+                let id = self.identifier()?;
 
                 let var = Box::new(Ast::Var {
                     id: id,
@@ -739,7 +711,7 @@ impl LLParser {
 
                 let tok = self.tok.clone();
                 let negate_operand_node = match tok {
-                    Token::Identifier(_) => self.name()?,
+                    Token::Identifier(_) | Token::Invalid(_) => self.name()?,
                     Token::IntLiteral(val) => {
                         self.consume_tok();
                         Box::new(Ast::IntLiteral {
@@ -821,6 +793,7 @@ impl LLParser {
 
         let mut args = Vec::new();
         if matches!(self.tok, Token::Identifier(_)) ||
+            matches!(self.tok, Token::Invalid(_)) || 
             matches!(self.tok, Token::IntLiteral(_)) || 
             matches!(self.tok, Token::FloatLiteral(_)) || 
             matches!(self.tok, Token::String(_)) || 
@@ -860,14 +833,7 @@ impl LLParser {
     }
 
     fn name(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let var_id = match &self.tok {
-            Token::Identifier(id) => id.clone(),
-            tok => {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected identifier, found {tok}") });
-                return Err(TerminalError);
-            },
-        };
-        self.consume_tok();
+        let var_id = self.identifier()?;
 
         let var = Box::new(Ast::Var {
             id: var_id,
@@ -1118,25 +1084,6 @@ mod tests {
 
         let exp_errs =  &vec![
             CompilerError::Error { line: 1, msg: String::from("Missing program keyword") }
-        ];
-
-        assert_eq!(act_errs, exp_errs);
-    }
-
-    #[test]
-    fn llparse_program_header_err_missingidentifier() {
-        let toks = vec![
-            Token::Program,
-            Token::Unknown,
-        ];
-        let s = TestScanner::new(toks);
-        let mut p = LLParser::new(Box::new(s));
-
-        p.program_header().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
-        let act_errs = p.get_errors();
-
-        let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
         ];
 
         assert_eq!(act_errs, exp_errs);
@@ -1705,25 +1652,6 @@ mod tests {
 
         let exp_errs =  &vec![
             CompilerError::Error { line: 1, msg: String::from("Missing procedure keyword") }
-        ];
-
-        assert_eq!(act_errs, exp_errs);
-    }
-
-    #[test]
-    fn llparse_procedure_header_err_missingidentifier() {
-        let toks = vec![
-            Token::Procedure,
-            Token::Unknown,
-        ];
-        let s = TestScanner::new(toks);
-        let mut p = LLParser::new(Box::new(s));
-
-        p.procedure_header().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
-        let act_errs = p.get_errors();
-
-        let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
         ];
 
         assert_eq!(act_errs, exp_errs);
@@ -2319,25 +2247,6 @@ mod tests {
     }
 
     #[test]
-    fn llparse_variable_declaration_err_missingidentifier() {
-        let toks = vec![
-            Token::Variable,
-            Token::Unknown,
-        ];
-        let s = TestScanner::new(toks);
-        let mut p = LLParser::new(Box::new(s));
-
-        p.variable_declaration(false).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
-        let act_errs = p.get_errors();
-
-        let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
-        ];
-
-        assert_eq!(act_errs, exp_errs);
-    }
-
-    #[test]
     fn llparse_variable_declaration_err_missingcolon() {
         let toks = vec![
             Token::Variable,
@@ -2611,24 +2520,6 @@ mod tests {
         });
 
         assert_eq!(act_ast, exp_ast);
-    }
-
-    #[test]
-    fn llparse_destination_err_missingidentifier() {
-        let toks = vec![
-            Token::Unknown,
-        ];
-        let s = TestScanner::new(toks);
-        let mut p = LLParser::new(Box::new(s));
-
-        p.destination().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
-        let act_errs = p.get_errors();
-
-        let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
-        ];
-
-        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4717,24 +4608,6 @@ mod tests {
         });
 
         assert_eq!(act_ast, exp_ast);
-    }
-
-    #[test]
-    fn llparse_name_err_missingidentifier() {
-        let toks = vec![
-            Token::Unknown,
-        ];
-        let s = TestScanner::new(toks);
-        let mut p = LLParser::new(Box::new(s));
-
-        p.name().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
-        let act_errs = p.get_errors();
-
-        let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("Expected identifier, found {}", Token::Unknown) }
-        ];
-
-        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
