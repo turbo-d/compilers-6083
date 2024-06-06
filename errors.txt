@@ -35,6 +35,7 @@ the user.
 	- Negative int value in array type of var decl
 	- Float value in array type of var decl
 	- In general a neg in front of a int lit or float lit
+	- Missing begin keyword in program body or procedure body
 4. Terminal error. Something is wrong, and we aren't sure how to fix it, and it's
 likely going to cause more trouble for the user than good to try and fix it and keep
 parsing and semantic checking. As soon as the error is encountered, immediately stop

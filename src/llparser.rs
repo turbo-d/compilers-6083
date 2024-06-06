@@ -253,41 +253,38 @@ impl LLParser {
         self.variable_declaration(false)
     }
 
-    // TODO: Almost the same as program_body
     // first(procedure_body): "global", "procedure", "variable", "begin"
     fn procedure_body(&mut self) -> Result<(Vec<Box<Ast>>, Vec<Box<Ast>>), TerminalError> {
         let mut decls = Vec::new();
-        // first(declaration)
         while self.tok == Token::Global || self.tok == Token::Procedure || self.tok == Token::Variable {
             decls.push(self.declaration()?);
 
             if self.tok != Token::Semicolon {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected ; after declaration") });
                 return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::Begin {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"begin\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing begin keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
 
         let mut stmts = Vec::new();
-        // first(statement)
         while matches!(self.tok, Token::Identifier(_)) || self.tok == Token::If || self.tok == Token::For || self.tok == Token::Return {
             stmts.push(self.statement()?);
 
             if self.tok != Token::Semicolon {
-                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \";\"") });
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected ;") });
                 return Err(TerminalError);
             }
             self.consume_tok();
         }
 
         if self.tok != Token::EndProcedure {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"end procedure\"") });
+            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing end procedure keyword") });
             return Err(TerminalError);
         }
         self.consume_tok();
@@ -934,6 +931,311 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_procedure_body_nodecl_nostmt() {
+        let toks = vec![
+            Token::Begin,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+
+        let exp_decls = Vec::new();
+        let exp_stmts = Vec::new();
+
+        assert_eq!(act_decls, exp_decls);
+        assert_eq!(act_stmts, exp_stmts);
+    }
+
+    #[test]
+    fn llparse_procedure_body_singledecl_nostmts() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::Semicolon,
+            Token::Begin,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+
+        let exp_decls = vec![
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("a"),
+                ty: Types::Int,
+            }),
+        ];
+        let exp_stmts = Vec::new();
+
+        assert_eq!(act_decls, exp_decls);
+        assert_eq!(act_stmts, exp_stmts);
+    }
+
+    #[test]
+    fn llparse_procedure_body_multidecl_nostmts() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::Semicolon,
+            Token::Variable,
+            Token::Identifier(String::from("b")),
+            Token::Colon,
+            Token::IntType,
+            Token::Semicolon,
+            Token::Begin,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+
+        let exp_decls = vec![
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("a"),
+                ty: Types::Int,
+            }),
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("b"),
+                ty: Types::Int,
+            }),
+        ];
+        let exp_stmts = Vec::new();
+
+        assert_eq!(act_decls, exp_decls);
+        assert_eq!(act_stmts, exp_stmts);
+    }
+
+    #[test]
+    fn llparse_procedure_body_nodecl_singlestmt() {
+        let toks = vec![
+            Token::Begin,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+
+        let exp_decls = Vec::new();
+        let exp_stmts = vec![
+            Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 1,
+                }),
+            }),
+        ];
+
+        assert_eq!(act_decls, exp_decls);
+        assert_eq!(act_stmts, exp_stmts);
+    }
+
+    #[test]
+    fn llparse_procedure_body_nodecl_multistmt() {
+        let toks = vec![
+            Token::Begin,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::Identifier(String::from("b")),
+            Token::Assign,
+            Token::IntLiteral(2),
+            Token::Semicolon,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+
+        let exp_decls = Vec::new();
+        let exp_stmts = vec![
+            Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 1,
+                }),
+            }),
+            Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 2,
+                }),
+            }),
+        ];
+
+        assert_eq!(act_decls, exp_decls);
+        assert_eq!(act_stmts, exp_stmts);
+    }
+
+    #[test]
+    fn llparse_procedure_body_multidecl_multistmt() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::Semicolon,
+            Token::Variable,
+            Token::Identifier(String::from("b")),
+            Token::Colon,
+            Token::IntType,
+            Token::Semicolon,
+            Token::Begin,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Semicolon,
+            Token::Identifier(String::from("b")),
+            Token::Assign,
+            Token::IntLiteral(2),
+            Token::Semicolon,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+
+        let exp_decls = vec![
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("a"),
+                ty: Types::Int,
+            }),
+            Box::new(Ast::VarDecl { 
+                is_global: false,
+                name: String::from("b"),
+                ty: Types::Int,
+            }),
+        ];
+        let exp_stmts = vec![
+            Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 1,
+                }),
+            }),
+            Box::new(Ast::AssignStmt { 
+                dest: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+                expr: Box::new(Ast::IntLiteral { 
+                    value: 2,
+                }),
+            }),
+        ];
+
+        assert_eq!(act_decls, exp_decls);
+        assert_eq!(act_stmts, exp_stmts);
+    }
+
+    #[test]
+    fn llparse_procedure_body_err_missingdeclsemicolon() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_body().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Expected ; after declaration") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_body_err_missingbegin() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_body().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing begin keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_body_err_missingstmtsemicolon() {
+        let toks = vec![
+            Token::Begin,
+            Token::Identifier(String::from("a")),
+            Token::Assign,
+            Token::IntLiteral(1),
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_body().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Expected ;") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_body_err_missingendprocedure() {
+        let toks = vec![
+            Token::Begin,
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.procedure_body().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Missing end procedure keyword") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
