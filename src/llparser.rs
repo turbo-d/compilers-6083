@@ -1072,7 +1072,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_program_header_err_missingprogram() {
+    fn llparse_program_header_terminalerr_missingprogram() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -1090,7 +1090,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_program_header_err_missingis() {
+    fn llparse_program_header_terminalerr_missingis() {
         let toks = vec![
             Token::Program,
             Token::Identifier(String::from("test_prgm")),
@@ -1334,7 +1334,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_program_body_err_missingdeclsemicolon() {
+    fn llparse_program_body_terminalerr_missingdeclsemicolon() {
         let toks = vec![
             Token::Variable,
             Token::Identifier(String::from("a")),
@@ -1356,7 +1356,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_program_body_err_missingbegin() {
+    fn llparse_program_body_terminalerr_missingbegin() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -1374,7 +1374,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_program_body_err_missingstmtsemicolon() {
+    fn llparse_program_body_terminalerr_missingstmtsemicolon() {
         let toks = vec![
             Token::Begin,
             Token::Identifier(String::from("a")),
@@ -1396,7 +1396,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_program_body_err_missingendprogram() {
+    fn llparse_program_body_terminalerr_missingendprogram() {
         let toks = vec![
             Token::Begin,
             Token::Unknown,
@@ -1519,7 +1519,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_declaration_err_nodecl() {
+    fn llparse_declaration_terminalerr_nodecl() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -1640,7 +1640,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_header_err_missingprocedure() {
+    fn llparse_procedure_header_terminalerr_missingprocedure() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -1658,7 +1658,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_header_err_missingcolon() {
+    fn llparse_procedure_header_terminalerr_missingcolon() {
         let toks = vec![
             Token::Procedure,
             Token::Identifier(String::from("foo")),
@@ -1678,7 +1678,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_header_err_missinglparen() {
+    fn llparse_procedure_header_terminalerr_missinglparen() {
         let toks = vec![
             Token::Procedure,
             Token::Identifier(String::from("foo")),
@@ -1700,7 +1700,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_header_err_missingrparen() {
+    fn llparse_procedure_header_terminalerr_missingrparen() {
         let toks = vec![
             Token::Procedure,
             Token::Identifier(String::from("foo")),
@@ -1775,7 +1775,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_type_mark_err_invalidtype() {
+    fn llparse_type_mark_terminalerr_invalidtype() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -2097,7 +2097,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_body_err_missingdeclsemicolon() {
+    fn llparse_procedure_body_terminalerr_missingdeclsemicolon() {
         let toks = vec![
             Token::Variable,
             Token::Identifier(String::from("a")),
@@ -2119,7 +2119,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_body_err_missingbegin() {
+    fn llparse_procedure_body_terminalerr_missingbegin() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -2137,7 +2137,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_body_err_missingstmtsemicolon() {
+    fn llparse_procedure_body_terminalerr_missingstmtsemicolon() {
         let toks = vec![
             Token::Begin,
             Token::Identifier(String::from("a")),
@@ -2159,7 +2159,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_body_err_missingendprocedure() {
+    fn llparse_procedure_body_terminalerr_missingendprocedure() {
         let toks = vec![
             Token::Begin,
             Token::Unknown,
@@ -2229,7 +2229,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_variable_declaration_err_missingvariable() {
+    fn llparse_variable_declaration_terminalerr_missingvariable() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -2247,7 +2247,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_variable_declaration_err_missingcolon() {
+    fn llparse_variable_declaration_terminalerr_missingcolon() {
         let toks = vec![
             Token::Variable,
             Token::Identifier(String::from("a")),
@@ -2267,7 +2267,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_variable_declaration_err_invalidarraybound() {
+    fn llparse_variable_declaration_terminalerr_invalidarraybound() {
         let toks = vec![
             Token::Variable,
             Token::Identifier(String::from("a")),
@@ -2290,7 +2290,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_variable_declaration_err_missingrsquare() {
+    fn llparse_variable_declaration_terminalerr_missingrsquare() {
         let toks = vec![
             Token::Variable,
             Token::Identifier(String::from("a")),
@@ -2420,7 +2420,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_statement_err_invalidstatement() {
+    fn llparse_statement_terminalerr_invalidstatement() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -2462,7 +2462,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_assignment_statement_err_missingassignmentoperator() {
+    fn llparse_assignment_statement_terminalerr_missingassignmentoperator() {
         let toks = vec![
             Token::Identifier(String::from("a")),
             Token::Unknown,
@@ -2523,7 +2523,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_destination_err_missingrsquare() {
+    fn llparse_destination_terminalerr_missingrsquare() {
         let toks = vec![
             Token::Identifier(String::from("a")),
             Token::LSquare,
@@ -2779,7 +2779,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_if_statement_err_missingif() {
+    fn llparse_if_statement_terminalerr_missingif() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -2797,7 +2797,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_if_statement_err_missinglparen() {
+    fn llparse_if_statement_terminalerr_missinglparen() {
         let toks = vec![
             Token::If,
             Token::Unknown,
@@ -2816,7 +2816,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_if_statement_err_missingrparen() {
+    fn llparse_if_statement_terminalerr_missingrparen() {
         let toks = vec![
             Token::If,
             Token::LParen,
@@ -2837,7 +2837,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_if_statement_err_missingthen() {
+    fn llparse_if_statement_terminalerr_missingthen() {
         let toks = vec![
             Token::If,
             Token::LParen,
@@ -2859,7 +2859,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_if_statement_err_missingthenbodystmtsemicolon() {
+    fn llparse_if_statement_terminalerr_missingthenbodystmtsemicolon() {
         let toks = vec![
             Token::If,
             Token::LParen,
@@ -2885,7 +2885,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_if_statement_err_missingelsebodystmtsemicolon() {
+    fn llparse_if_statement_terminalerr_missingelsebodystmtsemicolon() {
         let toks = vec![
             Token::If,
             Token::LParen,
@@ -2912,7 +2912,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_if_statement_err_missingendif() {
+    fn llparse_if_statement_terminalerr_missingendif() {
         let toks = vec![
             Token::If,
             Token::LParen,
@@ -3081,7 +3081,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_loop_statement_err_missingfor() {
+    fn llparse_loop_statement_terminalerr_missingfor() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -3099,7 +3099,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_loop_statement_err_missinglparen() {
+    fn llparse_loop_statement_terminalerr_missinglparen() {
         let toks = vec![
             Token::For,
             Token::Unknown,
@@ -3118,7 +3118,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_loop_statement_err_missinginitsemicolon() {
+    fn llparse_loop_statement_terminalerr_missinginitsemicolon() {
         let toks = vec![
             Token::For,
             Token::LParen,
@@ -3141,7 +3141,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_loop_statement_err_missingrparen() {
+    fn llparse_loop_statement_terminalerr_missingrparen() {
         let toks = vec![
             Token::For,
             Token::LParen,
@@ -3166,7 +3166,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_loop_statement_err_missingbodystmtsemicolon() {
+    fn llparse_loop_statement_terminalerr_missingbodystmtsemicolon() {
         let toks = vec![
             Token::For,
             Token::LParen,
@@ -3195,7 +3195,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_loop_statement_err_missingendfor() {
+    fn llparse_loop_statement_terminalerr_missingendfor() {
         let toks = vec![
             Token::For,
             Token::LParen,
@@ -3241,7 +3241,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_return_statement_err_noreturnkeyword() {
+    fn llparse_return_statement_terminalerr_noreturnkeyword() {
         let toks = vec![
             Token::Identifier(String::from("a")),
         ];
@@ -4384,7 +4384,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_factor_err_invalidnegation() {
+    fn llparse_factor_terminalerr_invalidnegation() {
         let toks = vec![
             Token::Sub,
             Token::Unknown,
@@ -4403,7 +4403,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_factor_err_missingrparen() {
+    fn llparse_factor_terminalerr_missingrparen() {
         let toks = vec![
             Token::LParen,
             Token::Identifier(String::from("a")),
@@ -4423,7 +4423,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_factor_err_invalidfirstterminal() {
+    fn llparse_factor_terminalerr_invalidfirstterminal() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -4501,7 +4501,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_call_err_missinglparen() {
+    fn llparse_procedure_call_terminalerr_missinglparen() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -4523,7 +4523,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_procedure_call_err_missingrparen() {
+    fn llparse_procedure_call_terminalerr_missingrparen() {
         let toks = vec![
             Token::LParen,
             Token::Unknown,
@@ -4660,7 +4660,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_name_prime_err_missingrsquare() {
+    fn llparse_name_prime_terminalerr_missingrsquare() {
         let toks = vec![
             Token::LSquare,
             Token::IntLiteral(1),
@@ -4699,7 +4699,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_identifier_err_missingidentifier() {
+    fn llparse_identifier_terminalerr_missingidentifier() {
         let toks = vec![
             Token::Unknown,
         ];
@@ -4717,7 +4717,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_identifier_err_whitespaceseparatedidentifiers() {
+    fn llparse_identifier_resyncerr_whitespaceseparatedidentifiers() {
         let toks = vec![
             Token::Identifier(String::from("spl")),
             Token::Identifier(String::from("it")),
@@ -4738,7 +4738,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_identifier_err_invalidchars() {
+    fn llparse_identifier_resyncerr_invalidchars() {
         let toks = vec![
             Token::Identifier(String::from("spl")),
             Token::Invalid(String::from("@")),
@@ -4761,7 +4761,7 @@ mod tests {
     }
 
     #[test]
-    fn llparse_identifier_err_leadingunderscore() {
+    fn llparse_identifier_resyncerr_leadingunderscore() {
         let toks = vec![
             Token::Invalid(String::from("_")),
             Token::Identifier(String::from("private_var")),
