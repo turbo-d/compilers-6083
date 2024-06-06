@@ -42,13 +42,11 @@ pub enum Ast {
         is_global: bool,
         name: String,
         ty: Types,
-        //params: Vec<VarDecl>,
         params: Vec<Box<Ast>>,
         decls: Vec<Box<Ast>>,
         body: Vec<Box<Ast>>,
     },
     AssignStmt {
-        //dest: Box<DestNode>,
         dest: Box<Ast>,
         expr: Box<Ast>,
     },
@@ -101,12 +99,10 @@ pub enum Ast {
         operand: Box<Ast>,
     },
     SubscriptOp {
-        //array: Box<Var>,
         array: Box<Ast>,
         index: Box<Ast>,
     },
     ProcCall {
-        //proc: Box<Var>,
         proc: Box<Ast>,
         args: Vec<Box<Ast>>,
     },

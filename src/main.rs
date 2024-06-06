@@ -4,6 +4,7 @@ use std::io;
 use std::io::Write;
 
 use compiler::codegen::CodeGen;
+use compiler::error::CompilerError;
 use compiler::llparser::LLParser;
 use compiler::scanner::{Scan, Scanner};
 use compiler::token::Token;
@@ -63,6 +64,7 @@ fn main() {
     if debug {
         println!("{ast}");
     }
+    display_errors(file_path, p.get_errors());
 
     let mut tc = TypeChecker::new();
     ast.accept(&mut tc);
@@ -78,4 +80,13 @@ fn main() {
     ast.accept(&mut codegen);
 
     println!("Parse completed!");
+}
+
+fn display_errors(file_path: &str, errs: &Vec<CompilerError>) {
+    for err in errs {
+        match err {
+            CompilerError::Error { line, msg } => eprintln!("ERROR: {msg}\n  --> {file_path}:{line}:0"),
+            CompilerError::Warning { line, msg } => eprintln!("WARNING: {msg}\n  --> {file_path}:{line}:0"),
+        }
+    }
 }
