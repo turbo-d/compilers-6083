@@ -131,24 +131,25 @@ impl LLParser {
 
     // first(declaration): "global", "procedure", "variable"
     fn declaration(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let mut is_global = false;
-        if self.tok == Token::Global {
-            is_global = true;
-            self.consume_tok();
-        }
+        let is_global =
+            if self.tok == Token::Global {
+                self.consume_tok();
+                true
+            } else {
+                false
+            };
 
-        let decl_node: Box<Ast>;
-        if self.tok == Token::Procedure {
-            decl_node = self.procedure_declaration(is_global)?;
-        } else if self.tok == Token::Variable {
-            let (_, var_decl_node) = self.variable_declaration(is_global)?;
-            decl_node = var_decl_node;
-        } else {
-            self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected \"Procedure declaration or Variable declaration\"") });
-            return Err(TerminalError);
+        match &self.tok {
+            Token::Procedure => self.procedure_declaration(is_global),
+            Token::Variable => {
+                let (_, var_decl_node) = self.variable_declaration(is_global)?;
+                Ok(var_decl_node)
+            },
+            _ => {
+                self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Expected declaration") });
+                Err(TerminalError)
+            },
         }
-
-        Ok(decl_node)
     }
 
     fn procedure_declaration(&mut self, is_global: bool) -> Result<Box<Ast>, TerminalError> {
@@ -199,6 +200,7 @@ impl LLParser {
         if self.tok == Token::Variable {
             params = self.parameter_list()?;
         }
+        let (param_types, param_nodes): (Vec<_>, Vec<_>) = params.into_iter().unzip();
 
         if self.tok != Token::RParen {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected ), found {}", self.tok) });
@@ -206,7 +208,6 @@ impl LLParser {
         }
         self.consume_tok();
 
-        let (param_types, param_nodes): (Vec<_>, Vec<_>) = params.into_iter().unzip();
         let parsed_type = Types::Proc(Box::new(return_type), param_types);
 
         Ok((identifier, parsed_type, param_nodes))
@@ -934,6 +935,157 @@ mod tests {
         fn line(&self) -> u32 {
             self.line
         }
+    }
+
+    #[test]
+    fn llparse_declaration_local_procedure() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Colon,
+            Token::IntType,
+            Token::LParen,
+            Token::RParen,
+            Token::Begin,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.declaration().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::ProcDecl {
+            is_global: false,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_declaration_global_procedure() {
+        let toks = vec![
+            Token::Global,
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Colon,
+            Token::IntType,
+            Token::LParen,
+            Token::RParen,
+            Token::Begin,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.declaration().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::ProcDecl {
+            is_global: true,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_declaration_local_variable() {
+        let toks = vec![
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.declaration().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::VarDecl { 
+            is_global: false,
+            name: String::from("a"),
+            ty: Types::Int,
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_declaration_global_variable() {
+        let toks = vec![
+            Token::Global,
+            Token::Variable,
+            Token::Identifier(String::from("a")),
+            Token::Colon,
+            Token::IntType,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.declaration().expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::VarDecl { 
+            is_global: true,
+            name: String::from("a"),
+            ty: Types::Int,
+        });
+
+        assert_eq!(act_ast, exp_ast);
+    }
+
+    #[test]
+    fn llparse_declaration_err_nodecl() {
+        let toks = vec![
+            Token::Unknown,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        p.declaration().expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = p.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: String::from("Expected declaration") }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_procedure_declaration() {
+        let toks = vec![
+            Token::Procedure,
+            Token::Identifier(String::from("foo")),
+            Token::Colon,
+            Token::IntType,
+            Token::LParen,
+            Token::RParen,
+            Token::Begin,
+            Token::EndProcedure,
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let act_ast = p.procedure_declaration(false).expect("Parse failed");
+
+        let exp_ast = Box::new(Ast::ProcDecl {
+            is_global: false,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+
+        assert_eq!(act_ast, exp_ast);
     }
 
     #[test]
