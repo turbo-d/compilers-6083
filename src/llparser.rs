@@ -3606,6 +3606,80 @@ mod tests {
     }
 
     #[test]
+    fn llparse_expr_prime_andor() {
+        let toks = vec![
+            Token::And,
+            Token::Identifier(String::from("b")),
+            Token::Or,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.expr_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_ast = Box::new(Ast::OrOp {
+            lhs: Box::new(Ast::AndOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_expr_prime_orand() {
+        let toks = vec![
+            Token::Or,
+            Token::Identifier(String::from("b")),
+            Token::And,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.expr_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_ast = Box::new(Ast::AndOp {
+            lhs: Box::new(Ast::OrOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
     fn llparse_arith_op() {
         let toks = vec![
             Token::Identifier(String::from("a")),
@@ -3765,6 +3839,80 @@ mod tests {
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::SubOp {
+            lhs: Box::new(Ast::SubOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_arith_op_prime_addsub() {
+        let toks = vec![
+            Token::Add,
+            Token::Identifier(String::from("b")),
+            Token::Sub,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.arith_op_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_ast = Box::new(Ast::SubOp {
+            lhs: Box::new(Ast::AddOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_arith_op_prime_subadd() {
+        let toks = vec![
+            Token::Sub,
+            Token::Identifier(String::from("b")),
+            Token::Add,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.arith_op_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::SubOp {
                 lhs: Box::new(Ast::Var { 
                     id: String::from("a") 
@@ -4407,6 +4555,80 @@ mod tests {
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::DivOp {
+            lhs: Box::new(Ast::DivOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_term_prime_muldiv() {
+        let toks = vec![
+            Token::Mul,
+            Token::Identifier(String::from("b")),
+            Token::Div,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.term_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_ast = Box::new(Ast::DivOp {
+            lhs: Box::new(Ast::MulOp {
+                lhs: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                rhs: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("c") 
+            }),
+        });
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn llparse_term_prime_divmul() {
+        let toks = vec![
+            Token::Div,
+            Token::Identifier(String::from("b")),
+            Token::Mul,
+            Token::Identifier(String::from("c")),
+        ];
+        let s = TestScanner::new(toks);
+        let mut p = LLParser::new(Box::new(s));
+
+        let in_ast = Box::new(Ast::Var { 
+            id: String::from("a") 
+        });
+
+        let act_ast = p.term_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::DivOp {
                 lhs: Box::new(Ast::Var { 
                     id: String::from("a") 
@@ -5084,6 +5306,5 @@ mod tests {
         assert_eq!(act_errs, exp_errs);
     }
 
-    //TODO: maybe, mixed operator associativity tests
     //TODO: expr tests for operator precedence
 }
