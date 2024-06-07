@@ -1,13 +1,10 @@
 use crate::ast::{Ast, RelationOp};
-use crate::error::CompilerError;
+use crate::error::{CompilerError, TerminalError};
 use crate::scanner::Scan;
 use crate::token::Token;
 use crate::types::Types;
 
 use std::vec::Vec;
-
-#[derive(Debug)]
-pub struct TerminalError;
 
 pub struct LLParser {
     s: Box<dyn Scan>,

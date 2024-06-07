@@ -67,11 +67,12 @@ fn main() {
     display_errors(file_path, p.get_errors());
 
     let mut tc = TypeChecker::new();
-    ast.accept(&mut tc);
+    ast.accept(&mut tc).expect("Semantic checking failed");
 
     if debug {
         println!("{ast}");
     }
+    display_errors(file_path, tc.get_errors());
 
     let context = Context::create();
     let builder = context.create_builder();

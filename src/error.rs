@@ -1,3 +1,6 @@
+#[derive(Debug)]
+pub struct TerminalError;
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum CompilerError {
     Error {

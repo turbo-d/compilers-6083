@@ -1,5 +1,5 @@
 use crate::ast::{Ast, AstVisitor, RelationOp};
-use crate::error::CompilerError;
+use crate::error::{CompilerError, TerminalError};
 use crate::symtable::SymTable;
 use crate::types::Types;
 
@@ -36,19 +36,19 @@ impl TypeChecker {
     }
 }
 
-impl AstVisitor<Types> for TypeChecker {
-    fn visit_ast(&mut self, ast: &Ast) -> Types {
+impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
+    fn visit_ast(&mut self, ast: &Ast) -> Result<Types, TerminalError> {
         match ast {
             Ast::Program { decls, body, .. } => {
                 for decl in decls.iter() {
-                    self.visit_ast(decl);
+                    self.visit_ast(decl)?;
                 }
 
                 for stmt in body.iter() {
-                    self.visit_ast(stmt);
+                    self.visit_ast(stmt)?;
                 }
 
-                Types::Unknown
+                Ok(Types::Unknown)
             }
             Ast::VarDecl { is_global, name, ty } => {
                 let result: Result<(), String>;
@@ -60,10 +60,13 @@ impl AstVisitor<Types> for TypeChecker {
 
                 match result {
                     Ok(_) => (),
-                    Err(_) => panic!("Duplicate declaration. {name} is already declared in this scope"),
+                    Err(_) => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {name} is already declared in this scope") });
+                        return Err(TerminalError);
+                    },
                 }
 
-                ty.clone()
+                Ok(ty.clone())
             },
             Ast::ProcDecl { is_global, name, ty, params, decls, body } => {
                 let result: Result<(), String>;
@@ -75,81 +78,93 @@ impl AstVisitor<Types> for TypeChecker {
 
                 match result {
                     Ok(_) => (),
-                    Err(_) => panic!("Duplicate declaration. {name} is already declared in this scope"),
+                    Err(_) => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {name} is already declared in this scope") });
+                        return Err(TerminalError);
+                    },
                 }
 
                 self.st.enter_scope(ty.clone());
 
                 for param in params.iter() {
-                    self.visit_ast(param);
+                    self.visit_ast(param)?;
                 }
 
                 for decl in decls.iter() {
-                    self.visit_ast(decl);
+                    self.visit_ast(decl)?;
                 }
 
                 for stmt in body.iter() {
-                    self.visit_ast(stmt);
+                    self.visit_ast(stmt)?;
                 }
 
                 self.st.exit_scope();
 
-                ty.clone()
+                Ok(ty.clone())
             },
             Ast::AssignStmt { dest, expr } => {
-                let dest_type = self.visit_ast(dest);
-                let expr_type = self.visit_ast(expr);
+                let dest_type = self.visit_ast(dest)?;
+                let expr_type = self.visit_ast(expr)?;
                 match dest_type {
                     Types::Bool => {
                         if expr_type != Types::Bool && expr_type != Types::Int {
-                            panic!("Type mismatch. Expression must be of bool or integer type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of bool or integer type") });
+                            return Err(TerminalError);
                         }
                     }
                     Types::Int => {
                         if expr_type != Types::Int && expr_type != Types::Bool {
-                            panic!("Type mismatch. Expression must be of integer, float, or bool type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of integer, float, or bool type") });
+                            return Err(TerminalError);
                         }
                     }
                     Types::Float => {
                         if expr_type != Types::Float && expr_type != Types::Int {
-                            panic!("Type mismatch. Expression must be of float or integer type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of float or integer type") });
+                            return Err(TerminalError);
                         }
                     }
                     Types::String => {
                         if expr_type != Types::String {
-                            panic!("Type mismatch. Expression must be of string type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of string type") });
+                            return Err(TerminalError);
                         }
                     }
-                    _ => panic!("Assignment not supported for this operand type"),
+                    _ => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Assignment not supported for this operand type") });
+                        return Err(TerminalError);
+                    },
                 }
-                Types::Unknown
+                Ok(Types::Unknown)
             },
             Ast::IfStmt { cond, then_body, else_body } => {
-                let cond_expr_type = self.visit_ast(cond);
+                let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
-                    panic!("The conditional expression must be of bool or integer type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type") });
+                    return Err(TerminalError);
                 }
                 for stmt in then_body.iter() {
-                    self.visit_ast(stmt);
+                    self.visit_ast(stmt)?;
                 }
                 for stmt in else_body.iter() {
-                    self.visit_ast(stmt);
+                    self.visit_ast(stmt)?;
                 }
-                Types::Unknown
+                Ok(Types::Unknown)
             },
             Ast::LoopStmt { init, cond, body } => {
-                self.visit_ast(init);
-                let cond_expr_type = self.visit_ast(cond);
+                self.visit_ast(init)?;
+                let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
-                    panic!("The conditional expression must be of bool or integer type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type") });
+                    return Err(TerminalError);
                 }
                 for stmt in body.iter() {
-                    self.visit_ast(stmt);
+                    self.visit_ast(stmt)?;
                 }
-                Types::Unknown
+                Ok(Types::Unknown)
             },
             Ast::ReturnStmt { expr } => {
-                let expr_type = self.visit_ast(expr);
+                let expr_type = self.visit_ast(expr)?;
                 let owning_proc_type = self.st.get_local_proc_data();
 
                 // Same compatibility rules as assignment
@@ -157,192 +172,226 @@ impl AstVisitor<Types> for TypeChecker {
                     match **return_type {
                         Types::Bool => {
                             if expr_type != Types::Bool && expr_type != Types::Int {
-                                panic!("Expression type does not match the return type of the owning procedure");
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
+                                return Err(TerminalError);
                             }
                         }
                         Types::Int => {
                             if expr_type != Types::Int && expr_type != Types::Bool {
-                                panic!("Expression type does not match the return type of the owning procedure");
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
+                                return Err(TerminalError);
                             }
                         }
                         Types::Float => {
                             if expr_type != Types::Float && expr_type != Types::Int {
-                                panic!("Expression type does not match the return type of the owning procedure");
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
+                                return Err(TerminalError);
                             }
                         }
                         Types::String => {
                             if expr_type != Types::String {
-                                panic!("Expression type does not match the return type of the owning procedure");
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
+                                return Err(TerminalError);
                             }
                         }
-                        _ => panic!("Returns not supported for this operand type"),
+                        _ => {
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Returns not supported for this operand type") });
+                            return Err(TerminalError);
+                        },
                     }
                 }
 
-                Types::Unknown
+                Ok(Types::Unknown)
             },
             Ast::AndOp { lhs, rhs } => {
-                let lhs_type = self.visit_ast(lhs);
-                let rhs_type = self.visit_ast(rhs);
+                let lhs_type = self.visit_ast(lhs)?;
+                let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int {
-                    panic!("Bitwise operations can only be performed on operands of integer type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                    return Err(TerminalError);
                 }
 
                 if rhs_type != Types::Int {
-                    panic!("Bitwise operations can only be performed on operands of integer type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                    return Err(TerminalError);
                 }
 
-                Types::Int
+                Ok(Types::Int)
             },
             Ast::OrOp { lhs, rhs } => {
-                let lhs_type = self.visit_ast(lhs);
-                let rhs_type = self.visit_ast(rhs);
+                let lhs_type = self.visit_ast(lhs)?;
+                let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int {
-                    panic!("Bitwise operations can only be performed on operands of integer type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                    return Err(TerminalError);
                 }
 
                 if rhs_type != Types::Int {
-                    panic!("Bitwise operations can only be performed on operands of integer type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                    return Err(TerminalError);
                 }
 
-                Types::Int
+                Ok(Types::Int)
             },
             Ast::NotOp { operand } => {
-                let operand_type = self.visit_ast(operand);
+                let operand_type = self.visit_ast(operand)?;
 
                 if operand_type != Types::Int {
-                    panic!("Bitwise operations can only be performed on operands of integer type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                    return Err(TerminalError);
                 }
 
-                Types::Int
+                Ok(Types::Int)
             },
             Ast::AddOp { lhs, rhs } => {
-                let lhs_type = self.visit_ast(lhs);
-                let rhs_type = self.visit_ast(rhs);
+                let lhs_type = self.visit_ast(lhs)?;
+                let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
                 let mut op_type = Types::Float;
                 if lhs_type == Types::Int && rhs_type == Types::Int {
                     op_type = Types::Int;
                 }
-                op_type
+                Ok(op_type)
             },
             Ast::SubOp { lhs, rhs } => {
-                let lhs_type = self.visit_ast(lhs);
-                let rhs_type = self.visit_ast(rhs);
+                let lhs_type = self.visit_ast(lhs)?;
+                let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
                 let mut op_type = Types::Float;
                 if lhs_type == Types::Int && rhs_type == Types::Int {
                     op_type = Types::Int;
                 }
-                op_type
+                Ok(op_type)
             },
             Ast::MulOp { lhs, rhs } => {
-                let lhs_type = self.visit_ast(lhs);
-                let rhs_type = self.visit_ast(rhs);
+                let lhs_type = self.visit_ast(lhs)?;
+                let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
                 if lhs_type == Types::Int && rhs_type == Types::Int {
-                    return Types::Int
+                    return Ok(Types::Int)
                 }
-                Types::Float
+                Ok(Types::Float)
             },
             Ast::DivOp { lhs, rhs } => {
-                let lhs_type = self.visit_ast(lhs);
-                let rhs_type = self.visit_ast(rhs);
+                let lhs_type = self.visit_ast(lhs)?;
+                let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float {
-                    panic!("Arithmetic operations can only be performed on operands of integer and float type");
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                    return Err(TerminalError);
                 }
 
-                Types::Float
+                Ok(Types::Float)
             },
             Ast::Relation { op, lhs, rhs } => {
-                let lhs_type = self.visit_ast(lhs);
-                let rhs_type = self.visit_ast(rhs);
+                let lhs_type = self.visit_ast(lhs)?;
+                let rhs_type = self.visit_ast(rhs)?;
 
                 match lhs_type {
                     Types::Bool => {
                         if rhs_type != Types::Bool && rhs_type != Types::Int {
-                            panic!("Type mismatch. Right operand must be of bool or integer type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of bool or integer type") });
+                            return Err(TerminalError);
                         }
                     }
                     Types::Int => {
                         if rhs_type != Types::Int && rhs_type != Types::Bool {
-                            panic!("Type mismatch. Right operand must be of integer or bool type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of integer or bool type") });
+                            return Err(TerminalError);
                         }
                     }
                     Types::Float => {
                         if rhs_type != Types::Float {
-                            panic!("Type mismatch. Right operand must be of float type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of float type") });
+                            return Err(TerminalError);
                         }
                     }
                     Types::String => {
                         if *op != RelationOp::Eq && *op != RelationOp::NotEq {
-                            panic!("Operator not supported for operands of string type. Only == and != are supported for operands of string type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Operator not supported for operands of string type. Only == and != are supported for operands of string type") });
+                            return Err(TerminalError);
                         }
                         if rhs_type != Types::String {
-                            panic!("Type mismatch. Right operand must be of string type");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of string type") });
+                            return Err(TerminalError);
                         }
                     }
-                    _ => panic!("Relational operators not supported for this operand type"),
+                    _ => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operators not supported for this operand type") });
+                        return Err(TerminalError);
+                    },
                 }
 
-                Types::Bool
+                Ok(Types::Bool)
             },
             Ast::NegateOp { operand } => {
                 // TODO: Type checking for negation operand. Same as arithmetic.
                 self.visit_ast(operand)
             },
             Ast::SubscriptOp { array, index } => {
-                let array_type = self.visit_ast(array);
-                let expr_type = self.visit_ast(index);
+                let array_type = self.visit_ast(array)?;
+                let expr_type = self.visit_ast(index)?;
 
                 match array_type {
                     Types::Array(_, _) => (),
-                    _ => panic!("Indexing can only be performed on array types"),
+                    _ => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Indexing can only be performed on array types") });
+                        return Err(TerminalError);
+                    },
                 }
 
                 match expr_type {
                     Types::Int => (),
-                    _ => panic!("Array index must be of integer type"),
+                    _ => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Array index must be of integer type") });
+                        return Err(TerminalError);
+                    },
                 }
 
-                array_type
+                Ok(array_type)
             },
             Ast::ProcCall { proc, args } => {
-                let proc_type = self.visit_ast(proc);
+                let proc_type = self.visit_ast(proc)?;
                 let mut arg_types = Vec::new();
                 for arg in args.iter() {
-                    arg_types.push(self.visit_ast(arg));
+                    arg_types.push(self.visit_ast(arg)?);
                 }
 
                 match proc_type {
@@ -350,30 +399,78 @@ impl AstVisitor<Types> for TypeChecker {
                         let n_args = arg_types.len();
                         let n_params = param_types.len();
                         if n_args != n_params {
-                            panic!("Incorrect number of arguments");
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Incorrect number of arguments") });
+                            return Err(TerminalError);
                         }
 
                         for (i, (arg_type, param_type)) in arg_types.iter().zip(param_types.iter()).enumerate() {
                             if arg_type != param_type {
-                                panic!("Type mismatch in argument {i}. (0-indexed)");
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch in argument {i}. (0-indexed)") });
+                                return Err(TerminalError);
                             }
                         }
 
-                        *out_type
+                        Ok(*out_type)
                     }
-                    _ => panic!("Expected procedure type"),
+                    _ => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Expected procedure type") });
+                        return Err(TerminalError);
+                    },
                 }
             },
-            Ast::IntLiteral { .. } => Types::Int,
-            Ast::FloatLiteral { .. } => Types::Float,
-            Ast::BoolLiteral { .. } => Types::Bool,
-            Ast::StringLiteral { .. } => Types::String,
+            Ast::IntLiteral { .. } => Ok(Types::Int),
+            Ast::FloatLiteral { .. } => Ok(Types::Float),
+            Ast::BoolLiteral { .. } => Ok(Types::Bool),
+            Ast::StringLiteral { .. } => Ok(Types::String),
             Ast::Var { id } => {
                 match self.st.get(id) {
-                    Some(types) => types.clone(),
-                    None => panic!("Missing declaration for {id}"),
+                    Some(types) => Ok(types.clone()),
+                    None => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Missing declaration for {id}") });
+                        return Err(TerminalError);
+                    },
                 }
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn typechecker_var() {
+        let ast = Box::new(Ast::Var {
+            id: String::from("a"),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_err_missingdecl() {
+        let ast = Box::new(Ast::Var {
+            id: String::from("a"),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Missing declaration for {}", String::from("a")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
     }
 }
