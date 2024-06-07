@@ -1,9 +1,11 @@
 use crate::ast::{Ast, AstVisitor, RelationOp};
+use crate::error::CompilerError;
 use crate::symtable::SymTable;
 use crate::types::Types;
 
 pub struct TypeChecker {
     st: SymTable<Types, Types>,
+    errs: Vec<CompilerError>,
 }
 
 impl TypeChecker {
@@ -22,8 +24,15 @@ impl TypeChecker {
         let _ = st.insert_global(String::from("sqrt"), Types::Proc(Box::new(Types::Float), vec![Types::Int]));
 
         TypeChecker {
-            st
+            st,
+            errs: Vec::<CompilerError>::new(),
         }
+    }
+}
+
+impl TypeChecker {
+    pub fn get_errors(&self) -> &Vec<CompilerError> {
+        &self.errs
     }
 }
 
