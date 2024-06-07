@@ -371,16 +371,16 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 
                 match array_type {
                     Types::Array(_, _) => (),
-                    _ => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Indexing can only be performed on array types") });
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Indexing can only be performed on array types, found {ty} type") });
                         return Err(TerminalError);
                     },
                 }
 
                 match expr_type {
                     Types::Int => (),
-                    _ => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Array index must be of integer type") });
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Array index must be of integer type, found {ty} type") });
                         return Err(TerminalError);
                     },
                 }
@@ -388,6 +388,12 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 Ok(array_type)
             },
             Ast::ProcCall { proc, args } => {
+                let proc_name = 
+                    if let Ast::Var { ref id } = **proc {
+                        id
+                    } else {
+                        ""
+                    };
                 let proc_type = self.visit_ast(proc)?;
                 let mut arg_types = Vec::new();
                 for arg in args.iter() {
@@ -399,21 +405,26 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         let n_args = arg_types.len();
                         let n_params = param_types.len();
                         if n_args != n_params {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Incorrect number of arguments") });
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Incorrect number of arguments for procedure {proc_name}. Expected {n_params}, found {n_args}.") });
                             return Err(TerminalError);
                         }
 
+                        let mut is_type_mismatch = false;
                         for (i, (arg_type, param_type)) in arg_types.iter().zip(param_types.iter()).enumerate() {
                             if arg_type != param_type {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch in argument {i}. (0-indexed)") });
-                                return Err(TerminalError);
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch for argument {i} (0-indexed) in procedure call {proc_name}") });
+                                is_type_mismatch = true;
                             }
+                        }
+
+                        if is_type_mismatch {
+                            return Err(TerminalError);
                         }
 
                         Ok(*out_type)
                     }
                     _ => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Expected procedure type") });
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("{proc_name} is not a procedure") });
                         return Err(TerminalError);
                     },
                 }
@@ -440,6 +451,265 @@ mod tests {
     use super::*;
 
     #[test]
+    fn typechecker_subscript_op() {
+        let ast = Box::new(Ast::SubscriptOp { 
+            array: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            index: Box::new(Ast::IntLiteral {
+                value: 0,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_subscript_op_invalidbasetype() {
+        let ast = Box::new(Ast::SubscriptOp { 
+            array: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            index: Box::new(Ast::IntLiteral {
+                value: 0,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Indexing can only be performed on array types, found {} type", Types::Int)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_subscript_op_invalidindextype() {
+        let ast = Box::new(Ast::SubscriptOp { 
+            array: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            index: Box::new(Ast::FloatLiteral {
+                value: 1.0,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Array index must be of integer type, found {} type", Types::Float)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_noarg() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_singlearg() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: vec![
+                Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            ],
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Int])).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_multiarg() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: vec![
+                Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+                Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            ],
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Int, Types::Bool])).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_recursion() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Int);
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_shadowedrecursion() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Int);
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Bool), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_err_invalidtype() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("foo"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("{} is not a procedure", String::from("foo")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_err_invalidargcount() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Int, Types::Bool])).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Incorrect number of arguments for procedure {}. Expected {}, found {}.", String::from("foo"), 2, 0) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_call_err_mismatchedargtypes() {
+        let ast = Box::new(Ast::ProcCall {
+            proc: Box::new(Ast::Var { 
+                id: String::from("foo") 
+            }),
+            args: vec![
+                Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+                Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            ],
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Bool, Types::Int])).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Type mismatch for argument {} (0-indexed) in procedure call {}", 0, String::from("foo")) },
+            CompilerError::Error { line: 1, msg: format!("Type mismatch for argument {} (0-indexed) in procedure call {}", 1, String::from("foo")) },
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
     fn typechecker_int_literal() {
         let ast = Box::new(Ast::IntLiteral {
             value: 5,
@@ -455,6 +725,7 @@ mod tests {
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
     }
+
     #[test]
     fn typechecker_float_literal() {
         let ast = Box::new(Ast::FloatLiteral {
@@ -471,6 +742,7 @@ mod tests {
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
     }
+
     #[test]
     fn typechecker_bool_literal() {
         let ast = Box::new(Ast::BoolLiteral {
