@@ -362,8 +362,24 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 Ok(Types::Bool)
             },
             Ast::NegateOp { operand } => {
-                // TODO: Type checking for negation operand. Same as arithmetic.
-                self.visit_ast(operand)
+                match self.visit_ast(operand)? {
+                    Types::Int => Ok(Types::Int),
+                    Types::Float => Ok(Types::Float),
+                    Types::Array(size, base_type) => {
+                        match *base_type {
+                            Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
+                            Types::Float => Ok(Types::Array(size, Box::new(Types::Float))),
+                            ty => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Negation of an array can only be performed on integer or float arrays, found {ty} array") });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Negation can only be performed on integer, float, integer array, or float array types, found {ty} type") });
+                        Err(TerminalError)
+                    },
+                }
             },
             Ast::SubscriptOp { array, index } => {
                 let array_type = self.visit_ast(array)?;
@@ -449,6 +465,138 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typechecker_negate_op_int() {
+        let ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_negate_op_float() {
+        let ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::FloatLiteral { 
+                value: 5.0,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Float;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_negate_op_intarray() {
+        let ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::SubscriptOp { 
+                array: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                index: Box::new(Ast::IntLiteral {
+                    value: 0,
+                }),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_negate_op_floatarray() {
+        let ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::SubscriptOp { 
+                array: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                index: Box::new(Ast::IntLiteral {
+                    value: 0,
+                }),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Float));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_negate_op_err_invalidscalartype() {
+        let ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::StringLiteral { 
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Negation can only be performed on integer, float, integer array, or float array types, found {} type", Types::String)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_negate_op_err_invalidarraytype() {
+        let ast = Box::new(Ast::NegateOp {
+            operand: Box::new(Ast::SubscriptOp { 
+                array: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+                index: Box::new(Ast::IntLiteral {
+                    value: 0,
+                }),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Negation of an array can only be performed on integer or float arrays, found {} array", Types::String)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
 
     #[test]
     fn typechecker_subscript_op() {
