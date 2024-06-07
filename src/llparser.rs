@@ -963,14 +963,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.parse().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Program {
             name: String::from("test_prgm"),
             decls: Vec::new(),
             body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1017,14 +1020,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.program().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Program {
             name: String::from("test_prgm"),
             decls: Vec::new(),
             body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1067,8 +1073,12 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_name = p.program_header().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_name, String::from("test_prgm"));
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1119,12 +1129,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.program_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = Vec::new();
         let exp_stmts = Vec::new();
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1142,6 +1155,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.program_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = vec![
             Box::new(Ast::VarDecl { 
@@ -1151,9 +1165,11 @@ mod tests {
             }),
         ];
         let exp_stmts = Vec::new();
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1176,6 +1192,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.program_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = vec![
             Box::new(Ast::VarDecl { 
@@ -1190,9 +1207,11 @@ mod tests {
             }),
         ];
         let exp_stmts = Vec::new();
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1209,6 +1228,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.program_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = Vec::new();
         let exp_stmts = vec![
@@ -1221,9 +1241,11 @@ mod tests {
                 }),
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1244,6 +1266,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.program_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = Vec::new();
         let exp_stmts = vec![
@@ -1264,9 +1287,11 @@ mod tests {
                 }),
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1297,6 +1322,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.program_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = vec![
             Box::new(Ast::VarDecl { 
@@ -1328,9 +1354,11 @@ mod tests {
                 }),
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1430,6 +1458,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.declaration().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcDecl {
             is_global: false,
@@ -1439,8 +1468,10 @@ mod tests {
             decls: Vec::new(),
             body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1460,6 +1491,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.declaration().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcDecl {
             is_global: true,
@@ -1469,8 +1501,10 @@ mod tests {
             decls: Vec::new(),
             body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1485,14 +1519,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.declaration().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::VarDecl { 
             is_global: false,
             name: String::from("a"),
             ty: Types::Int,
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1508,14 +1545,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.declaration().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::VarDecl { 
             is_global: true,
             name: String::from("a"),
             ty: Types::Int,
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1552,6 +1592,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.procedure_declaration(false).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcDecl {
             is_global: false,
@@ -1561,8 +1602,10 @@ mod tests {
             decls: Vec::new(),
             body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1579,14 +1622,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_name, act_ty, act_params) = p.procedure_header().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_name = String::from("foo");
         let exp_ty = Types::Proc(Box::new(Types::Int), vec![]);
         let exp_params = vec![];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_name, exp_name);
         assert_eq!(act_ty, exp_ty);
         assert_eq!(act_params, exp_params);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1612,6 +1658,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_name, act_ty, act_params) = p.procedure_header().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_name = String::from("foo");
         let exp_ty = Types::Proc(
@@ -1633,10 +1680,12 @@ mod tests {
                 ty: Types::Int,
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_name, exp_name);
         assert_eq!(act_ty, exp_ty);
         assert_eq!(act_params, exp_params);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1731,8 +1780,12 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_type = p.type_mark().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_type, Types::Int);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1744,8 +1797,12 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_type = p.type_mark().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_type, Types::Float);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1757,8 +1814,12 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_type = p.type_mark().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_type, Types::String);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1770,8 +1831,12 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_type = p.type_mark().expect("Parse failed");
+        let act_errs = p.get_errors();
+
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_type, Types::Bool);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1805,6 +1870,7 @@ mod tests {
 
         let act_params = p.parameter_list().expect("Parse failed");
         let (act_vec_type, act_vec_ast): (Vec<_>, Vec<_>) = act_params.into_iter().unzip();
+        let act_errs = p.get_errors();
 
         let exp_vec_type = vec![
             Types::Int,
@@ -1816,9 +1882,11 @@ mod tests {
                 ty: Types::Int,
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_vec_type, exp_vec_type);
         assert_eq!(act_vec_ast, exp_vec_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1844,6 +1912,7 @@ mod tests {
 
         let act_params = p.parameter_list().expect("Parse failed");
         let (act_vec_type, act_vec_ast): (Vec<_>, Vec<_>) = act_params.into_iter().unzip();
+        let act_errs = p.get_errors();
 
         let exp_vec_type = vec![
             Types::Int,
@@ -1867,9 +1936,11 @@ mod tests {
                 ty: Types::Int,
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_vec_type, exp_vec_type);
         assert_eq!(act_vec_ast, exp_vec_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1882,12 +1953,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = Vec::new();
         let exp_stmts = Vec::new();
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1905,6 +1979,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = vec![
             Box::new(Ast::VarDecl { 
@@ -1914,9 +1989,11 @@ mod tests {
             }),
         ];
         let exp_stmts = Vec::new();
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1939,6 +2016,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = vec![
             Box::new(Ast::VarDecl { 
@@ -1953,9 +2031,11 @@ mod tests {
             }),
         ];
         let exp_stmts = Vec::new();
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -1972,6 +2052,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = Vec::new();
         let exp_stmts = vec![
@@ -1984,9 +2065,11 @@ mod tests {
                 }),
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2007,6 +2090,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = Vec::new();
         let exp_stmts = vec![
@@ -2027,9 +2111,11 @@ mod tests {
                 }),
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2060,6 +2146,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_decls, act_stmts) = p.procedure_body().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_decls = vec![
             Box::new(Ast::VarDecl { 
@@ -2091,9 +2178,11 @@ mod tests {
                 }),
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_decls, exp_decls);
         assert_eq!(act_stmts, exp_stmts);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2189,6 +2278,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_ty, act_ast) = p.variable_declaration(false).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ty = Types::Int;
         let exp_ast = Box::new(Ast::VarDecl { 
@@ -2196,9 +2286,11 @@ mod tests {
             name: String::from("a"),
             ty: Types::Int,
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ty, exp_ty);
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2216,6 +2308,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let (act_ty, act_ast) = p.variable_declaration(false).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ty = Types::Array(5, Box::new(Types::Int));
         let exp_ast = Box::new(Ast::VarDecl { 
@@ -2223,9 +2316,11 @@ mod tests {
             name: String::from("a"),
             ty: Types::Array(5, Box::new(Types::Int)),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ty, exp_ty);
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2324,6 +2419,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::AssignStmt { 
             dest: Box::new(Ast::Var { 
@@ -2333,8 +2429,10 @@ mod tests {
                 value: 1,
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2351,6 +2449,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
@@ -2359,8 +2458,10 @@ mod tests {
             then_body: Vec::new(),
             else_body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2380,6 +2481,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::AssignStmt { 
@@ -2395,8 +2497,10 @@ mod tests {
             }),
             body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2409,14 +2513,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ReturnStmt { 
             expr: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2448,6 +2555,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.assignment_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::AssignStmt { 
             dest: Box::new(Ast::Var { 
@@ -2457,8 +2565,10 @@ mod tests {
                 value: 1,
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2489,12 +2599,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.destination().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2509,6 +2622,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.destination().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
@@ -2518,8 +2632,10 @@ mod tests {
                 value: 1,
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2557,6 +2673,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.if_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
@@ -2565,8 +2682,10 @@ mod tests {
             then_body: Vec::new(),
             else_body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2587,6 +2706,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.if_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
@@ -2604,8 +2724,10 @@ mod tests {
             ],
             else_body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2630,6 +2752,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.if_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
@@ -2655,8 +2778,10 @@ mod tests {
             ],
             else_body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2674,6 +2799,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.if_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
@@ -2682,8 +2808,10 @@ mod tests {
             then_body: Vec::new(),
             else_body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2705,6 +2833,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.if_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
@@ -2722,8 +2851,10 @@ mod tests {
                 }),
             ],
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2749,6 +2880,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.if_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
@@ -2774,8 +2906,10 @@ mod tests {
                 }),
             ],
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2951,6 +3085,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.loop_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::AssignStmt { 
@@ -2966,8 +3101,10 @@ mod tests {
             }),
             body: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -2991,6 +3128,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.loop_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::AssignStmt { 
@@ -3015,8 +3153,10 @@ mod tests {
                 }),
             ],
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3044,6 +3184,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.loop_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::AssignStmt { 
@@ -3076,8 +3217,10 @@ mod tests {
                 }),
             ],
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3230,14 +3373,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.return_statement().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ReturnStmt { 
             expr: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3267,12 +3413,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.expr().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3285,14 +3434,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.expr().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::NotOp { 
             operand: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3308,12 +3460,15 @@ mod tests {
         });
 
         let act_ast = p.expr_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3330,6 +3485,7 @@ mod tests {
         });
 
         let act_ast = p.expr_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::Var { 
@@ -3339,8 +3495,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3359,6 +3517,7 @@ mod tests {
         });
 
         let act_ast = p.expr_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::AndOp {
@@ -3373,8 +3532,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3391,6 +3552,7 @@ mod tests {
         });
 
         let act_ast = p.expr_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::Var { 
@@ -3400,8 +3562,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3420,6 +3584,7 @@ mod tests {
         });
 
         let act_ast = p.expr_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::OrOp {
@@ -3434,8 +3599,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3447,12 +3614,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.arith_op().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3468,12 +3638,15 @@ mod tests {
         });
 
         let act_ast = p.arith_op_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3490,6 +3663,7 @@ mod tests {
         });
 
         let act_ast = p.arith_op_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
@@ -3499,8 +3673,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3519,6 +3695,7 @@ mod tests {
         });
 
         let act_ast = p.arith_op_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::AddOp {
@@ -3533,8 +3710,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3551,6 +3730,7 @@ mod tests {
         });
 
         let act_ast = p.arith_op_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
@@ -3560,8 +3740,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3580,6 +3762,7 @@ mod tests {
         });
 
         let act_ast = p.arith_op_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::SubOp {
@@ -3594,8 +3777,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3607,12 +3792,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.relation().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3628,12 +3816,15 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3650,6 +3841,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::LT,
@@ -3660,8 +3852,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3680,6 +3874,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::LT,
@@ -3696,8 +3891,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3714,6 +3911,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::LTE,
@@ -3724,8 +3922,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3744,6 +3944,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::LTE,
@@ -3760,8 +3961,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3778,6 +3981,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::GT,
@@ -3788,8 +3992,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3808,6 +4014,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::GT,
@@ -3824,8 +4031,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3842,6 +4051,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::GTE,
@@ -3852,8 +4062,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3872,6 +4084,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::GTE,
@@ -3888,8 +4101,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3906,6 +4121,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
@@ -3916,8 +4132,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3936,6 +4154,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
@@ -3952,8 +4171,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -3970,6 +4191,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::NotEq,
@@ -3980,8 +4202,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4000,6 +4224,7 @@ mod tests {
         });
 
         let act_ast = p.relation_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::NotEq,
@@ -4016,8 +4241,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4029,12 +4256,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.term().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4050,12 +4280,15 @@ mod tests {
         });
 
         let act_ast = p.term_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4072,6 +4305,7 @@ mod tests {
         });
 
         let act_ast = p.term_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
@@ -4081,8 +4315,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4101,6 +4337,7 @@ mod tests {
         });
 
         let act_ast = p.term_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::MulOp {
@@ -4115,8 +4352,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4133,6 +4372,7 @@ mod tests {
         });
 
         let act_ast = p.term_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
@@ -4142,8 +4382,10 @@ mod tests {
                 id: String::from("b") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4162,6 +4404,7 @@ mod tests {
         });
 
         let act_ast = p.term_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::DivOp {
@@ -4176,8 +4419,10 @@ mod tests {
                 id: String::from("c") 
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4189,12 +4434,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4208,6 +4456,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
@@ -4215,8 +4464,10 @@ mod tests {
             }),
             args: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4229,14 +4480,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::Var { 
                 id: String::from("a")
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4249,14 +4503,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4269,14 +4526,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::FloatLiteral { 
                 value: 5.0,
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4288,12 +4548,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::IntLiteral { 
             value: 5,
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4305,12 +4568,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::FloatLiteral { 
             value: 5.0,
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4322,12 +4588,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::StringLiteral { 
             value: String::from("test"),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4339,12 +4608,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::BoolLiteral { 
             value: true,
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4356,12 +4628,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::BoolLiteral { 
             value: false,
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4375,12 +4650,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.factor().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4454,6 +4732,7 @@ mod tests {
         });
 
         let act_ast = p.procedure_call_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
@@ -4461,8 +4740,10 @@ mod tests {
             }),
             args: Vec::new(),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4482,6 +4763,7 @@ mod tests {
         });
 
         let act_ast = p.procedure_call_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
@@ -4496,8 +4778,10 @@ mod tests {
                 }),
             ],
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4554,14 +4838,17 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_vec_ast = p.argument_list().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_vec_ast = vec![
             Box::new(Ast::Var { 
                 id: String::from("a") 
             })
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_vec_ast, exp_vec_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4577,6 +4864,7 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_vec_ast = p.argument_list().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_vec_ast = vec![
             Box::new(Ast::Var { 
@@ -4589,8 +4877,10 @@ mod tests {
                 id: String::from("c") 
             }),
         ];
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_vec_ast, exp_vec_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4602,12 +4892,15 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_ast = p.name().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4623,12 +4916,15 @@ mod tests {
         });
 
         let act_ast = p.name_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
             id: String::from("a") 
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4646,6 +4942,7 @@ mod tests {
         });
 
         let act_ast = p.name_prime(in_ast).expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
@@ -4655,8 +4952,10 @@ mod tests {
                 value: 1,
             }),
         });
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_ast, exp_ast);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
@@ -4692,10 +4991,13 @@ mod tests {
         let mut p = LLParser::new(Box::new(s));
 
         let act_id = p.identifier().expect("Parse failed");
+        let act_errs = p.get_errors();
 
         let exp_id = String::from("a");
+        let exp_errs = &Vec::new();
 
         assert_eq!(act_id, exp_id);
+        assert_eq!(act_errs, exp_errs);
     }
 
     #[test]
