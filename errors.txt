@@ -57,3 +57,10 @@ itself. Things like failed assertions. We should bias towards crashing, unless w
 are 100% certain the error will not result in invalid code. We would rather crash
 and refuse to do code gen, than generate invalid code and let the user believe the
 generated code is valid.
+
+Semantic Checking:
+- Possible warnings:
+- Possible resyncs:
+- Implemented warnings:
+- Implemented resyncs:
+

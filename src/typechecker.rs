@@ -440,12 +440,120 @@ mod tests {
     use super::*;
 
     #[test]
-    fn typechecker_var() {
+    fn typechecker_int_literal() {
+        let ast = Box::new(Ast::IntLiteral {
+            value: 5,
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+    #[test]
+    fn typechecker_float_literal() {
+        let ast = Box::new(Ast::FloatLiteral {
+            value: 9.3,
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Float;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+    #[test]
+    fn typechecker_bool_literal() {
+        let ast = Box::new(Ast::BoolLiteral {
+            value: true,
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_string_literal() {
+        let ast = Box::new(Ast::StringLiteral {
+            value: String::from("this is a string"),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::String;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_global() {
         let ast = Box::new(Ast::Var {
             id: String::from("a"),
         });
         let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Int);
+        tc.st.enter_scope(Types::Float);
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_local() {
+        let ast = Box::new(Ast::Var {
+            id: String::from("a"),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("a"), Types::String).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Int);
+        tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Float);
         tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_caseinsensitive() {
+        let ast = Box::new(Ast::Var {
+            id: String::from("TmP"),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("tmp"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
 
         let act_type = ast.accept(&mut tc).expect("Type checking failed");
         let act_errs = tc.get_errors();
