@@ -467,6 +467,283 @@ mod tests {
     use super::*;
 
     #[test]
+    fn typechecker_add_op_intint() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_floatfloat() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::FloatLiteral { 
+                value: 5.2,
+            }),
+            rhs: Box::new(Ast::FloatLiteral { 
+                value: 4.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Float;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_intfloat() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::FloatLiteral { 
+                value: 4.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Float;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_floatint() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::FloatLiteral { 
+                value: 5.2,
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Float;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_intarrayintarray() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_floatarrayfloatarray() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Float));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_intarrayfloatarray() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Float));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_floatarrayintarray() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Float));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_err_invalidscalartype() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("")}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_err_invalidarraytype() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("")}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_err_mismatchedarraylengths() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(3, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("")}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_add_op_err_mixedscalarandarrayoperands() {
+        let ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("")}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
     fn typechecker_negate_op_int() {
         let ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::IntLiteral { 
@@ -507,13 +784,8 @@ mod tests {
     #[test]
     fn typechecker_negate_op_intarray() {
         let ast = Box::new(Ast::NegateOp {
-            operand: Box::new(Ast::SubscriptOp { 
-                array: Box::new(Ast::Var { 
-                    id: String::from("a") 
-                }),
-                index: Box::new(Ast::IntLiteral {
-                    value: 0,
-                }),
+            operand: Box::new(Ast::Var { 
+                id: String::from("a") 
             }),
         });
         let mut tc = TypeChecker::new();
@@ -532,13 +804,8 @@ mod tests {
     #[test]
     fn typechecker_negate_op_floatarray() {
         let ast = Box::new(Ast::NegateOp {
-            operand: Box::new(Ast::SubscriptOp { 
-                array: Box::new(Ast::Var { 
-                    id: String::from("a") 
-                }),
-                index: Box::new(Ast::IntLiteral {
-                    value: 0,
-                }),
+            operand: Box::new(Ast::Var { 
+                id: String::from("a") 
             }),
         });
         let mut tc = TypeChecker::new();
@@ -576,13 +843,8 @@ mod tests {
     #[test]
     fn typechecker_negate_op_err_invalidarraytype() {
         let ast = Box::new(Ast::NegateOp {
-            operand: Box::new(Ast::SubscriptOp { 
-                array: Box::new(Ast::Var { 
-                    id: String::from("a") 
-                }),
-                index: Box::new(Ast::IntLiteral {
-                    value: 0,
-                }),
+            operand: Box::new(Ast::Var { 
+                id: String::from("a") 
             }),
         });
         let mut tc = TypeChecker::new();
