@@ -16,21 +16,22 @@ pub enum Types {
 impl fmt::Display for Types {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Types::Unknown => write!(f, "Unknown"),
-            Types::None => write!(f, "None"),
-            Types::Int => write!(f, "Int"),
-            Types::Float => write!(f, "Float"),
-            Types::String => write!(f, "String"),
-            Types::Bool => write!(f, "Bool"),
+            Types::Unknown => write!(f, "unknown"),
+            Types::None => write!(f, "none"),
+            Types::Int => write!(f, "integer"),
+            Types::Float => write!(f, "float"),
+            Types::String => write!(f, "string"),
+            Types::Bool => write!(f, "bool"),
             Types::Proc(return_type, param_types) => {
-                write!(f, "Proc(")?;
-                write!(f, "{}, {{", *return_type)?;
+                let mut params = String::new();
                 for param_type in param_types.iter() {
-                    write!(f, "{}, ", param_type)?;
+                    params.push_str(format!("{}, ", param_type).as_str());
                 }
-                write!(f, "}})")
+                params.pop();
+                params.pop();
+                write!(f, "{}({})", *return_type, params)
             }
-            Types::Array(size, base_type) => write!(f, "Array({}, {})", size, *base_type),
+            Types::Array(size, base_type) => write!(f, "{}[{}]", *base_type, size),
        }
     }
 }
