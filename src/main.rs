@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::io;
 use std::io::Write;
+use std::process;
 
 use compiler::codegen::CodeGen;
 use compiler::error::CompilerError;
@@ -57,22 +58,36 @@ fn main() {
     let s = Scanner::new(contents);
     let mut p = LLParser::new(Box::new(s));
     let mut ast = match p.parse() {
-        Ok(ast) => ast,
-        Err(_) => panic!("Parse failed"),
+        Ok(ast) => {
+            display_errors(file_path, p.get_errors());
+            ast
+        },
+        Err(_) => {
+            display_errors(file_path, p.get_errors());
+            eprintln!("Parse failed");
+            process::exit(1);
+        },
     };
 
     if debug {
         println!("{ast}");
     }
-    display_errors(file_path, p.get_errors());
 
     let mut tc = TypeChecker::new();
-    ast.accept(&mut tc).expect("Semantic checking failed");
+    match ast.accept(&mut tc) {
+        Ok(_) => {
+            display_errors(file_path, tc.get_errors());
+        },
+        Err(_) => {
+            display_errors(file_path, tc.get_errors());
+            eprintln!("Semantic checking failed");
+            process::exit(1);
+        }
+    }
 
     if debug {
         println!("{ast}");
     }
-    display_errors(file_path, tc.get_errors());
 
     let context = Context::create();
     let builder = context.create_builder();
@@ -80,7 +95,7 @@ fn main() {
     let mut codegen = CodeGen::new(&context, &builder, &module);
     ast.accept(&mut codegen);
 
-    println!("Parse completed!");
+    println!("Done");
 }
 
 fn display_errors(file_path: &str, errs: &Vec<CompilerError>) {

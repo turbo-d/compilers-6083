@@ -449,18 +449,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 }
             },
             Ast::SubscriptOp { array, index } => {
-                let array_type = self.visit_ast(array)?;
-                let expr_type = self.visit_ast(index)?;
-
-                match array_type {
-                    Types::Array(_, _) => (),
-                    ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Indexing can only be performed on array types, found {ty} type") });
-                        return Err(TerminalError);
-                    },
-                }
-
-                match expr_type {
+                match self.visit_ast(index)? {
                     Types::Int => (),
                     ty => {
                         self.errs.push(CompilerError::Error { line: 1, msg: format!("Array index must be of integer type, found {ty} type") });
@@ -468,7 +457,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     },
                 }
 
-                Ok(array_type)
+                match self.visit_ast(array)? {
+                    Types::Array(_, base_type) => Ok(*base_type),
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Indexing can only be performed on array types, found {ty} type") });
+                        Err(TerminalError)
+                    },
+                }
             },
             Ast::ProcCall { proc, args } => {
                 let proc_name = 
@@ -1099,7 +1094,7 @@ mod tests {
         let act_type = ast.accept(&mut tc).expect("Type checking failed");
         let act_errs = tc.get_errors();
 
-        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_type = Types::Int;
         let exp_errs = &Vec::new();
 
         assert_eq!(act_type, exp_type);
@@ -1107,7 +1102,7 @@ mod tests {
     }
 
     #[test]
-    fn typechecker_subscript_op_invalidbasetype() {
+    fn typechecker_subscript_op_err_invalidbasetype() {
         let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
                 id: String::from("a") 
@@ -1130,7 +1125,7 @@ mod tests {
     }
 
     #[test]
-    fn typechecker_subscript_op_invalidindextype() {
+    fn typechecker_subscript_op_err_invalidindextype() {
         let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
                 id: String::from("a") 
