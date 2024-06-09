@@ -121,6 +121,30 @@ pub enum Ast {
     Var {
         id: String,
     },
+    FloatToInt {
+        operand: Box<Ast>
+    },
+    IntToFloat {
+        operand: Box<Ast>
+    },
+    BoolToInt {
+        operand: Box<Ast>
+    },
+    IntToBool {
+        operand: Box<Ast>
+    },
+    FloatArrayToIntArray {
+        operand: Box<Ast>
+    },
+    IntArrayToFloatArray {
+        operand: Box<Ast>
+    },
+    BoolArrayToIntArray {
+        operand: Box<Ast>
+    },
+    IntArrayToBoolArray {
+        operand: Box<Ast>
+    },
 }
 
 pub trait AstVisitor<T> {
@@ -309,6 +333,46 @@ impl Ast {
             },
             Ast::Var { id } => {
                 write!(buf, "{}var: {id}\n", c.repeat(width))?;
+                Ok(())
+            },
+            Ast::FloatToInt { operand } => {
+                write!(buf, "{}float_to_int:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
+                Ok(())
+            },
+            Ast::IntToFloat { operand } => {
+                write!(buf, "{}int_to_float:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
+                Ok(())
+            },
+            Ast::BoolToInt { operand } => {
+                write!(buf, "{}bool_to_int:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
+                Ok(())
+            },
+            Ast::IntToBool { operand } => {
+                write!(buf, "{}int_to_bool:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
+                Ok(())
+            },
+            Ast::FloatArrayToIntArray { operand } => {
+                write!(buf, "{}float_array_to_int_array:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
+                Ok(())
+            },
+            Ast::IntArrayToFloatArray { operand } => {
+                write!(buf, "{}int_array_to_float_array:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
+                Ok(())
+            },
+            Ast::BoolArrayToIntArray { operand } => {
+                write!(buf, "{}bool_array_to_int_array:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
+                Ok(())
+            },
+            Ast::IntArrayToBoolArray { operand } => {
+                write!(buf, "{}int_array_to_bool_array:\n", c.repeat(width))?;
+                operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
         }

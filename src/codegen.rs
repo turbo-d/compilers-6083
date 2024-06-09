@@ -610,6 +610,30 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     None => panic!("Identifer name not found"),
                 }
             },
+            Ast::FloatToInt { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
+            Ast::IntToFloat { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
+            Ast::BoolToInt { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
+            Ast::IntToBool { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
+            Ast::FloatArrayToIntArray { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
+            Ast::IntArrayToFloatArray { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
+            Ast::BoolArrayToIntArray { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
+            Ast::IntArrayToBoolArray { operand } => {
+                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            },
         }
     }
 }

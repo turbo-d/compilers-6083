@@ -454,7 +454,119 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     Some(types) => Ok(types.clone()),
                     None => {
                         self.errs.push(CompilerError::Error { line: 1, msg: format!("Missing declaration for {id}") });
-                        return Err(TerminalError);
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::FloatToInt { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Int => Ok(Types::Int),
+                    Types::Float => Ok(Types::Int),
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer") });
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::IntToFloat { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Int => Ok(Types::Float),
+                    Types::Float => Ok(Types::Float),
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to float") });
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::BoolToInt { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Int => Ok(Types::Int),
+                    Types::Bool => Ok(Types::Int),
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer") });
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::IntToBool { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Int => Ok(Types::Bool),
+                    Types::Bool => Ok(Types::Bool),
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool") });
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::FloatArrayToIntArray { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Array(size, base_type) => {
+                        match *base_type {
+                            Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
+                            Types::Float => Ok(Types::Array(size, Box::new(Types::Int))),
+                            ty => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::IntArrayToFloatArray { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Array(size, base_type) => {
+                        match *base_type {
+                            Types::Int => Ok(Types::Array(size, Box::new(Types::Float))),
+                            Types::Float => Ok(Types::Array(size, Box::new(Types::Float))),
+                            ty => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to float array") });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to float array") });
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::BoolArrayToIntArray { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Array(size, base_type) => {
+                        match *base_type {
+                            Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
+                            Types::Bool => Ok(Types::Array(size, Box::new(Types::Int))),
+                            ty => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                        Err(TerminalError)
+                    },
+                }
+            },
+            Ast::IntArrayToBoolArray { operand } => {
+                match self.visit_ast(operand)? {
+                    Types::Array(size, base_type) => {
+                        match *base_type {
+                            Types::Int => Ok(Types::Array(size, Box::new(Types::Bool))),
+                            Types::Bool => Ok(Types::Array(size, Box::new(Types::Bool))),
+                            ty => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool array") });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    ty => {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool array") });
+                        Err(TerminalError)
                     },
                 }
             },
