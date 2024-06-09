@@ -37,15 +37,15 @@ impl TypeChecker {
 }
 
 impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
-    fn visit_ast(&mut self, ast: &Ast) -> Result<Types, TerminalError> {
+    fn visit_ast(&mut self, ast: &mut Ast) -> Result<Types, TerminalError> {
         match ast {
             Ast::Program { decls, body, .. } => {
-                for decl in decls.iter() {
-                    self.visit_ast(decl)?;
+                for decl in decls.iter_mut() {
+                    self.visit_ast(&mut *decl)?;
                 }
 
-                for stmt in body.iter() {
-                    self.visit_ast(stmt)?;
+                for stmt in body.iter_mut() {
+                    self.visit_ast(&mut *stmt)?;
                 }
 
                 Ok(Types::Unknown)
@@ -86,16 +86,16 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 
                 self.st.enter_scope(ty.clone());
 
-                for param in params.iter() {
-                    self.visit_ast(param)?;
+                for param in params.iter_mut() {
+                    self.visit_ast(&mut *param)?;
                 }
 
-                for decl in decls.iter() {
-                    self.visit_ast(decl)?;
+                for decl in decls.iter_mut() {
+                    self.visit_ast(&mut *decl)?;
                 }
 
-                for stmt in body.iter() {
-                    self.visit_ast(stmt)?;
+                for stmt in body.iter_mut() {
+                    self.visit_ast(&mut *stmt)?;
                 }
 
                 self.st.exit_scope();
@@ -143,11 +143,11 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type") });
                     return Err(TerminalError);
                 }
-                for stmt in then_body.iter() {
-                    self.visit_ast(stmt)?;
+                for stmt in then_body.iter_mut() {
+                    self.visit_ast(&mut *stmt)?;
                 }
-                for stmt in else_body.iter() {
-                    self.visit_ast(stmt)?;
+                for stmt in else_body.iter_mut() {
+                    self.visit_ast(&mut *stmt)?;
                 }
                 Ok(Types::Unknown)
             },
@@ -158,8 +158,8 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type") });
                     return Err(TerminalError);
                 }
-                for stmt in body.iter() {
-                    self.visit_ast(stmt)?;
+                for stmt in body.iter_mut() {
+                    self.visit_ast(&mut *stmt)?;
                 }
                 Ok(Types::Unknown)
             },
@@ -249,21 +249,88 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
-                if lhs_type != Types::Int && lhs_type != Types::Float {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                if lhs_type != Types::Int && lhs_type != Types::Float && !matches!(lhs_type, Types::Array(_, _)) {
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                     return Err(TerminalError);
                 }
 
-                if rhs_type != Types::Int && rhs_type != Types::Float {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on operands of integer and float type") });
+                if let Types::Array(_, ref base_type) = lhs_type {
+                    if **base_type != Types::Int && **base_type != Types::Float {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                        return Err(TerminalError);
+                    }
+                }
+
+                if rhs_type != Types::Int && rhs_type != Types::Float && !matches!(rhs_type, Types::Array(_, _)) {
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                     return Err(TerminalError);
                 }
 
-                let mut op_type = Types::Float;
-                if lhs_type == Types::Int && rhs_type == Types::Int {
-                    op_type = Types::Int;
+                if let Types::Array(_, ref base_type) = rhs_type {
+                    if **base_type != Types::Int && **base_type != Types::Float {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                        return Err(TerminalError);
+                    }
                 }
-                Ok(op_type)
+
+                if let Types::Array(lhs_size, ref lhs_base_type) = lhs_type {
+                    if let Types::Array(rhs_size, ref rhs_base_type) = rhs_type {
+                        if lhs_size != rhs_size {
+                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
+                            return Err(TerminalError);
+                        }
+
+                        if let Types::Int = **lhs_base_type {
+                            if let Types::Int = **rhs_base_type {
+                                Ok(Types::Array(lhs_size, Box::new(Types::Int)))
+                            } else { // Float
+                                *lhs = Box::new(Ast::IntArrayToFloatArray {
+                                    operand: Box::new(*lhs.clone()),
+                                });
+                                Ok(Types::Array(lhs_size, Box::new(Types::Float)))
+                            }
+                        } else { // Float
+                            if let Types::Int = **rhs_base_type {
+                                *rhs = Box::new(Ast::IntArrayToFloatArray {
+                                    operand: Box::new(*rhs.clone()),
+                                });
+                                Ok(Types::Array(lhs_size, Box::new(Types::Float)))
+                            } else { // Float
+                                Ok(Types::Array(lhs_size, Box::new(Types::Float)))
+                            }
+                        }
+                    } else if let Types::Int = rhs_type {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        Err(TerminalError)
+                    } else { // Float
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        Err(TerminalError)
+                    }
+                } else if let Types::Int = lhs_type {
+                    if let Types::Int = rhs_type {
+                        Ok(Types::Int)
+                    } else if let Types::Float = rhs_type {
+                        *lhs = Box::new(Ast::IntToFloat {
+                            operand: Box::new(*lhs.clone()),
+                        });
+                        Ok(Types::Float)
+                    } else { // Array
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        Err(TerminalError)
+                    }
+                } else { // Float
+                    if let Types::Int = rhs_type {
+                        *rhs = Box::new(Ast::IntToFloat {
+                            operand: Box::new(*rhs.clone()),
+                        });
+                        Ok(Types::Float)
+                    } else if let Types::Float = rhs_type {
+                        Ok(Types::Float)
+                    } else { // Array
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        Err(TerminalError)
+                    }
+                }
             },
             Ast::SubOp { lhs, rhs } => {
                 let lhs_type = self.visit_ast(lhs)?;
@@ -406,14 +473,14 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
             Ast::ProcCall { proc, args } => {
                 let proc_name = 
                     if let Ast::Var { ref id } = **proc {
-                        id
+                        id.clone()
                     } else {
-                        ""
+                        String::from("")
                     };
                 let proc_type = self.visit_ast(proc)?;
                 let mut arg_types = Vec::new();
-                for arg in args.iter() {
-                    arg_types.push(self.visit_ast(arg)?);
+                for arg in args.iter_mut() {
+                    arg_types.push(self.visit_ast(&mut *arg)?);
                 }
 
                 match proc_type {
@@ -580,7 +647,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_intint() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
@@ -602,7 +669,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_floatfloat() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
             }),
@@ -624,7 +691,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_intfloat() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
@@ -639,14 +706,25 @@ mod tests {
 
         let exp_type = Types::Float;
         let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::IntToFloat {
+                operand: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+            rhs: Box::new(Ast::FloatLiteral { 
+                value: 4.3,
+            }),
+        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
     }
 
     #[test]
     fn typechecker_add_op_floatint() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
             }),
@@ -661,14 +739,25 @@ mod tests {
 
         let exp_type = Types::Float;
         let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::FloatLiteral { 
+                value: 5.2,
+            }),
+            rhs: Box::new(Ast::IntToFloat {
+                operand: Box::new(Ast::IntLiteral { 
+                    value: 4,
+                }),
+            }),
+        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
     }
 
     #[test]
     fn typechecker_add_op_intarrayintarray() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -692,7 +781,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_floatarrayfloatarray() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -716,7 +805,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_intarrayfloatarray() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -733,14 +822,25 @@ mod tests {
 
         let exp_type = Types::Array(5, Box::new(Types::Float));
         let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::IntArrayToFloatArray {
+                operand: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
     }
 
     #[test]
     fn typechecker_add_op_floatarrayintarray() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -757,14 +857,25 @@ mod tests {
 
         let exp_type = Types::Array(5, Box::new(Types::Float));
         let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AddOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::IntArrayToFloatArray {
+                operand: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
     }
 
     #[test]
     fn typechecker_add_op_err_invalidscalartype() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
@@ -778,7 +889,7 @@ mod tests {
         let act_errs = tc.get_errors();
 
         let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("")}
+            CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {} type", Types::String)}
         ];
 
         assert_eq!(act_errs, exp_errs);
@@ -786,7 +897,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_err_invalidarraytype() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -802,7 +913,7 @@ mod tests {
         let act_errs = tc.get_errors();
 
         let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("")}
+            CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {} type", Types::Array(5, Box::new(Types::String)))}
         ];
 
         assert_eq!(act_errs, exp_errs);
@@ -810,7 +921,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_err_mismatchedarraylengths() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -826,7 +937,7 @@ mod tests {
         let act_errs = tc.get_errors();
 
         let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("")}
+            CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", Types::Array(5, Box::new(Types::Int)), Types::Array(3, Box::new(Types::Int)))}
         ];
 
         assert_eq!(act_errs, exp_errs);
@@ -834,7 +945,7 @@ mod tests {
 
     #[test]
     fn typechecker_add_op_err_mixedscalarandarrayoperands() {
-        let ast = Box::new(Ast::AddOp {
+        let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
@@ -849,7 +960,7 @@ mod tests {
         let act_errs = tc.get_errors();
 
         let exp_errs =  &vec![
-            CompilerError::Error { line: 1, msg: format!("")}
+            CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", Types::Int, Types::Array(5, Box::new(Types::Int)))}
         ];
 
         assert_eq!(act_errs, exp_errs);
@@ -857,7 +968,7 @@ mod tests {
 
     #[test]
     fn typechecker_negate_op_int() {
-        let ast = Box::new(Ast::NegateOp {
+        let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
@@ -876,7 +987,7 @@ mod tests {
 
     #[test]
     fn typechecker_negate_op_float() {
-        let ast = Box::new(Ast::NegateOp {
+        let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::FloatLiteral { 
                 value: 5.0,
             }),
@@ -895,7 +1006,7 @@ mod tests {
 
     #[test]
     fn typechecker_negate_op_intarray() {
-        let ast = Box::new(Ast::NegateOp {
+        let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -915,7 +1026,7 @@ mod tests {
 
     #[test]
     fn typechecker_negate_op_floatarray() {
-        let ast = Box::new(Ast::NegateOp {
+        let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -935,7 +1046,7 @@ mod tests {
 
     #[test]
     fn typechecker_negate_op_err_invalidscalartype() {
-        let ast = Box::new(Ast::NegateOp {
+        let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
             }),
@@ -954,7 +1065,7 @@ mod tests {
 
     #[test]
     fn typechecker_negate_op_err_invalidarraytype() {
-        let ast = Box::new(Ast::NegateOp {
+        let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -974,7 +1085,7 @@ mod tests {
 
     #[test]
     fn typechecker_subscript_op() {
-        let ast = Box::new(Ast::SubscriptOp { 
+        let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -997,7 +1108,7 @@ mod tests {
 
     #[test]
     fn typechecker_subscript_op_invalidbasetype() {
-        let ast = Box::new(Ast::SubscriptOp { 
+        let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -1020,7 +1131,7 @@ mod tests {
 
     #[test]
     fn typechecker_subscript_op_invalidindextype() {
-        let ast = Box::new(Ast::SubscriptOp { 
+        let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
                 id: String::from("a") 
             }),
@@ -1043,7 +1154,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_noarg() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1064,7 +1175,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_singlearg() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1089,7 +1200,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_multiarg() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1117,7 +1228,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_recursion() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1139,7 +1250,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_shadowedrecursion() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1162,7 +1273,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_err_invalidtype() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1183,7 +1294,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_err_invalidargcount() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1204,7 +1315,7 @@ mod tests {
 
     #[test]
     fn typechecker_proc_call_err_mismatchedargtypes() {
-        let ast = Box::new(Ast::ProcCall {
+        let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
                 id: String::from("foo") 
             }),
@@ -1233,7 +1344,7 @@ mod tests {
 
     #[test]
     fn typechecker_int_literal() {
-        let ast = Box::new(Ast::IntLiteral {
+        let mut ast = Box::new(Ast::IntLiteral {
             value: 5,
         });
         let mut tc = TypeChecker::new();
@@ -1250,7 +1361,7 @@ mod tests {
 
     #[test]
     fn typechecker_float_literal() {
-        let ast = Box::new(Ast::FloatLiteral {
+        let mut ast = Box::new(Ast::FloatLiteral {
             value: 9.3,
         });
         let mut tc = TypeChecker::new();
@@ -1267,7 +1378,7 @@ mod tests {
 
     #[test]
     fn typechecker_bool_literal() {
-        let ast = Box::new(Ast::BoolLiteral {
+        let mut ast = Box::new(Ast::BoolLiteral {
             value: true,
         });
         let mut tc = TypeChecker::new();
@@ -1284,7 +1395,7 @@ mod tests {
 
     #[test]
     fn typechecker_string_literal() {
-        let ast = Box::new(Ast::StringLiteral {
+        let mut ast = Box::new(Ast::StringLiteral {
             value: String::from("this is a string"),
         });
         let mut tc = TypeChecker::new();
@@ -1301,7 +1412,7 @@ mod tests {
 
     #[test]
     fn typechecker_var_global() {
-        let ast = Box::new(Ast::Var {
+        let mut ast = Box::new(Ast::Var {
             id: String::from("a"),
         });
         let mut tc = TypeChecker::new();
@@ -1321,7 +1432,7 @@ mod tests {
 
     #[test]
     fn typechecker_var_local() {
-        let ast = Box::new(Ast::Var {
+        let mut ast = Box::new(Ast::Var {
             id: String::from("a"),
         });
         let mut tc = TypeChecker::new();
@@ -1343,7 +1454,7 @@ mod tests {
 
     #[test]
     fn typechecker_var_caseinsensitive() {
-        let ast = Box::new(Ast::Var {
+        let mut ast = Box::new(Ast::Var {
             id: String::from("TmP"),
         });
         let mut tc = TypeChecker::new();
@@ -1361,7 +1472,7 @@ mod tests {
 
     #[test]
     fn typechecker_var_err_missingdecl() {
-        let ast = Box::new(Ast::Var {
+        let mut ast = Box::new(Ast::Var {
             id: String::from("a"),
         });
         let mut tc = TypeChecker::new();

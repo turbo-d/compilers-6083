@@ -85,7 +85,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 }
 
 impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
-    fn visit_ast(&mut self, ast: &Ast) -> AnyValueEnum<'ctx> {
+    fn visit_ast(&mut self, ast: &mut Ast) -> AnyValueEnum<'ctx> {
         match ast {
             Ast::Program { name, decls, body, } => {
                 self.module.set_name(name.as_str());
@@ -98,13 +98,13 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 let entry = self.context.append_basic_block(fn_val, "entry");
                 self.builder.position_at_end(entry);
 
-                for decl in decls.iter() {
-                    self.visit_ast(decl);
+                for decl in decls.iter_mut() {
+                    self.visit_ast(&mut *decl);
                 }
                 self.builder.position_at_end(entry);
 
-                for stmt in body.iter() {
-                    self.visit_ast(stmt);
+                for stmt in body.iter_mut() {
+                    self.visit_ast(&mut *stmt);
                 }
 
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
@@ -209,7 +209,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     arg.set_name(arg_name.as_str());
 
                     //let alloca = self.create_entry_block_alloca(&fn_val, arg_name);
-                    let alloca = match PointerValue::try_from(self.visit_ast(&params[i])) {
+                    let alloca = match PointerValue::try_from(self.visit_ast(&mut params[i])) {
                         Ok(val) => val,
                         Err(_) => panic!("Expected PointerValue alloca."),
                     };
@@ -217,13 +217,13 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     self.builder.build_store(alloca, arg).unwrap();
                 }
 
-                for decl in decls.iter() {
-                    self.visit_ast(decl);
+                for decl in decls.iter_mut() {
+                    self.visit_ast(&mut *decl);
                 }
                 self.builder.position_at_end(entry);
 
-                for stmt in body.iter() {
-                    self.visit_ast(stmt);
+                for stmt in body.iter_mut() {
+                    self.visit_ast(&mut *stmt);
                 }
 
                 self.st.exit_scope();
@@ -281,16 +281,16 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 // build then block
                 self.builder.position_at_end(then_bb);
-                for stmt in then_body.iter() {
-                    self.visit_ast(stmt);
+                for stmt in then_body.iter_mut() {
+                    self.visit_ast(&mut *stmt);
                 }
                 self.builder.build_unconditional_branch(cont_bb).unwrap();
                 //let then_bb = self.builder.get_insert_block().unwrap();
 
                 // build else block
                 self.builder.position_at_end(else_bb);
-                for stmt in else_body.iter() {
-                    self.visit_ast(stmt);
+                for stmt in else_body.iter_mut() {
+                    self.visit_ast(&mut *stmt);
                 }
                 self.builder.build_unconditional_branch(cont_bb).unwrap();
                 //let else_bb = self.builder.get_insert_block().unwrap();
@@ -314,8 +314,8 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 self.builder.position_at_end(loop_bb);
 
                 // emit body
-                for stmt in body.iter() {
-                    self.visit_ast(stmt);
+                for stmt in body.iter_mut() {
+                    self.visit_ast(&mut *stmt);
                 }
 
                 // compile end condition
@@ -555,8 +555,8 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     Some(fun) => {
                         let mut compiled_args: Vec<BasicMetadataValueEnum> = Vec::with_capacity(args.len());
 
-                        for arg in args.iter() {
-                            let arg = self.visit_ast(arg);
+                        for arg in args.iter_mut() {
+                            let arg = self.visit_ast(&mut *arg);
                             let arg = match BasicMetadataValueEnum::try_from(arg) {
                                 Ok(val) => val,
                                 Err(_) => panic!("Expected BasicMetadataValueEnum in arg list."),

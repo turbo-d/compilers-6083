@@ -3,7 +3,7 @@ use crate::types::Types;
 use std::fmt;
 use std::fmt::Write;
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum RelationOp {
     LT,
     LTE,
@@ -26,7 +26,7 @@ impl fmt::Display for RelationOp {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Ast {
     Program {
         name: String,
@@ -148,11 +148,11 @@ pub enum Ast {
 }
 
 pub trait AstVisitor<T> {
-    fn visit_ast(&mut self, ast: &Ast) -> T;
+    fn visit_ast(&mut self, ast: &mut Ast) -> T;
 }
 
 impl Ast {
-    pub fn accept<T>(&self, v: &mut impl AstVisitor<T>) -> T {
+    pub fn accept<T>(&mut self, v: &mut impl AstVisitor<T>) -> T {
         v.visit_ast(self)
     }
 
