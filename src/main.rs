@@ -64,7 +64,7 @@ fn main() {
         },
         Err(_) => {
             display_errors(file_path, p.get_errors());
-            eprintln!("Parse failed");
+            eprintln!("Failed");
             process::exit(1);
         },
     };
@@ -80,7 +80,7 @@ fn main() {
         },
         Err(_) => {
             display_errors(file_path, tc.get_errors());
-            eprintln!("Semantic checking failed");
+            eprintln!("Failed");
             process::exit(1);
         }
     }
