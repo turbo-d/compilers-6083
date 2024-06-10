@@ -207,43 +207,132 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
-                if lhs_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                if lhs_type != Types::Int && !matches!(lhs_type, Types::Array(_, _)) {
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
                     return Err(TerminalError);
                 }
 
-                if rhs_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                if let Types::Array(_, ref base_type) = lhs_type {
+                    if **base_type != Types::Int {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
+                        return Err(TerminalError);
+                    }
+                }
+
+                if rhs_type != Types::Int && !matches!(rhs_type, Types::Array(_, _)) {
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
                     return Err(TerminalError);
                 }
 
-                Ok(Types::Int)
+                if let Types::Array(_, ref base_type) = rhs_type {
+                    if **base_type != Types::Int {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
+                        return Err(TerminalError);
+                    }
+                }
+
+                match lhs_type {
+                    Types::Array(lhs_size, _) => { // Int Array
+                        match rhs_type {
+                            Types::Array(rhs_size, _) => { // Int Array
+                                if lhs_size != rhs_size {
+                                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer arrays with matching sizes. {} != {}", lhs_type, rhs_type) });
+                                    return Err(TerminalError);
+                                }
+                                Ok(Types::Array(lhs_size, Box::new(Types::Int)))
+                            },
+                            _ => { // Int
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in bitwise operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    _ => { // Int
+                        match rhs_type {
+                            Types::Array(_, _) => { // Int Array
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in bitwise operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            _ => { // Int
+                                Ok(Types::Int)
+                            },
+                        }
+                    },
+                }
             },
             Ast::OrOp { lhs, rhs } => {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
-                if lhs_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                if lhs_type != Types::Int && !matches!(lhs_type, Types::Array(_, _)) {
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
                     return Err(TerminalError);
                 }
 
-                if rhs_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                if let Types::Array(_, ref base_type) = lhs_type {
+                    if **base_type != Types::Int {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
+                        return Err(TerminalError);
+                    }
+                }
+
+                if rhs_type != Types::Int && !matches!(rhs_type, Types::Array(_, _)) {
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
                     return Err(TerminalError);
                 }
 
-                Ok(Types::Int)
+                if let Types::Array(_, ref base_type) = rhs_type {
+                    if **base_type != Types::Int {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", lhs_type, rhs_type) });
+                        return Err(TerminalError);
+                    }
+                }
+
+                match lhs_type {
+                    Types::Array(lhs_size, _) => { // Int Array
+                        match rhs_type {
+                            Types::Array(rhs_size, _) => { // Int Array
+                                if lhs_size != rhs_size {
+                                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer arrays with matching sizes. {} != {}", lhs_type, rhs_type) });
+                                    return Err(TerminalError);
+                                }
+                                Ok(Types::Array(lhs_size, Box::new(Types::Int)))
+                            },
+                            _ => { // Int
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in bitwise operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    _ => { // Int
+                        match rhs_type {
+                            Types::Array(_, _) => { // Int Array
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in bitwise operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            _ => { // Int
+                                Ok(Types::Int)
+                            },
+                        }
+                    },
+                }
             },
             Ast::NotOp { operand } => {
                 let operand_type = self.visit_ast(operand)?;
 
-                if operand_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on operands of integer type") });
+                if operand_type != Types::Int && !matches!(operand_type, Types::Array(_, _)) {
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {}", operand_type) });
                     return Err(TerminalError);
                 }
 
-                Ok(Types::Int)
+                if let Types::Array(_, ref base_type) = operand_type {
+                    if **base_type != Types::Int {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {}", operand_type) });
+                        return Err(TerminalError);
+                    }
+                }
+
+                Ok(operand_type)
             },
             Ast::AddOp { lhs, rhs } => {
                 let lhs_type = self.visit_ast(lhs)?;
@@ -1071,6 +1160,362 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typechecker_and_op_intint() {
+        let mut ast = Box::new(Ast::AndOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_and_op_intarrayintarray() {
+        let mut ast = Box::new(Ast::AndOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_and_op_err_invalidscalartype() {
+        let mut ast = Box::new(Ast::AndOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", Types::Int, Types::String)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_and_op_err_invalidarraytype() {
+        let mut ast = Box::new(Ast::AndOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", Types::Array(5, Box::new(Types::Int)), Types::Array(5, Box::new(Types::String)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_and_op_err_mismatchedarraylengths() {
+        let mut ast = Box::new(Ast::AndOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(3, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer arrays with matching sizes. {} != {}", Types::Array(5, Box::new(Types::Int)), Types::Array(3, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_and_op_err_mixedscalarandarrayoperands() {
+        let mut ast = Box::new(Ast::AndOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in bitwise operations, found {} and {}", Types::Int, Types::Array(5, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_or_op_intint() {
+        let mut ast = Box::new(Ast::OrOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_or_op_intarrayintarray() {
+        let mut ast = Box::new(Ast::OrOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_or_op_err_invalidscalartype() {
+        let mut ast = Box::new(Ast::OrOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", Types::Int, Types::String)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_or_op_err_invalidarraytype() {
+        let mut ast = Box::new(Ast::OrOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {} and {}", Types::Array(5, Box::new(Types::Int)), Types::Array(5, Box::new(Types::String)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_or_op_err_mismatchedarraylengths() {
+        let mut ast = Box::new(Ast::OrOp {
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(3, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer arrays with matching sizes. {} != {}", Types::Array(5, Box::new(Types::Int)), Types::Array(3, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_or_op_err_mixedscalarandarrayoperands() {
+        let mut ast = Box::new(Ast::OrOp {
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in bitwise operations, found {} and {}", Types::Int, Types::Array(5, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_not_op_int() {
+        let mut ast = Box::new(Ast::NotOp {
+            operand: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_not_op_intarray() {
+        let mut ast = Box::new(Ast::NotOp {
+            operand: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_not_op_err_invalidscalartype() {
+        let mut ast = Box::new(Ast::NotOp {
+            operand: Box::new(Ast::StringLiteral { 
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {}", Types::String)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_not_op_err_invalidarraytype() {
+        let mut ast = Box::new(Ast::NotOp {
+            operand: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Bitwise operations can only be performed on integer or integer array types, found {}", Types::Array(5, Box::new(Types::String)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
 
     #[test]
     fn typechecker_add_op_intint() {
