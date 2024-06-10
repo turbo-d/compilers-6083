@@ -105,37 +105,195 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
             Ast::AssignStmt { dest, expr } => {
                 let dest_type = self.visit_ast(dest)?;
                 let expr_type = self.visit_ast(expr)?;
+
                 match dest_type {
                     Types::Bool => {
-                        if expr_type != Types::Bool && expr_type != Types::Int {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of bool or integer type") });
-                            return Err(TerminalError);
+                        match expr_type {
+                            Types::Int => {
+                                *expr = Box::new(Ast::IntToBool {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Float => {
+                                *expr = Box::new(Ast::IntToBool {
+                                    operand: Box::new(Ast::FloatToInt {
+                                        operand: Box::new(*expr.clone()),
+                                    }),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Bool => {
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                Err(TerminalError)
+                            },
                         }
-                    }
-                    Types::Int => {
-                        if expr_type != Types::Int && expr_type != Types::Bool {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of integer, float, or bool type") });
-                            return Err(TerminalError);
-                        }
-                    }
-                    Types::Float => {
-                        if expr_type != Types::Float && expr_type != Types::Int {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of float or integer type") });
-                            return Err(TerminalError);
-                        }
-                    }
-                    Types::String => {
-                        if expr_type != Types::String {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Expression must be of string type") });
-                            return Err(TerminalError);
-                        }
-                    }
-                    _ => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Assignment not supported for this operand type") });
-                        return Err(TerminalError);
                     },
+                    Types::Int => {
+                        match expr_type {
+                            Types::Int => {
+                                Ok(Types::Unknown)
+                            },
+                            Types::Float => {
+                                *expr = Box::new(Ast::FloatToInt {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Bool => {
+                                *expr = Box::new(Ast::BoolToInt {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    Types::Float => {
+                        match expr_type {
+                            Types::Int => {
+                                *expr = Box::new(Ast::IntToFloat {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Float => {
+                                Ok(Types::Unknown)
+                            },
+                            Types::Bool => {
+                                *expr = Box::new(Ast::IntToFloat {
+                                    operand: Box::new(Ast::BoolToInt {
+                                        operand: Box::new(*expr.clone()),
+                                    }),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    Types::String => {
+                        match expr_type {
+                            Types::String => {
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                return Err(TerminalError);
+                            },
+                        }
+                    },
+                    Types::Array(dest_size, ref dest_base_type) => {
+                        match expr_type {
+                            Types::Array(expr_size, ref expr_base_type) => {
+                                if dest_size != expr_size {
+                                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                    return Err(TerminalError);
+                                }
+                                match **dest_base_type {
+                                    Types::Int => {
+                                        match **expr_base_type {
+                                            Types::Int => {
+                                                Ok(Types::Unknown)
+                                            },
+                                            Types::Float => {
+                                                *expr = Box::new(Ast::FloatArrayToIntArray {
+                                                    operand: Box::new(*expr.clone()),
+                                                });
+                                                Ok(Types::Unknown)
+                                            },
+                                            Types::Bool => {
+                                                *expr = Box::new(Ast::BoolArrayToIntArray {
+                                                    operand: Box::new(*expr.clone()),
+                                                });
+                                                Ok(Types::Unknown)
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                Err(TerminalError)
+                                            },
+                                        }
+                                    },
+                                    Types::Float => {
+                                        match **expr_base_type {
+                                            Types::Int => {
+                                                *expr = Box::new(Ast::IntArrayToFloatArray {
+                                                    operand: Box::new(*expr.clone()),
+                                                });
+                                                Ok(Types::Unknown)
+                                            },
+                                            Types::Float => {
+                                                Ok(Types::Unknown)
+                                            },
+                                            Types::Bool => {
+                                                *expr = Box::new(Ast::IntArrayToFloatArray {
+                                                    operand: Box::new(Ast::BoolArrayToIntArray {
+                                                        operand: Box::new(*expr.clone()),
+                                                    }),
+                                                });
+                                                Ok(Types::Unknown)
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                Err(TerminalError)
+                                            },
+                                        }
+                                    },
+                                    Types::Bool => {
+                                        match **expr_base_type {
+                                            Types::Int => {
+                                                *expr = Box::new(Ast::IntArrayToBoolArray {
+                                                    operand: Box::new(*expr.clone()),
+                                                });
+                                                Ok(Types::Unknown)
+                                            },
+                                            Types::Float => {
+                                                *expr = Box::new(Ast::IntArrayToBoolArray {
+                                                    operand: Box::new(Ast::FloatArrayToIntArray {
+                                                        operand: Box::new(*expr.clone()),
+                                                    }),
+                                                });
+                                                Ok(Types::Unknown)
+                                            },
+                                            Types::Bool => {
+                                                Ok(Types::Unknown)
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                Err(TerminalError)
+                                            },
+                                        }
+                                    },
+                                    Types::String => {
+                                        match **expr_base_type {
+                                            Types::String => {
+                                                Ok(Types::Unknown)
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                return Err(TerminalError);
+                                            },
+                                        }
+                                    },
+                                    _ => panic!("INTERNAL ERROR: Expected destination type of assignment statment to be integer, float, bool, string, integer array, float array, bool array, or string array, found {}", dest_type),
+                                }
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
+                    _ => panic!("INTERNAL ERROR: Expected destination type of assignment statment to be integer, float, bool, string, integer array, float array, bool array, or string array, found {}", dest_type),
                 }
-                Ok(Types::Unknown)
             },
             Ast::IfStmt { cond, then_body, else_body } => {
                 let cond_expr_type = self.visit_ast(cond)?;
@@ -1226,6 +1384,639 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typechecker_assign_stmt_intdestintexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_floatdestintexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntToFloat { 
+                operand: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_booldestintexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Bool).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntToBool { 
+                operand: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_floatdestfloatexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_intdestfloatexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::FloatToInt { 
+                operand: Box::new(Ast::FloatLiteral { 
+                    value: 5.3,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_booldestfloatexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Bool).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntToBool { 
+                operand: Box::new(Ast::FloatToInt { 
+                    operand: Box::new(Ast::FloatLiteral { 
+                        value: 5.3,
+                    }),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_booldestboolexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_intdestboolexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::BoolToInt { 
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_floatdestboolexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntToFloat { 
+                operand: Box::new(Ast::BoolToInt { 
+                    operand: Box::new(Ast::BoolLiteral { 
+                        value: true,
+                    }),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_stringdeststringexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::StringLiteral { 
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::String).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_intarraydestintarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_floatarraydestintarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::IntArrayToFloatArray { 
+                operand: Box::new(Ast::Var {
+                    id: String::from("a"),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_boolarraydestintarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::IntArrayToBoolArray { 
+                operand: Box::new(Ast::Var {
+                    id: String::from("a"),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_floatarraydestfloatarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_intarraydestfloatarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::FloatArrayToIntArray { 
+                operand: Box::new(Ast::Var {
+                    id: String::from("a"),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_boolarraydestfloatarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::IntArrayToBoolArray { 
+                operand: Box::new(Ast::FloatArrayToIntArray { 
+                    operand: Box::new(Ast::Var {
+                        id: String::from("a"),
+                    }),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_boolarraydestboolarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_intarraydestboolarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::BoolArrayToIntArray { 
+                operand: Box::new(Ast::Var {
+                    id: String::from("a"),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_floatarraydestboolarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("dest"),
+            }),
+            expr: Box::new(Ast::IntArrayToFloatArray { 
+                operand: Box::new(Ast::BoolArrayToIntArray { 
+                    operand: Box::new(Ast::Var {
+                        id: String::from("a"),
+                    }),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_stringarraydeststringarrayexpr() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_assign_stmt_err_mismatchedassignment() {
+        let mut ast = Box::new(Ast::AssignStmt {
+            dest: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::String).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", Types::String, Types::Int)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
 
     #[test]
     fn typechecker_if_stmt_boolcond() {
