@@ -238,7 +238,7 @@ impl Scan for Scanner {
                     _ => (),
                 }
 
-                return Token::Identifier(String::from(slice.to_lowercase()));
+                return Token::Identifier(String::from(slice));
             },
 
             // number
@@ -840,7 +840,7 @@ mod tests {
         let mut s = Scanner::new(String::from("A"));
         let tok = s.scan();
         match tok {
-            Token::Identifier(id) => assert_eq!(id, String::from("a")),
+            Token::Identifier(id) => assert_eq!(id, String::from("A")),
             _ => panic!("Expected Token::Identifier")
         }
     }
@@ -860,7 +860,7 @@ mod tests {
         let mut s = Scanner::new(String::from("ASGSDFIWERYHEHA"));
         let tok = s.scan();
         match tok {
-            Token::Identifier(id) => assert_eq!(id, String::from("asgsdfiweryheha")),
+            Token::Identifier(id) => assert_eq!(id, String::from("ASGSDFIWERYHEHA")),
             _ => panic!("Expected Token::Identifier")
         }
     }
@@ -870,7 +870,7 @@ mod tests {
         let mut s = Scanner::new(String::from("aaGWErsGBHq"));
         let tok = s.scan();
         match tok {
-            Token::Identifier(id) => assert_eq!(id, String::from("aagwersgbhq")),
+            Token::Identifier(id) => assert_eq!(id, String::from("aaGWErsGBHq")),
             _ => panic!("Expected Token::Identifier")
         }
     }
@@ -880,7 +880,7 @@ mod tests {
         let mut s = Scanner::new(String::from("aa4GWErs467GBHq78"));
         let tok = s.scan();
         match tok {
-            Token::Identifier(id) => assert_eq!(id, String::from("aa4gwers467gbhq78")),
+            Token::Identifier(id) => assert_eq!(id, String::from("aa4GWErs467GBHq78")),
             _ => panic!("Expected Token::Identifier")
         }
     }
@@ -890,7 +890,7 @@ mod tests {
         let mut s = Scanner::new(String::from("aa4__GWErs467GBHq7_8"));
         let tok = s.scan();
         match tok {
-            Token::Identifier(id) => assert_eq!(id, String::from("aa4__gwers467gbhq7_8")),
+            Token::Identifier(id) => assert_eq!(id, String::from("aa4__GWErs467GBHq7_8")),
             _ => panic!("Expected Token::Identifier")
         }
     }
