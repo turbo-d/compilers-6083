@@ -28,7 +28,7 @@ pub enum Token {
     StringType,
     BoolType,
     Identifier(String),
-    IntLiteral(i32),
+    IntLiteral(u32),
     FloatLiteral(f32),
     String(String),
     Colon,

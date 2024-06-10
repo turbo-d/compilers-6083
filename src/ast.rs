@@ -107,7 +107,7 @@ pub enum Ast {
         args: Vec<Box<Ast>>,
     },
     IntLiteral {
-        value: i32,
+        value: u32,
     },
     FloatLiteral {
         value: f32,

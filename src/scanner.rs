@@ -270,7 +270,7 @@ impl Scan for Scanner {
                 };
 
                 if !slice.contains(".") {
-                    return Token::IntLiteral(num as i32);
+                    return Token::IntLiteral(num as u32);
                 }
 
                 return Token::FloatLiteral(num);

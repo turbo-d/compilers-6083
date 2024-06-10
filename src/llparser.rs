@@ -297,26 +297,13 @@ impl LLParser {
             // consume LSquare
             self.consume_tok();
 
-            match &self.tok {
-                Token::IntLiteral(num) => {
-                    let num = num.clone();
-                    if (num as u32) as i32 == num {
-                        let bound = num as u32;
-                        parsed_type = Types::Array(bound, Box::new(parsed_type));
-                    } else {
-                        self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Array size must be non-negative") });
-                        return Err(TerminalError);
-                    }
-                }
-                Token::FloatLiteral(_) => {
-                    self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected integer literal, found {}", self.tok) });
-                    return Err(TerminalError);
-                },
+            parsed_type = match &self.tok {
+                Token::IntLiteral(bound) => Types::Array(*bound, Box::new(parsed_type)),
                 tok => {
                     self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected integer literal, found {tok}") });
                     return Err(TerminalError);
                 },
-            }
+            };
             self.consume_tok();
 
             if self.tok != Token::RSquare {
