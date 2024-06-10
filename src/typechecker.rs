@@ -604,41 +604,261 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 let rhs_type = self.visit_ast(rhs)?;
 
                 match lhs_type {
-                    Types::Bool => {
-                        if rhs_type != Types::Bool && rhs_type != Types::Int {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of bool or integer type") });
-                            return Err(TerminalError);
+                    Types::Array(lhs_size, ref lhs_base_type) => {
+                        match rhs_type {
+                            Types::Array(rhs_size, ref rhs_base_type) => {
+                                if lhs_size != rhs_size {
+                                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on array types with matching sizes. {} != {}", lhs_type, rhs_type) });
+                                    return Err(TerminalError);
+                                }
+                                match **lhs_base_type {
+                                    Types::Int => {
+                                        match **rhs_base_type {
+                                            Types::Int => {
+                                                Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
+                                            },
+                                            Types::Float => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            Types::Bool => {
+                                                *rhs = Box::new(Ast::BoolArrayToIntArray {
+                                                    operand: Box::new(*rhs.clone()),
+                                                });
+                                                Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
+                                            },
+                                            Types::String => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                        }
+                                    },
+                                    Types::Float => {
+                                        match **rhs_base_type {
+                                            Types::Int | Types::Bool => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            Types::Float => {
+                                                Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
+                                            },
+                                            Types::String => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                        }
+                                    },
+                                    Types::Bool => {
+                                        match **rhs_base_type {
+                                            Types::Int => {
+                                                *lhs = Box::new(Ast::BoolArrayToIntArray {
+                                                    operand: Box::new(*lhs.clone()),
+                                                });
+                                                Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
+                                            },
+                                            Types::Float => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            Types::Bool => {
+                                                *lhs = Box::new(Ast::BoolArrayToIntArray {
+                                                    operand: Box::new(*lhs.clone()),
+                                                });
+                                                *rhs = Box::new(Ast::BoolArrayToIntArray {
+                                                    operand: Box::new(*rhs.clone()),
+                                                });
+                                                Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
+                                            },
+                                            Types::String => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                        }
+                                    },
+                                    Types::String => {
+                                        match **rhs_base_type {
+                                            Types::Int | Types::Bool => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            Types::Float => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                            Types::String => {
+                                                match op {
+                                                    RelationOp::Eq => {
+                                                        Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
+                                                    },
+                                                    RelationOp::NotEq => {
+                                                        Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
+                                                    },
+                                                    _ => {
+                                                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string array types, found {}", op) });
+                                                        Err(TerminalError)
+                                                    },
+                                                }
+                                            },
+                                            _ => {
+                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                Err(TerminalError)
+                                            },
+                                        }
+                                    },
+                                    _ => {
+                                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                        Err(TerminalError)
+                                    },
+                                }
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
                         }
-                    }
+                    },
                     Types::Int => {
-                        if rhs_type != Types::Int && rhs_type != Types::Bool {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of integer or bool type") });
-                            return Err(TerminalError);
+                        match rhs_type {
+                            Types::Int => {
+                                Ok(Types::Bool)
+                            },
+                            Types::Float => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::Bool => {
+                                *rhs = Box::new(Ast::BoolToInt {
+                                    operand: Box::new(*rhs.clone()),
+                                });
+                                Ok(Types::Bool)
+                            },
+                            Types::String => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::Array(_, _) => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
                         }
-                    }
+                    },
                     Types::Float => {
-                        if rhs_type != Types::Float {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of float type") });
-                            return Err(TerminalError);
+                        match rhs_type {
+                            Types::Int | Types::Bool => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::Float => {
+                                Ok(Types::Bool)
+                            },
+                            Types::String => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::Array(_, _) => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
                         }
-                    }
+                    },
+                    Types::Bool => {
+                        match rhs_type {
+                            Types::Int => {
+                                *lhs = Box::new(Ast::BoolToInt {
+                                    operand: Box::new(*lhs.clone()),
+                                });
+                                Ok(Types::Bool)
+                            },
+                            Types::Float => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::Bool => {
+                                *lhs = Box::new(Ast::BoolToInt {
+                                    operand: Box::new(*lhs.clone()),
+                                });
+                                *rhs = Box::new(Ast::BoolToInt {
+                                    operand: Box::new(*rhs.clone()),
+                                });
+                                Ok(Types::Bool)
+                            },
+                            Types::String => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::Array(_, _) => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    },
                     Types::String => {
-                        if *op != RelationOp::Eq && *op != RelationOp::NotEq {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Operator not supported for operands of string type. Only == and != are supported for operands of string type") });
-                            return Err(TerminalError);
+                        match rhs_type {
+                            Types::Int | Types::Bool => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::Float => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            Types::String => {
+                                match op {
+                                    RelationOp::Eq => {
+                                        Ok(Types::Bool)
+                                    },
+                                    RelationOp::NotEq => {
+                                        Ok(Types::Bool)
+                                    },
+                                    _ => {
+                                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string types, found {}", op) });
+                                        Err(TerminalError)
+                                    },
+                                }
+                            },
+                            Types::Array(_, _) => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                Err(TerminalError)
+                            },
                         }
-                        if rhs_type != Types::String {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch. Right operand must be of string type") });
-                            return Err(TerminalError);
-                        }
-                    }
+                    },
                     _ => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operators not supported for this operand type") });
-                        return Err(TerminalError);
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                        Err(TerminalError)
                     },
                 }
-
-                Ok(Types::Bool)
             },
             Ast::NegateOp { operand } => {
                 match self.visit_ast(operand)? {
@@ -2144,6 +2364,949 @@ mod tests {
 
         let exp_errs =  &vec![
             CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", Types::Int, Types::Array(5, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_intint() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_floatfloat() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::FloatLiteral { 
+                value: 5.2,
+            }),
+            rhs: Box::new(Ast::FloatLiteral { 
+                value: 4.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_boolbool() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            rhs: Box::new(Ast::BoolLiteral { 
+                value: false,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::BoolToInt {
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            }),
+            rhs: Box::new(Ast::BoolToInt {
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: false,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_relation_eq_stringstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string2"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_noteq_stringstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::NotEq,
+            lhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string2"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_intbool() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::BoolToInt {
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_relation_boolint() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::BoolToInt {
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_relation_intarrayintarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_floatarrayfloatarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_boolarrayboolarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::BoolArrayToIntArray {
+                operand: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+            }),
+            rhs: Box::new(Ast::BoolArrayToIntArray {
+                operand: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_relation_eq_stringarraystringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_noteq_stringarraystringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::NotEq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_intarrayboolarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::BoolArrayToIntArray {
+                operand: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_relation_boolarrayintarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::BoolArrayToIntArray {
+                operand: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_relation_err_nonfloatfloat() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::FloatLiteral { 
+                value: 4.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", Types::Int, Types::Float)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_floatnonfloat() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::FloatLiteral { 
+                value: 5.2,
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 4,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", Types::Float, Types::Int)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_nonfloatarrayfloatarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", Types::Array(5, Box::new(Types::Int)), Types::Array(5, Box::new(Types::Float)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_floatarraynonfloatarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", Types::Array(5, Box::new(Types::Float)), Types::Array(5, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_lt_stringstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::LT,
+            lhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string2"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string types, found {}", RelationOp::LT)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_lte_stringstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::LTE,
+            lhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string2"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string types, found {}", RelationOp::LTE)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_gt_stringstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::GT,
+            lhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string2"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string types, found {}", RelationOp::GT)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_gte_stringstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::GTE,
+            lhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string2"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string types, found {}", RelationOp::GTE)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_lt_stringarraystringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::LT,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string array types, found {}", RelationOp::LT)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_lte_stringarraystringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::LTE,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string array types, found {}", RelationOp::LTE)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_gt_stringarraystringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::GT,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string array types, found {}", RelationOp::GT)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_gte_stringarraystringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::GTE,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string array types, found {}", RelationOp::GTE)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_nonstringstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", Types::Int, Types::String)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_stringnonstring() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::StringLiteral { 
+                value: String::from("string1"),
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", Types::String, Types::Int)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_nonstringarraystringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", Types::Array(5, Box::new(Types::Int)), Types::Array(5, Box::new(Types::String)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_stringarraynonstringarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", Types::Array(5, Box::new(Types::String)), Types::Array(5, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_intinvalid() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("b"), Types::Unknown).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", Types::Int, Types::Unknown)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_invalidint() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a"),
+            }),
+            rhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Unknown).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", Types::Unknown, Types::Int)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_intarrayinvalidarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a"),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Unknown))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", Types::Array(5, Box::new(Types::Int)), Types::Array(5, Box::new(Types::Unknown)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_invalidarrayintarray() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a"),
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Unknown))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", Types::Array(5, Box::new(Types::Unknown)), Types::Array(5, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_mismatchedarraylengths() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("b") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.insert(String::from("b"), Types::Array(3, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on array types with matching sizes. {} != {}", Types::Array(5, Box::new(Types::Int)), Types::Array(3, Box::new(Types::Int)))}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_relation_err_mixedscalarandarrayoperands() {
+        let mut ast = Box::new(Ast::Relation {
+            op: RelationOp::Eq,
+            lhs: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            rhs: Box::new(Ast::Var { 
+                id: String::from("a") 
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", Types::Int, Types::Array(5, Box::new(Types::Int)))}
         ];
 
         assert_eq!(act_errs, exp_errs);

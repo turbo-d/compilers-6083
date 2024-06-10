@@ -16,12 +16,12 @@ pub enum RelationOp {
 impl fmt::Display for RelationOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            RelationOp::LT => write!(f, "lt"),
-            RelationOp::LTE => write!(f, "lte"),
-            RelationOp::GT => write!(f, "gt"),
-            RelationOp::GTE => write!(f, "gte"),
-            RelationOp::Eq => write!(f, "eq"),
-            RelationOp::NotEq => write!(f, "ne"),
+            RelationOp::LT => write!(f, "<"),
+            RelationOp::LTE => write!(f, "<="),
+            RelationOp::GT => write!(f, ">"),
+            RelationOp::GTE => write!(f, ">="),
+            RelationOp::Eq => write!(f, "=="),
+            RelationOp::NotEq => write!(f, "!="),
        }
     }
 }
