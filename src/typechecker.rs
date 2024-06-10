@@ -1306,13 +1306,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
                             Types::Float => Ok(Types::Array(size, Box::new(Types::Int))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
                         Err(TerminalError)
                     },
                 }
@@ -1324,13 +1324,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Float))),
                             Types::Float => Ok(Types::Array(size, Box::new(Types::Float))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to float array") });
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to float array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to float array") });
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to float array") });
                         Err(TerminalError)
                     },
                 }
@@ -1342,13 +1342,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
                             Types::Bool => Ok(Types::Array(size, Box::new(Types::Int))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer array") });
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
                         Err(TerminalError)
                     },
                 }
@@ -1360,13 +1360,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Bool))),
                             Types::Bool => Ok(Types::Array(size, Box::new(Types::Bool))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool array") });
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to bool array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool array") });
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to bool array") });
                         Err(TerminalError)
                     },
                 }
@@ -5781,6 +5781,474 @@ mod tests {
 
         let exp_errs =  &vec![
             CompilerError::Error { line: 1, msg: format!("Missing declaration for {}", String::from("a")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_floattoint_int() {
+        let mut ast = Box::new(Ast::FloatToInt {
+            operand: Box::new(Ast::IntLiteral {
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_floattoint_float() {
+        let mut ast = Box::new(Ast::FloatToInt {
+            operand: Box::new(Ast::FloatLiteral {
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_floattoint_err_invalid() {
+        let mut ast = Box::new(Ast::FloatToInt {
+            operand: Box::new(Ast::StringLiteral {
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} to integer", Types::String) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_inttofloat_int() {
+        let mut ast = Box::new(Ast::IntToFloat {
+            operand: Box::new(Ast::IntLiteral {
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Float;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_inttofloat_float() {
+        let mut ast = Box::new(Ast::IntToFloat {
+            operand: Box::new(Ast::FloatLiteral {
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Float;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_inttofloat_err_invalid() {
+        let mut ast = Box::new(Ast::IntToFloat {
+            operand: Box::new(Ast::StringLiteral {
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} to float", Types::String) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_booltoint_int() {
+        let mut ast = Box::new(Ast::BoolToInt {
+            operand: Box::new(Ast::IntLiteral {
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_booltoint_bool() {
+        let mut ast = Box::new(Ast::BoolToInt {
+            operand: Box::new(Ast::BoolLiteral {
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_booltoint_err_invalid() {
+        let mut ast = Box::new(Ast::BoolToInt {
+            operand: Box::new(Ast::StringLiteral {
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} to integer", Types::String) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_inttobool_int() {
+        let mut ast = Box::new(Ast::IntToBool {
+            operand: Box::new(Ast::IntLiteral {
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_inttobool_bool() {
+        let mut ast = Box::new(Ast::IntToBool {
+            operand: Box::new(Ast::BoolLiteral {
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Bool;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_inttobool_err_invalid() {
+        let mut ast = Box::new(Ast::IntToBool {
+            operand: Box::new(Ast::StringLiteral {
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} to bool", Types::String) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_floatarraytointarray_intarray() {
+        let mut ast = Box::new(Ast::FloatArrayToIntArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_floatarraytointarray_floatarray() {
+        let mut ast = Box::new(Ast::FloatArrayToIntArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_floatarraytointarray_err_invalid() {
+        let mut ast = Box::new(Ast::FloatArrayToIntArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} array to integer array", Types::String) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_intarraytofloatarray_intarray() {
+        let mut ast = Box::new(Ast::IntArrayToFloatArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Float));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_intarraytofloatarray_floatarray() {
+        let mut ast = Box::new(Ast::IntArrayToFloatArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Float));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_intarraytofloatarray_err_invalid() {
+        let mut ast = Box::new(Ast::IntArrayToFloatArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} array to float array", Types::String) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_boolarraytointarray_intarray() {
+        let mut ast = Box::new(Ast::BoolArrayToIntArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_boolarraytointarray_boolarray() {
+        let mut ast = Box::new(Ast::BoolArrayToIntArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Int));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_boolarraytointarray_err_invalid() {
+        let mut ast = Box::new(Ast::BoolArrayToIntArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} array to integer array", Types::String) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_intarraytoboolarray_intarray() {
+        let mut ast = Box::new(Ast::IntArrayToBoolArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_intarraytoboolarray_boolarray() {
+        let mut ast = Box::new(Ast::IntArrayToBoolArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Array(5, Box::new(Types::Bool));
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_intarraytoboolarray_err_invalid() {
+        let mut ast = Box::new(Ast::IntArrayToBoolArray {
+            operand: Box::new(Ast::Var {
+                id: String::from("a"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Cannot convert {} array to bool array", Types::String) }
         ];
 
         assert_eq!(act_errs, exp_errs);
