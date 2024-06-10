@@ -166,42 +166,98 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
             Ast::ReturnStmt { expr } => {
                 let expr_type = self.visit_ast(expr)?;
                 let owning_proc_type = self.st.get_local_proc_data();
+                let return_type = match owning_proc_type {
+                    Types::Proc(return_type, _) => return_type,
+                    ty => panic!("INTERNAL ERROR: Expected get_local_proc_data() to return Types::Proc(_, _), found {ty}"),
+                };
 
-                // Same compatibility rules as assignment
-                if let Types::Proc(return_type, _) = owning_proc_type {
-                    match **return_type {
-                        Types::Bool => {
-                            if expr_type != Types::Bool && expr_type != Types::Int {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
-                                return Err(TerminalError);
-                            }
+                match **return_type {
+                    Types::Bool => {
+                        match expr_type {
+                            Types::Int => {
+                                *expr = Box::new(Ast::IntToBool {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Float => {
+                                *expr = Box::new(Ast::IntToBool {
+                                    operand: Box::new(Ast::FloatToInt {
+                                        operand: Box::new(*expr.clone()),
+                                    }),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Bool => {
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                Err(TerminalError)
+                            },
                         }
-                        Types::Int => {
-                            if expr_type != Types::Int && expr_type != Types::Bool {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
-                                return Err(TerminalError);
-                            }
-                        }
-                        Types::Float => {
-                            if expr_type != Types::Float && expr_type != Types::Int {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
-                                return Err(TerminalError);
-                            }
-                        }
-                        Types::String => {
-                            if expr_type != Types::String {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure") });
-                                return Err(TerminalError);
-                            }
-                        }
-                        _ => {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Returns not supported for this operand type") });
-                            return Err(TerminalError);
-                        },
                     }
+                    Types::Int => {
+                        match expr_type {
+                            Types::Int => {
+                                Ok(Types::Unknown)
+                            },
+                            Types::Float => {
+                                *expr = Box::new(Ast::FloatToInt {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Bool => {
+                                *expr = Box::new(Ast::BoolToInt {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    }
+                    Types::Float => {
+                        match expr_type {
+                            Types::Int => {
+                                *expr = Box::new(Ast::IntToFloat {
+                                    operand: Box::new(*expr.clone()),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            Types::Float => {
+                                Ok(Types::Unknown)
+                            },
+                            Types::Bool => {
+                                *expr = Box::new(Ast::IntToFloat {
+                                    operand: Box::new(Ast::BoolToInt {
+                                        operand: Box::new(*expr.clone()),
+                                    }),
+                                });
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                Err(TerminalError)
+                            },
+                        }
+                    }
+                    Types::String => {
+                        match expr_type {
+                            Types::String => {
+                                Ok(Types::Unknown)
+                            },
+                            _ => {
+                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                return Err(TerminalError);
+                            },
+                        }
+                    }
+                    _ => panic!("INTERNAL ERROR: Expected return type of local proc to be integer, float, bool, or string, found {}", **return_type),
                 }
-
-                Ok(Types::Unknown)
             },
             Ast::AndOp { lhs, rhs } => {
                 let lhs_type = self.visit_ast(lhs)?;
@@ -1160,6 +1216,278 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typechecker_return_stmt_int_intproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Int), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_int_floatproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntToFloat { 
+                operand: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_int_boolproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntToBool { 
+                operand: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_float_floatproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_float_intproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Int), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::FloatToInt { 
+                operand: Box::new(Ast::FloatLiteral { 
+                    value: 5.3,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_float_boolproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntToBool { 
+                operand: Box::new(Ast::FloatToInt { 
+                    operand: Box::new(Ast::FloatLiteral { 
+                        value: 5.3,
+                    }),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_bool_boolproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_bool_intproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Int), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::BoolToInt { 
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_bool_floatproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntToFloat { 
+                operand: Box::new(Ast::BoolToInt { 
+                    operand: Box::new(Ast::BoolLiteral { 
+                        value: true,
+                    }),
+                }),
+            }),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_string_stringproc() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::StringLiteral { 
+                value: String::from("this is a string"),
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::String), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_return_stmt_err_mismatchreturntype() {
+        let mut ast = Box::new(Ast::ReturnStmt {
+            expr: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::String), Vec::new()));
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", Types::String, Types::Int)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
 
     #[test]
     fn typechecker_and_op_intint() {
