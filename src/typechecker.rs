@@ -51,37 +51,31 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 Ok(Types::Unknown)
             }
             Ast::VarDecl { is_global, name, ty } => {
-                let result: Result<(), String>;
                 if *is_global {
-                    result = self.st.insert_global(name.clone(), ty.clone());
+                    if let Err(_) = self.st.insert_global(name.clone(), ty.clone()) {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {name} is already declared in the global scope") });
+                        return Err(TerminalError);
+                    }
                 } else {
-                    result = self.st.insert(name.clone(), ty.clone());
-                }
-
-                match result {
-                    Ok(_) => (),
-                    Err(_) => {
+                    if let Err(_) = self.st.insert(name.clone(), ty.clone()) {
                         self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {name} is already declared in this scope") });
                         return Err(TerminalError);
-                    },
+                    }
                 }
 
                 Ok(ty.clone())
             },
             Ast::ProcDecl { is_global, name, ty, params, decls, body } => {
-                let result: Result<(), String>;
                 if *is_global {
-                    result = self.st.insert_global(name.clone(), ty.clone());
+                    if let Err(_) = self.st.insert_global(name.clone(), ty.clone()) {
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {name} is already declared in the global scope") });
+                        return Err(TerminalError);
+                    }
                 } else {
-                    result = self.st.insert(name.clone(), ty.clone());
-                }
-
-                match result {
-                    Ok(_) => (),
-                    Err(_) => {
+                    if let Err(_) = self.st.insert(name.clone(), ty.clone()) {
                         self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {name} is already declared in this scope") });
                         return Err(TerminalError);
-                    },
+                    }
                 }
 
                 self.st.enter_scope(ty.clone());
@@ -1384,6 +1378,237 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typechecker_var_decl_global() {
+        let mut ast = Box::new(Ast::VarDecl { 
+            is_global: true,
+            name: String::from("a"),
+            ty: Types::Int,
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+        tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_decl_local() {
+        let mut ast = Box::new(Ast::VarDecl { 
+            is_global: false,
+            name: String::from("a"),
+            ty: Types::Int,
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Int;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_decl_err_duplicatedeclglobal() {
+        let mut ast = Box::new(Ast::VarDecl { 
+            is_global: true,
+            name: String::from("a"),
+            ty: Types::Int,
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in the global scope", String::from("a")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_decl_err_duplicatedecllocal() {
+        let mut ast = Box::new(Ast::VarDecl { 
+            is_global: false,
+            name: String::from("a"),
+            ty: Types::Int,
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+        tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in this scope", String::from("a")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_var_decl_err_duplicatedeclcaseinsensitive() {
+        let mut ast = Box::new(Ast::VarDecl { 
+            is_global: false,
+            name: String::from("TmP"),
+            ty: Types::Int,
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("tmp"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in this scope", String::from("a")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_decl_global() {
+        let mut ast = Box::new(Ast::ProcDecl {
+            is_global: true,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Proc(Box::new(Types::Int), Vec::new());
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_decl_local() {
+        let mut ast = Box::new(Ast::ProcDecl {
+            is_global: false,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Proc(Box::new(Types::Int), Vec::new());
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_decl_err_duplicatedeclglobal() {
+        let mut ast = Box::new(Ast::ProcDecl {
+            is_global: true,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in the global scope", String::from("foo")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_decl_err_duplicatedecllocal() {
+        let mut ast = Box::new(Ast::ProcDecl {
+            is_global: false,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
+        tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
+        tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in this scope", String::from("foo")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_proc_decl_err_duplicatedeclcaseinsensitive() {
+        let mut ast = Box::new(Ast::ProcDecl {
+            is_global: false,
+            name: String::from("foo"),
+            ty: Types::Proc(Box::new(Types::Int), Vec::new()),
+            params: Vec::new(),
+            decls: Vec::new(),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+        tc.st.insert(String::from("FoO"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in this scope", String::from("foo")) }
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
 
     #[test]
     fn typechecker_assign_stmt_intdestintexpr() {
