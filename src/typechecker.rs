@@ -140,8 +140,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
             Ast::IfStmt { cond, then_body, else_body } => {
                 let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type") });
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
                     return Err(TerminalError);
+                }
+                if cond_expr_type == Types::Bool {
+                    *cond = Box::new(Ast::BoolToInt {
+                        operand: Box::new(*cond.clone()),
+                    });
                 }
                 for stmt in then_body.iter_mut() {
                     self.visit_ast(&mut *stmt)?;
@@ -155,8 +160,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 self.visit_ast(init)?;
                 let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type") });
+                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
                     return Err(TerminalError);
+                }
+                if cond_expr_type == Types::Bool {
+                    *cond = Box::new(Ast::BoolToInt {
+                        operand: Box::new(*cond.clone()),
+                    });
                 }
                 for stmt in body.iter_mut() {
                     self.visit_ast(&mut *stmt)?;
@@ -1216,6 +1226,160 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn typechecker_if_stmt_boolcond() {
+        let mut ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::BoolToInt { 
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_if_stmt_intcond() {
+        let mut ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_if_stmt_invalidcond() {
+        let mut ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", Types::Float)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_loop_stmt_boolcond() {
+        let mut ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            cond: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            cond: Box::new(Ast::BoolToInt { 
+                operand: Box::new(Ast::BoolLiteral { 
+                    value: true,
+                }),
+            }),
+            body: Vec::new(),
+        });
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
+    }
+
+    #[test]
+    fn typechecker_loop_stmt_intcond() {
+        let mut ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            cond: Box::new(Ast::IntLiteral { 
+                value: 5,
+            }),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+
+        let act_type = ast.accept(&mut tc).expect("Type checking failed");
+        let act_errs = tc.get_errors();
+
+        let exp_type = Types::Unknown;
+        let exp_errs = &Vec::new();
+
+        assert_eq!(act_type, exp_type);
+        assert_eq!(act_errs, exp_errs);
+    }
+
+    #[test]
+    fn typechecker_loop_stmt_invalidcond() {
+        let mut ast = Box::new(Ast::LoopStmt { 
+            init: Box::new(Ast::BoolLiteral { 
+                value: true,
+            }),
+            cond: Box::new(Ast::FloatLiteral { 
+                value: 5.3,
+            }),
+            body: Vec::new(),
+        });
+        let mut tc = TypeChecker::new();
+
+        ast.accept(&mut tc).expect_err(format!("Type check successful. Expected {:?}, found", TerminalError).as_str());
+        let act_errs = tc.get_errors();
+
+        let exp_errs =  &vec![
+            CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", Types::Float)}
+        ];
+
+        assert_eq!(act_errs, exp_errs);
+    }
 
     #[test]
     fn typechecker_return_stmt_int_intproc() {
