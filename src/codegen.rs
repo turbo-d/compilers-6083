@@ -20,28 +20,50 @@ pub struct CodeGen<'a, 'ctx> {
 
 impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     pub fn new(context: &'ctx Context, builder: &'a Builder<'ctx>, module: &'a Module<'ctx>) -> CodeGen<'a, 'ctx> {
-        let ret_type = context.f64_type();
-        let args_types = std::iter::repeat(ret_type)
-            .take(3)
-            .map(|f| f.into())
-            .collect::<Vec<BasicMetadataTypeEnum>>();
-        let args_types = args_types.as_slice();
-        let fn_type = context.f64_type().fn_type(args_types, false);
-
-        let fn_val = module.add_function("main", fn_type, None);
-        let st = SymTable::new(fn_val);
-
         // TODO: Delete this once runtime is finished.
         // This is just for testing
+
+        let args_types = Vec::<BasicMetadataTypeEnum>::new();
+        let args_types = args_types.as_slice();
+
+        let fn_type = context.bool_type().fn_type(args_types, false);
         module.add_function("getbool", fn_type, None);
+
+        let fn_type = context.i64_type().fn_type(args_types, false);
         module.add_function("getinteger", fn_type, None);
-        module.add_function("getfloat", fn_type, None);
         module.add_function("getstring", fn_type, None);
+
+        let fn_type = context.f64_type().fn_type(args_types, false);
+        module.add_function("getfloat", fn_type, None);
+
+        let args_types = vec![BasicMetadataTypeEnum::from(context.bool_type())];
+        let args_types = args_types.as_slice();
+        let fn_type = context.bool_type().fn_type(args_types, false);
         module.add_function("putbool", fn_type, None);
+
+        let args_types = vec![BasicMetadataTypeEnum::from(context.i64_type())];
+        let args_types = args_types.as_slice();
+        let fn_type = context.bool_type().fn_type(args_types, false);
         module.add_function("putinteger", fn_type, None);
-        module.add_function("putfloat", fn_type, None);
         module.add_function("putstring", fn_type, None);
+
+        let args_types = vec![BasicMetadataTypeEnum::from(context.f64_type())];
+        let args_types = args_types.as_slice();
+        let fn_type = context.bool_type().fn_type(args_types, false);
+        module.add_function("putfloat", fn_type, None);
+
+        let args_types = vec![BasicMetadataTypeEnum::from(context.i64_type())];
+        let args_types = args_types.as_slice();
+        let fn_type = context.f64_type().fn_type(args_types, false);
         module.add_function("sqrt", fn_type, None);
+
+        let args_types = Vec::<BasicMetadataTypeEnum>::new();
+        let args_types = args_types.as_slice();
+        let fn_type = context.i64_type().fn_type(args_types, false);
+        let fn_val = module.add_function("main", fn_type, None);
+        //let fn_val = module.add_function("main", fn_type, None);
+        let st = SymTable::new(fn_val);
+
 
         CodeGen {
             context,
@@ -90,10 +112,12 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             Ast::Program { name, decls, body, } => {
                 self.module.set_name(name.as_str());
 
-                let args_types = Vec::<BasicMetadataTypeEnum>::new();
-                let args_types = args_types.as_slice();
-                let fn_type = self.context.i64_type().fn_type(args_types, false);
-                let fn_val = self.module.add_function("main", fn_type, None);
+                //let args_types = Vec::<BasicMetadataTypeEnum>::new();
+                //let args_types = args_types.as_slice();
+                //let fn_type = self.context.i64_type().fn_type(args_types, false);
+                //let fn_val = self.module.add_function("main", fn_type, None);
+
+                let fn_val = self.module.get_function("main").expect("main function not found");
 
                 let entry = self.context.append_basic_block(fn_val, "entry");
                 self.builder.position_at_end(entry);
@@ -193,7 +217,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     _ => panic!("Unexpected procedure return type"),
                 };
 
-                let fn_val = self.module.add_function(name.as_str(), fn_type, None);
+                let fn_val = self.module.add_function(name.to_lowercase().as_str(), fn_type, None);
 
                 let entry = self.context.append_basic_block(fn_val, "entry");
                 self.builder.position_at_end(entry);
@@ -228,13 +252,13 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 self.st.exit_scope();
 
-                if !fn_val.verify(true) {
-                    unsafe {
-                        fn_val.delete();
-                    }
+                //if !fn_val.verify(true) {
+                //    unsafe {
+                //        fn_val.delete();
+                //    }
 
-                    panic!("Invalid generated function.")
-                }
+                //    panic!("Invalid generated function.")
+                //}
 
                 AnyValueEnum::from(fn_val)
             },
@@ -551,7 +575,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     _ => panic!("Expected Ast::Var for proc"),
                 };
 
-                match self.module.get_function(id.as_str()) {
+                match self.module.get_function(id.to_lowercase().as_str()) {
                     Some(fun) => {
                         let mut compiled_args: Vec<BasicMetadataValueEnum> = Vec::with_capacity(args.len());
 
@@ -577,7 +601,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                             None => panic!("Invalid call produced."),
                         }
                     },
-                    None => panic!("Unknown function."),
+                    None => panic!("Unknown function {id}."),
                 }
             },
             Ast::IntLiteral { value } => AnyValueEnum::from(self.context.i64_type().const_int(*value as u64, false)),
@@ -617,10 +641,18 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
             Ast::BoolToInt { operand } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+                let operand = match IntValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected IntValue"),
+                };
+                AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.i64_type(), "tmpcast").unwrap())
             },
             Ast::IntToBool { operand } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+                let operand = match IntValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected IntValue"),
+                };
+                AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.bool_type(), "tmpcast").unwrap())
             },
             Ast::FloatArrayToIntArray { operand } => {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
