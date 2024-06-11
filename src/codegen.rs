@@ -131,7 +131,8 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     self.visit_ast(&mut *stmt);
                 }
 
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+                self.builder.position_at_end(entry);
+                AnyValueEnum::from(self.builder.build_return(Some(&self.context.i64_type().const_int(0, false))).unwrap())
             }
             Ast::VarDecl { is_global, name, ty } => {
                 let parent_fn = self.st.get_local_proc_data().clone();
