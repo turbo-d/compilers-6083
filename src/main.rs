@@ -92,8 +92,18 @@ fn main() {
     let context = Context::create();
     let builder = context.create_builder();
     let module = context.create_module("tmp");
+    module.set_source_file_name(file_path);
     let mut codegen = CodeGen::new(&context, &builder, &module);
     ast.accept(&mut codegen);
+
+    if debug {
+        println!("{}", module.to_string());
+        if let Err(e) = module.verify() {
+            eprintln!("{}", e.to_string());
+            eprintln!("Failed");
+            process::exit(1);
+        }
+    }
 
     println!("Done");
 }
