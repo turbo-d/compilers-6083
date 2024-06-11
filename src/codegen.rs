@@ -9,7 +9,7 @@ use inkwell::FloatPredicate;
 use inkwell::IntPredicate;
 use inkwell::module::Module;
 use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
-use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue};
+use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, InstructionValue, PointerValue};
 
 pub struct CodeGen<'a, 'ctx> {
     pub context: &'ctx Context,
@@ -329,18 +329,28 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 // build then block
                 self.builder.position_at_end(then_bb);
+                let mut inst_val: Option<InstructionValue> = None;
                 for stmt in then_body.iter_mut() {
-                    self.visit_ast(&mut *stmt);
+                    inst_val = InstructionValue::try_from(self.visit_ast(&mut *stmt)).ok();
                 }
-                self.builder.build_unconditional_branch(cont_bb).unwrap();
+                match inst_val {
+                    None => self.builder.build_unconditional_branch(cont_bb).unwrap(),
+                    Some(iv) if !iv.is_terminator() => self.builder.build_unconditional_branch(cont_bb).unwrap(),
+                    Some(iv) => iv,
+                };
                 //let then_bb = self.builder.get_insert_block().unwrap();
 
                 // build else block
                 self.builder.position_at_end(else_bb);
+                let mut inst_val: Option<InstructionValue> = None;
                 for stmt in else_body.iter_mut() {
-                    self.visit_ast(&mut *stmt);
+                    inst_val = InstructionValue::try_from(self.visit_ast(&mut *stmt)).ok();
                 }
-                self.builder.build_unconditional_branch(cont_bb).unwrap();
+                match inst_val {
+                    None => self.builder.build_unconditional_branch(cont_bb).unwrap(),
+                    Some(iv) if !iv.is_terminator() => self.builder.build_unconditional_branch(cont_bb).unwrap(),
+                    Some(iv) => iv,
+                };
                 //let else_bb = self.builder.get_insert_block().unwrap();
 
                 // emit merge block

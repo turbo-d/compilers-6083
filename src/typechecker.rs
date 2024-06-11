@@ -295,8 +295,8 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
                     return Err(TerminalError);
                 }
-                if cond_expr_type == Types::Bool {
-                    *cond = Box::new(Ast::BoolToInt {
+                if cond_expr_type == Types::Int {
+                    *cond = Box::new(Ast::IntToBool {
                         operand: Box::new(*cond.clone()),
                     });
                 }
@@ -1367,6 +1367,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     },
                     ty => {
                         self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to bool array") });
+                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool array") });
                         Err(TerminalError)
                     },
                 }
@@ -2259,19 +2260,9 @@ mod tests {
 
         let exp_type = Types::Unknown;
         let exp_errs = &Vec::new();
-        let exp_ast = Box::new(Ast::IfStmt { 
-            cond: Box::new(Ast::BoolToInt { 
-                operand: Box::new(Ast::BoolLiteral { 
-                    value: true,
-                }),
-            }),
-            then_body: Vec::new(),
-            else_body: Vec::new(),
-        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
-        assert_eq!(ast, exp_ast);
     }
 
     #[test]
@@ -2290,9 +2281,19 @@ mod tests {
 
         let exp_type = Types::Unknown;
         let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::IfStmt { 
+            cond: Box::new(Ast::IntToBool { 
+                operand: Box::new(Ast::IntLiteral { 
+                    value: 5,
+                }),
+            }),
+            then_body: Vec::new(),
+            else_body: Vec::new(),
+        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
     }
 
     #[test]
