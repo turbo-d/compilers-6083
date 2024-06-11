@@ -70,4 +70,8 @@ impl<T, U> SymTable<T, U> {
         let top = self.local.len() - 1;
         return &self.local_proc_data[top];
     }
+
+    pub fn is_in_global_scope(&self) -> bool {
+        self.local.is_empty()
+    }
 }

@@ -9,7 +9,7 @@ use inkwell::FloatPredicate;
 use inkwell::IntPredicate;
 use inkwell::module::Module;
 use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
-use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue};
+use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, PointerValue};
 
 pub struct CodeGen<'a, 'ctx> {
     pub context: &'ctx Context,
@@ -104,6 +104,27 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 
         builder.build_alloca(ty, name).unwrap()
     }
+
+    fn get_default_value(&self, ty: &Types) -> Box<dyn BasicValue<'ctx> + 'ctx> {
+        match ty {
+            Types::Int => Box::new(self.context.i64_type().const_zero()),
+            Types::Float => Box::new(self.context.f64_type().const_zero()),
+            //Types::String => , //TODO
+            Types::String => Box::new(self.context.i64_type().const_zero()),
+            Types::Bool => Box::new(self.context.bool_type().const_zero()),
+            Types::Array(size, base_type) => {
+                match **base_type {
+                    Types::Int => Box::new(self.context.i64_type().array_type(*size).const_zero()),
+                    Types::Float => Box::new(self.context.f64_type().array_type(*size).const_zero()),
+                    //Types::String => , //TODO
+                    Types::String => Box::new(self.context.i64_type().array_type(*size).const_zero()),
+                    Types::Bool => Box::new(self.context.bool_type().array_type(*size).const_zero()),
+                    _ => panic!("No default value for {ty}"),
+                }
+            }
+            _ => panic!("No default value for {ty}"),
+        }
+    }
 }
 
 impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
@@ -137,26 +158,28 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             Ast::VarDecl { is_global, name, ty } => {
                 let parent_fn = self.st.get_local_proc_data().clone();
 
-                if *is_global {
-                    let basic_type = match ty.clone() {
-                        Types::Int => BasicTypeEnum::from(self.context.i64_type()),
-                        Types::Float => BasicTypeEnum::from(self.context.f64_type()),
-                        //Types::String => BasicTypeEnum::from(self.context.ptr_type(AddressSpace::default())), //TODO
-                        Types::String => BasicTypeEnum::from(self.context.f64_type()), //TODO
-                        Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
-                        Types::Array(size, base_type) => {
-                            match *base_type {
-                                Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(size)),
-                                Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(size)),
-                                //Types::String => self.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
-                                Types::String => BasicTypeEnum::from(self.context.f64_type().array_type(size)), //TODO
-                                Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(size)),
-                                _ => panic!("Unexpected base type for arrary type"),
-                            }
+                let basic_type = match ty.clone() {
+                    Types::Int => BasicTypeEnum::from(self.context.i64_type()),
+                    Types::Float => BasicTypeEnum::from(self.context.f64_type()),
+                    //Types::String => BasicTypeEnum::from(self.context.ptr_type(AddressSpace::default())), //TODO
+                    Types::String => BasicTypeEnum::from(self.context.f64_type()), //TODO
+                    Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
+                    Types::Array(size, base_type) => {
+                        match *base_type {
+                            Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(size)),
+                            Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(size)),
+                            //Types::String => self.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
+                            Types::String => BasicTypeEnum::from(self.context.f64_type().array_type(size)), //TODO
+                            Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(size)),
+                            _ => panic!("Unexpected base type for arrary type"),
                         }
-                        _ => panic!("Unexpected procedure return type"),
-                    };
+                    }
+                    _ => panic!("Unexpected procedure return type"),
+                };
+
+                if *is_global || self.st.is_in_global_scope() {
                     let global = self.module.add_global(basic_type, Some(AddressSpace::default()), name.as_str());
+                    global.set_initializer(&(*self.get_default_value(ty)));
                     let _  = self.st.insert_global(name.clone(), (global.as_pointer_value(), ty.clone()));
                     return AnyValueEnum::from(global.as_pointer_value())
                 } else {
@@ -671,3 +694,26 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    //#[test]
+    //fn codegen_var_decl() {
+    //    let mut ast = Box::new(Ast::VarDecl { 
+    //        is_global: true,
+    //        name: String::from("a"),
+    //        ty: Types::Int,
+    //    });
+    //    let context = Context::create();
+    //    let builder = context.create_builder();
+    //    let module = context.create_module("test");
+    //    let mut codegen = CodeGen::new(&context, &builder, &module);
+
+    //    let act_val = ast.accept(&mut codegen);
+
+    //    let exp_val = Types::Int;
+
+    //    assert_eq!(act_val, exp_val);
+    //}
+}
