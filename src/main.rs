@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::io;
 use std::io::Write;
+use std::path::Path;
 use std::process;
 
 use compiler::codegen::CodeGen;
@@ -12,6 +13,9 @@ use compiler::token::Token;
 use compiler::typechecker::TypeChecker;
 
 use inkwell::context::Context;
+use inkwell::OptimizationLevel;
+use inkwell::passes::PassBuilderOptions;
+use inkwell::targets::{CodeModel, InitializationConfig, RelocMode, Target, TargetMachine};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -98,12 +102,38 @@ fn main() {
 
     if debug {
         println!("{}", module.to_string());
-        if let Err(e) = module.verify() {
-            eprintln!("{}", e.to_string());
-            eprintln!("Failed");
-            process::exit(1);
-        }
     }
+
+    if let Err(e) = module.verify() {
+        eprintln!("{}", e.to_string());
+        eprintln!("Failed");
+        process::exit(1);
+    }
+
+    Target::initialize_all(&InitializationConfig::default());
+    let target_triple = TargetMachine::get_default_triple();
+    let target = Target::from_triple(&target_triple).unwrap();
+    let target_machine = target.create_target_machine(&target_triple, "generic", "", OptimizationLevel::None, RelocMode::PIC, CodeModel::Default).unwrap();
+    module.set_data_layout(&target_machine.get_target_data().get_data_layout());
+    module.set_triple(&target_triple);
+
+    let passes: &[&str] = &[
+        "instcombine",
+        "reassociate",
+        "gvn",
+        "simplifycfg",
+        // "basic-aa",
+        "mem2reg",
+    ];
+
+    module.run_passes(passes.join(",").as_str(), &target_machine, PassBuilderOptions::create()).unwrap();
+
+    if debug {
+        println!("{}", module.to_string());
+    }
+
+    let path = Path::new("./out").with_extension("ll");
+    module.print_to_file(&path).expect("Error printing ll file");
 
     println!("Done");
 }

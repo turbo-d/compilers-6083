@@ -704,26 +704,26 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    //#[test]
-    //fn codegen_var_decl() {
-    //    let mut ast = Box::new(Ast::VarDecl { 
-    //        is_global: true,
-    //        name: String::from("a"),
-    //        ty: Types::Int,
-    //    });
-    //    let context = Context::create();
-    //    let builder = context.create_builder();
-    //    let module = context.create_module("test");
-    //    let mut codegen = CodeGen::new(&context, &builder, &module);
-
-    //    let act_val = ast.accept(&mut codegen);
-
-    //    let exp_val = Types::Int;
-
-    //    assert_eq!(act_val, exp_val);
-    //}
-}
+//#[cfg(test)]
+//mod tests {
+//    use super::*;
+//
+//    #[test]
+//    fn codegen_var_decl() {
+//        let mut ast = Box::new(Ast::VarDecl { 
+//            is_global: true,
+//            name: String::from("a"),
+//            ty: Types::Int,
+//        });
+//        let context = Context::create();
+//        let builder = context.create_builder();
+//        let module = context.create_module("test");
+//        let mut codegen = CodeGen::new(&context, &builder, &module);
+//
+//        let act_val = ast.accept(&mut codegen);
+//
+//        let exp_val = Types::Int;
+//
+//        assert_eq!(act_val, exp_val);
+//    }
+//}
