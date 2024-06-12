@@ -15,7 +15,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cd6604a82acf3039f1144f54b8eb34e91ffba622051189e71b781822d5ee1f5"
 
 [[package]]
-name = "compilers-6083"
+name = "cli"
+version = "0.1.0"
+dependencies = [
+ "compiler",
+ "inkwell",
+]
+
+[[package]]
+name = "compiler"
 version = "0.1.0"
 dependencies = [
  "inkwell",
@@ -107,6 +115,10 @@ name = "regex-lite"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30b661b2f27137bdbc16f00eda72866a92bb28af1753ffbd56744fb6e2e9cd8e"
+
+[[package]]
+name = "runtime"
+version = "0.1.0"
 
 [[package]]
 name = "semver"

@@ -1,17 +1,7 @@
-[package]
-name = "compilers-6083"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-inkwell = { version = "0.4.0", features = ["llvm17-0"] }
-
-[lib]
-name = "compiler"
-path = "src/lib.rs"
-
-[[bin]]
-name = "compiler"
-path = "src/main.rs"
+members = [
+	"cli",
+	"compiler",
+	"runtime",
+]

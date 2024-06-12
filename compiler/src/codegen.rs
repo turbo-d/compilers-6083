@@ -20,9 +20,6 @@ pub struct CodeGen<'a, 'ctx> {
 
 impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     pub fn new(context: &'ctx Context, builder: &'a Builder<'ctx>, module: &'a Module<'ctx>) -> CodeGen<'a, 'ctx> {
-        // TODO: Delete this once runtime is finished.
-        // This is just for testing
-
         let args_types = Vec::<BasicMetadataTypeEnum>::new();
         let args_types = args_types.as_slice();
 
@@ -61,9 +58,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         let args_types = args_types.as_slice();
         let fn_type = context.i64_type().fn_type(args_types, false);
         let fn_val = module.add_function("main", fn_type, None);
-        //let fn_val = module.add_function("main", fn_type, None);
-        let st = SymTable::new(fn_val);
 
+        let st = SymTable::new(fn_val);
 
         CodeGen {
             context,
