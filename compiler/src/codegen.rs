@@ -7,7 +7,7 @@ use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::FloatPredicate;
 use inkwell::IntPredicate;
-use inkwell::module::Module;
+use inkwell::module::{Linkage, Module};
 use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
 use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, InstructionValue, PointerValue};
 
@@ -40,6 +40,8 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         let fn_type = context.i64_type().fn_type(args_types, false);
         let fn_val = module.add_function("getinteger", fn_type, None);
         let _ = fn_st.insert(String::from("getinteger"), fn_val);
+
+        let fn_type = context.i8_type().ptr_type(AddressSpace::default()).fn_type(args_types, false);
         let fn_val = module.add_function("getstring", fn_type, None);
         let _ = fn_st.insert(String::from("getstring"), fn_val);
 
@@ -58,6 +60,10 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         let fn_type = context.bool_type().fn_type(args_types, false);
         let fn_val = module.add_function("putinteger", fn_type, None);
         let _ = fn_st.insert(String::from("putinteger"), fn_val);
+
+        let args_types = vec![BasicMetadataTypeEnum::from(context.i8_type().ptr_type(AddressSpace::default()))];
+        let args_types = args_types.as_slice();
+        let fn_type = context.bool_type().fn_type(args_types, false);
         let fn_val = module.add_function("putstring", fn_type, None);
         let _ = fn_st.insert(String::from("putstring"), fn_val);
 
@@ -96,15 +102,13 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         let ty = match ty {
             Types::Int => BasicTypeEnum::from(self.context.i64_type()),
             Types::Float => BasicTypeEnum::from(self.context.f64_type()),
-            //Types::String => BasicTypeEnum::from(self.context.ptr_type(AddressSpace::default())), //TODO
-            Types::String => BasicTypeEnum::from(self.context.f64_type()), //TODO
+            Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default())),
             Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
             Types::Array(size, base_type) => {
                 match *base_type {
                     Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(size)),
                     Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(size)),
-                    //Types::String => cg.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
-                    Types::String => BasicTypeEnum::from(self.context.f64_type().array_type(size)), //TODO
+                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size)),
                     Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(size)),
                     _ => panic!("Unexpected base type for array type"),
                 }
@@ -119,15 +123,13 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         match ty {
             Types::Int => Box::new(self.context.i64_type().const_zero()),
             Types::Float => Box::new(self.context.f64_type().const_zero()),
-            //Types::String => , //TODO
-            Types::String => Box::new(self.context.i64_type().const_zero()),
+            Types::String => Box::new(self.context.i8_type().ptr_type(AddressSpace::default()).const_zero()),
             Types::Bool => Box::new(self.context.bool_type().const_zero()),
             Types::Array(size, base_type) => {
                 match **base_type {
                     Types::Int => Box::new(self.context.i64_type().array_type(*size).const_zero()),
                     Types::Float => Box::new(self.context.f64_type().array_type(*size).const_zero()),
-                    //Types::String => , //TODO
-                    Types::String => Box::new(self.context.i64_type().array_type(*size).const_zero()),
+                    Types::String => Box::new(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(*size).const_zero()),
                     Types::Bool => Box::new(self.context.bool_type().array_type(*size).const_zero()),
                     _ => panic!("No default value for {ty}"),
                 }
@@ -143,13 +145,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             Ast::Program { name, decls, body, } => {
                 self.module.set_name(name.as_str());
 
-                //let args_types = Vec::<BasicMetadataTypeEnum>::new();
-                //let args_types = args_types.as_slice();
-                //let fn_type = self.context.i64_type().fn_type(args_types, false);
-                //let fn_val = self.module.add_function("main", fn_type, None);
-
                 let fn_val = self.module.get_function("main").expect("main function not found");
-
                 let entry = self.context.append_basic_block(fn_val, "entry");
                 self.builder.position_at_end(entry);
 
@@ -170,15 +166,13 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 let basic_type = match ty.clone() {
                     Types::Int => BasicTypeEnum::from(self.context.i64_type()),
                     Types::Float => BasicTypeEnum::from(self.context.f64_type()),
-                    //Types::String => BasicTypeEnum::from(self.context.ptr_type(AddressSpace::default())), //TODO
-                    Types::String => BasicTypeEnum::from(self.context.f64_type()), //TODO
+                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default())),
                     Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
                     Types::Array(size, base_type) => {
                         match *base_type {
                             Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(size)),
                             Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(size)),
-                            //Types::String => self.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
-                            Types::String => BasicTypeEnum::from(self.context.f64_type().array_type(size)), //TODO
+                            Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size)),
                             Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(size)),
                             _ => panic!("Unexpected base type for arrary type"),
                         }
@@ -212,15 +206,13 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                         match ty.clone() {
                             Types::Int => BasicMetadataTypeEnum::from(self.context.i64_type()),
                             Types::Float => BasicMetadataTypeEnum::from(self.context.f64_type()),
-                            //Types::String => BasicMetadataTypeEnum::from(self.context.ptr_type(AddressSpace::default())), //TODO
-                            Types::String => BasicMetadataTypeEnum::from(self.context.f64_type()), //TODO
+                            Types::String => BasicMetadataTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default())),
                             Types::Bool => BasicMetadataTypeEnum::from(self.context.bool_type()),
                             Types::Array(size, base_type) => {
                                 match *base_type {
                                     Types::Int => BasicMetadataTypeEnum::from(self.context.i64_type().array_type(size)),
                                     Types::Float => BasicMetadataTypeEnum::from(self.context.f64_type().array_type(size)),
-                                    //Types::String => self.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
-                                    Types::String => BasicMetadataTypeEnum::from(self.context.f64_type().array_type(size)), //TODO
+                                    Types::String => BasicMetadataTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size)),
                                     Types::Bool => BasicMetadataTypeEnum::from(self.context.bool_type().array_type(size)),
                                     _ => panic!("Unexpected base type for arrary type"),
                                 }
@@ -234,15 +226,13 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 let fn_type = match *ret_type {
                     Types::Int => self.context.i64_type().fn_type(args_types, false),
                     Types::Float => self.context.f64_type().fn_type(args_types, false),
-                    //Types::String => self.context.ptr_type(AddressSpace::default()).fn_type(args_types, false), //TODO
-                    Types::String => self.context.f64_type().fn_type(args_types, false), //TODO
+                    Types::String => self.context.i8_type().ptr_type(AddressSpace::default()).fn_type(args_types, false),
                     Types::Bool => self.context.bool_type().fn_type(args_types, false),
                     Types::Array(size, base_type) => {
                         match *base_type {
                             Types::Int => self.context.i64_type().array_type(size).fn_type(args_types, false),
                             Types::Float => self.context.f64_type().array_type(size).fn_type(args_types, false),
-                            //Types::String => self.context.ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false), //TODO
-                            Types::String => self.context.f64_type().array_type(size).fn_type(args_types, false), //TODO
+                            Types::String => self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false),
                             Types::Bool => self.context.bool_type().array_type(size).fn_type(args_types, false),
                             _ => panic!("Unexpected base type for arrary type"),
                         }
@@ -658,22 +648,29 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             Ast::IntLiteral { value } => AnyValueEnum::from(self.context.i64_type().const_int(*value as u64, false)),
             Ast::FloatLiteral { value } => AnyValueEnum::from(self.context.f64_type().const_float(*value as f64)),
             Ast::BoolLiteral { value } => AnyValueEnum::from(self.context.bool_type().const_int(*value as u64, false)),
-            Ast::StringLiteral { .. } => AnyValueEnum::from(self.context.f64_type().const_float(0.0)),
+            Ast::StringLiteral { value } => {
+                let val = self.context.const_string(value.as_bytes(), true);
+                let global = self.module.add_global(val.get_type(), Some(AddressSpace::default()), "str");
+                let name = global.get_name().to_str().expect("Unable to get string literal constant name");
+                global.set_constant(true);
+                global.set_initializer(&val);
+                global.set_linkage(Linkage::Private);
+                global.set_unnamed_addr(true);
+                AnyValueEnum::from(self.builder.build_load(self.context.i8_type().ptr_type(AddressSpace::default()), global.as_pointer_value(), name).unwrap())
+            },
             Ast::Var { id } => {
                 match self.var_st.get(id) {
                     Some((var, ty)) => {
                         let ty = match ty {
                             Types::Int => BasicTypeEnum::from(self.context.i64_type()),
                             Types::Float => BasicTypeEnum::from(self.context.f64_type()),
-                            //Types::String => BasicTypeEnum::from(self.context.ptr_type(AddressSpace::default())), //TODO
-                            Types::String => BasicTypeEnum::from(self.context.f64_type()), //TODO
+                            Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default())),
                             Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
                             Types::Array(size, base_type) => {
                                 match **base_type {
                                     Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(*size)),
                                     Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(*size)),
-                                    //Types::String => self.context.ptr_type(AddressSpace::default()).array_type(*size).fn_type(args_types, false), //TODO
-                                    Types::String => BasicTypeEnum::from(self.context.f64_type().array_type(*size)), //TODO
+                                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(*size)),
                                     Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(*size)),
                                     _ => panic!("Unexpected base type for arrary type"),
                                 }

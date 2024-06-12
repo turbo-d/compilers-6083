@@ -124,6 +124,7 @@ fn main() {
         "simplifycfg",
         // "basic-aa",
         "mem2reg",
+        //"constmerge",
     ];
 
     module.run_passes(passes.join(",").as_str(), &target_machine, PassBuilderOptions::create()).unwrap();
