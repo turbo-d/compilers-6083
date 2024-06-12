@@ -15,57 +15,71 @@ pub struct CodeGen<'a, 'ctx> {
     pub context: &'ctx Context,
     pub builder: &'a Builder<'ctx>,
     pub module: &'a Module<'ctx>,
-    pub st: SymTable<(PointerValue<'ctx>, Types), FunctionValue<'ctx>>,
+    pub var_st: SymTable<(PointerValue<'ctx>, Types), FunctionValue<'ctx>>,
+    pub fn_st: SymTable<FunctionValue<'ctx>, FunctionValue<'ctx>>,
 }
 
 impl<'a, 'ctx> CodeGen<'a, 'ctx> {
     pub fn new(context: &'ctx Context, builder: &'a Builder<'ctx>, module: &'a Module<'ctx>) -> CodeGen<'a, 'ctx> {
         let args_types = Vec::<BasicMetadataTypeEnum>::new();
         let args_types = args_types.as_slice();
+        let fn_type = context.i64_type().fn_type(args_types, false);
+        let fn_val = module.add_function("main", fn_type, None);
+
+        let var_st = SymTable::new(fn_val);
+
+        let mut fn_st = SymTable::new(fn_val);
+
+        let args_types = Vec::<BasicMetadataTypeEnum>::new();
+        let args_types = args_types.as_slice();
 
         let fn_type = context.bool_type().fn_type(args_types, false);
-        module.add_function("getbool", fn_type, None);
+        let fn_val = module.add_function("getbool", fn_type, None);
+        let _ = fn_st.insert(String::from("getbool"), fn_val);
 
         let fn_type = context.i64_type().fn_type(args_types, false);
-        module.add_function("getinteger", fn_type, None);
-        module.add_function("getstring", fn_type, None);
+        let fn_val = module.add_function("getinteger", fn_type, None);
+        let _ = fn_st.insert(String::from("getinteger"), fn_val);
+        let fn_val = module.add_function("getstring", fn_type, None);
+        let _ = fn_st.insert(String::from("getstring"), fn_val);
 
         let fn_type = context.f64_type().fn_type(args_types, false);
-        module.add_function("getfloat", fn_type, None);
+        let fn_val = module.add_function("getfloat", fn_type, None);
+        let _ = fn_st.insert(String::from("getfloat"), fn_val);
 
         let args_types = vec![BasicMetadataTypeEnum::from(context.bool_type())];
         let args_types = args_types.as_slice();
         let fn_type = context.bool_type().fn_type(args_types, false);
-        module.add_function("putbool", fn_type, None);
+        let fn_val = module.add_function("putbool", fn_type, None);
+        let _ = fn_st.insert(String::from("putbool"), fn_val);
 
         let args_types = vec![BasicMetadataTypeEnum::from(context.i64_type())];
         let args_types = args_types.as_slice();
         let fn_type = context.bool_type().fn_type(args_types, false);
-        module.add_function("putinteger", fn_type, None);
-        module.add_function("putstring", fn_type, None);
+        let fn_val = module.add_function("putinteger", fn_type, None);
+        let _ = fn_st.insert(String::from("putinteger"), fn_val);
+        let fn_val = module.add_function("putstring", fn_type, None);
+        let _ = fn_st.insert(String::from("putstring"), fn_val);
 
         let args_types = vec![BasicMetadataTypeEnum::from(context.f64_type())];
         let args_types = args_types.as_slice();
         let fn_type = context.bool_type().fn_type(args_types, false);
-        module.add_function("putfloat", fn_type, None);
+        let fn_val = module.add_function("putfloat", fn_type, None);
+        let _ = fn_st.insert(String::from("putfloat"), fn_val);
 
         let args_types = vec![BasicMetadataTypeEnum::from(context.i64_type())];
         let args_types = args_types.as_slice();
         let fn_type = context.f64_type().fn_type(args_types, false);
-        module.add_function("sqrt", fn_type, None);
+        let fn_val = module.add_function("sqrt", fn_type, None);
+        let _ = fn_st.insert(String::from("sqrt"), fn_val);
 
-        let args_types = Vec::<BasicMetadataTypeEnum>::new();
-        let args_types = args_types.as_slice();
-        let fn_type = context.i64_type().fn_type(args_types, false);
-        let fn_val = module.add_function("main", fn_type, None);
-
-        let st = SymTable::new(fn_val);
 
         CodeGen {
             context,
             builder,
             module,
-            st,
+            var_st,
+            fn_st,
         }
     }
 
@@ -152,7 +166,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 AnyValueEnum::from(self.builder.build_return(Some(&self.context.i64_type().const_int(0, false))).unwrap())
             }
             Ast::VarDecl { is_global, name, ty } => {
-                let parent_fn = self.st.get_local_proc_data().clone();
+                let parent_fn = self.var_st.get_local_proc_data().clone();
 
                 let basic_type = match ty.clone() {
                     Types::Int => BasicTypeEnum::from(self.context.i64_type()),
@@ -173,14 +187,14 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     _ => panic!("Unexpected procedure return type"),
                 };
 
-                if *is_global || self.st.is_in_global_scope() {
+                if *is_global || self.var_st.is_in_global_scope() {
                     let global = self.module.add_global(basic_type, Some(AddressSpace::default()), name.as_str());
                     global.set_initializer(&(*self.get_default_value(ty)));
-                    let _  = self.st.insert_global(name.clone(), (global.as_pointer_value(), ty.clone()));
+                    let _  = self.var_st.insert_global(name.clone(), (global.as_pointer_value(), ty.clone()));
                     return AnyValueEnum::from(global.as_pointer_value())
                 } else {
                     let alloca = self.create_entry_block_alloca(&parent_fn, name.as_str(), ty.clone());
-                    let _ = self.st.insert(name.clone(), (alloca, ty.clone()));
+                    let _ = self.var_st.insert(name.clone(), (alloca, ty.clone()));
                     return AnyValueEnum::from(alloca)
                 }
             },
@@ -238,12 +252,14 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 };
 
                 let fn_val = self.module.add_function(name.to_lowercase().as_str(), fn_type, None);
+                let _ = self.fn_st.insert(name.to_lowercase(), fn_val);
 
                 let entry = self.context.append_basic_block(fn_val, "entry");
                 self.builder.position_at_end(entry);
 
-                self.st.enter_scope(fn_val);
-                //self.st.reserve(self.params.len());
+                self.var_st.enter_scope(fn_val);
+                self.fn_st.enter_scope(fn_val);
+                //self.var_st.reserve(self.params.len());
 
                 for (i, arg) in fn_val.get_param_iter().enumerate() {
                     let arg_name = match *params[i] {
@@ -270,7 +286,8 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     self.visit_ast(&mut *stmt);
                 }
 
-                self.st.exit_scope();
+                self.fn_st.exit_scope();
+                self.var_st.exit_scope();
 
                 //if !fn_val.verify(true) {
                 //    unsafe {
@@ -294,7 +311,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     _ => panic!("Expected Ast::Var or Ast::SubscriptOp for AST::AssignStmt dest"),
                 };
 
-                let alloca = match self.st.get(name) {
+                let alloca = match self.var_st.get(name) {
                     Some((var, _)) => var.clone(),
                     None => panic!("Identifer name not found"),
                 };
@@ -309,7 +326,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 AnyValueEnum::from(val)
             },
             Ast::IfStmt { cond, then_body, else_body } => {
-                let parent = self.st.get_local_proc_data().clone();
+                let parent = self.var_st.get_local_proc_data().clone();
 
                 let cond = match IntValue::try_from(self.visit_ast(cond)) {
                     Ok(val) => val,
@@ -358,7 +375,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
             Ast::LoopStmt { init, cond, body } => {
-                let parent = self.st.get_local_proc_data().clone();
+                let parent = self.var_st.get_local_proc_data().clone();
 
                 self.visit_ast(init);
 
@@ -605,7 +622,12 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     _ => panic!("Expected Ast::Var for proc"),
                 };
 
-                match self.module.get_function(id.to_lowercase().as_str()) {
+                let fn_name = match self.fn_st.get(&id.to_lowercase()) {
+                    Some(fn_val) => fn_val.get_name().to_str().expect("Unable to parse CStr to Str"),
+                    _ => panic!("Function not found in module"),
+                };
+
+                match self.module.get_function(fn_name) {
                     Some(fun) => {
                         let mut compiled_args: Vec<BasicMetadataValueEnum> = Vec::with_capacity(args.len());
 
@@ -639,7 +661,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             Ast::BoolLiteral { value } => AnyValueEnum::from(self.context.bool_type().const_int(*value as u64, false)),
             Ast::StringLiteral { .. } => AnyValueEnum::from(self.context.f64_type().const_float(0.0)),
             Ast::Var { id } => {
-                match self.st.get(id) {
+                match self.var_st.get(id) {
                     Some((var, ty)) => {
                         let ty = match ty {
                             Types::Int => BasicTypeEnum::from(self.context.i64_type()),
