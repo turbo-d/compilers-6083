@@ -162,7 +162,6 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     self.visit_ast(&mut *stmt);
                 }
 
-                self.builder.position_at_end(entry);
                 AnyValueEnum::from(self.builder.build_return(Some(&self.context.i64_type().const_int(0, false))).unwrap())
             }
             Ast::VarDecl { is_global, name, ty } => {
@@ -686,10 +685,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     None => panic!("Identifer name not found"),
                 }
             },
-            Ast::FloatToInt { operand } => {
+            Ast::FloatToInt { .. } => {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
-            Ast::IntToFloat { operand } => {
+            Ast::IntToFloat { .. } => {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
             Ast::BoolToInt { operand } => {
@@ -706,16 +705,16 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 };
                 AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.bool_type(), "tmpcast").unwrap())
             },
-            Ast::FloatArrayToIntArray { operand } => {
+            Ast::FloatArrayToIntArray { .. } => {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
-            Ast::IntArrayToFloatArray { operand } => {
+            Ast::IntArrayToFloatArray { .. } => {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
-            Ast::BoolArrayToIntArray { operand } => {
+            Ast::BoolArrayToIntArray { .. } => {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
-            Ast::IntArrayToBoolArray { operand } => {
+            Ast::IntArrayToBoolArray { .. } => {
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
         }

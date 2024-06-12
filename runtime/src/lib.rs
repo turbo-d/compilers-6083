@@ -5,7 +5,7 @@ pub extern fn getbool() -> bool {
     let mut buffer = String::new();
     let stdin = io::stdin(); // We get `Stdin` here.
     stdin.read_line(&mut buffer).expect("Unable to read from stdin");
-    buffer.parse::<bool>().expect("Unable to parse input as bool")
+    buffer.trim().parse::<bool>().expect("Unable to parse input as bool")
 }
 
 #[no_mangle]
@@ -13,7 +13,7 @@ pub extern fn getinteger() -> i64 {
     let mut buffer = String::new();
     let stdin = io::stdin(); // We get `Stdin` here.
     stdin.read_line(&mut buffer).expect("Unable to read from stdin");
-    buffer.parse::<i64>().expect("Unable to parse input as integer")
+    buffer.trim().parse::<i64>().expect("Unable to parse input as integer")
 }
 
 #[no_mangle]
@@ -21,7 +21,7 @@ pub extern fn getfloat() -> f64 {
     let mut buffer = String::new();
     let stdin = io::stdin(); // We get `Stdin` here.
     stdin.read_line(&mut buffer).expect("Unable to read from stdin");
-    buffer.parse::<f64>().expect("Unable to parse input as float")
+    buffer.trim().parse::<f64>().expect("Unable to parse input as float")
 }
 
 //#[no_mangle]
