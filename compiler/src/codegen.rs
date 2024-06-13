@@ -90,6 +90,12 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
         let fn_val = module.add_function("sqrt", fn_type, None);
         let _ = fn_st.insert(String::from("sqrt"), fn_val);
 
+        let args_types = vec![BasicMetadataTypeEnum::from(context.i8_type().ptr_type(AddressSpace::default())), BasicMetadataTypeEnum::from(context.i8_type().ptr_type(AddressSpace::default()))];
+        let args_types = args_types.as_slice();
+        let fn_type = context.bool_type().fn_type(args_types, false);
+        let fn_val = module.add_function("strcmp", fn_type, None);
+        let _ = fn_st.insert(String::from("strcmp"), fn_val);
+
 
         CodeGen {
             context,
@@ -744,6 +750,48 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     };
 
                     return AnyValueEnum::from(cmp);
+                } else if lhs.is_pointer_value() {
+                    let lhs = match PointerValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected PointerValue"),
+                    };
+                    let rhs = match PointerValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected PointerValue"),
+                    };
+
+                    match self.module.get_function("strcmp") {
+                        Some(fun) => {
+                            let compiled_args = vec![
+                                BasicMetadataValueEnum::try_from(lhs).expect("Expected BaseMetadataValueEnum in arg list"),
+                                BasicMetadataValueEnum::try_from(rhs).expect("Expected BaseMetadataValueEnum in arg list"),
+                            ];
+
+                            let argsv: Vec<BasicMetadataValueEnum> =
+                                compiled_args.iter().by_ref().map(|&val| val.into()).collect();
+
+                            let ret_val = match self.builder
+                                .build_call(fun, argsv.as_slice(), "tmp")
+                                .unwrap()
+                                .try_as_basic_value()
+                                .left()
+                            {
+                                Some(value) => AnyValueEnum::from(value),
+                                None => panic!("Invalid call produced."),
+                            };
+
+                            if let RelationOp::NotEq = op {
+                                let bool_ret_val = match IntValue::try_from(ret_val) {
+                                    Ok(val) => val,
+                                    Err(_) => panic!("Expected IntValue"),
+                                };
+                                return AnyValueEnum::from(self.builder.build_not(bool_ret_val, "tmpnot").unwrap());
+                            } else {
+                                return ret_val;
+                            }
+                        },
+                        None => panic!("Unknown function strcmp."),
+                    }
                 } else if lhs.is_vector_value() {
                     let lhs = match VectorValue::try_from(lhs) {
                         Ok(val) => val,
@@ -782,7 +830,6 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                         return AnyValueEnum::from(cmp);
                     }
                 }
-                // TODO: Strings
 
                 panic!("Relational operators not supported on these operands");
             },
@@ -877,12 +924,14 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             Ast::StringLiteral { value } => {
                 let val = self.context.const_string(value.as_bytes(), true);
                 let global = self.module.add_global(val.get_type(), Some(AddressSpace::default()), "str");
-                let name = global.get_name().to_str().expect("Unable to get string literal constant name");
                 global.set_constant(true);
                 global.set_initializer(&val);
                 global.set_linkage(Linkage::Private);
                 global.set_unnamed_addr(true);
-                AnyValueEnum::from(self.builder.build_load(self.context.i8_type().ptr_type(AddressSpace::default()), global.as_pointer_value(), name).unwrap())
+                let base_index = self.context.i64_type().const_zero();
+                unsafe {
+                    AnyValueEnum::from(self.builder.build_gep(val.get_type(), global.as_pointer_value(), &[base_index], "tmpgep").unwrap())
+                }
             },
             Ast::Var { id } => {
                 match self.var_st.get(id) {
