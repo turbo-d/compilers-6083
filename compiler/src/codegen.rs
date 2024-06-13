@@ -443,36 +443,85 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 AnyValueEnum::from(self.builder.build_return(Some(&val)).unwrap())
             },
             Ast::AndOp { lhs, rhs } => {
-                let lhs = match IntValue::try_from(self.visit_ast(lhs)) {
-                    Ok(val) => val,
-                    Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
-                };
-                let rhs = match IntValue::try_from(self.visit_ast(rhs)) {
-                    Ok(val) => val,
-                    Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
-                };
+                let lhs = self.visit_ast(lhs);
+                let rhs = self.visit_ast(rhs);
 
-                AnyValueEnum::from(self.builder.build_and(lhs, rhs, "tmpand").unwrap())
+                if lhs.is_int_value() {
+                    let lhs = match IntValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+                    };
+                    let rhs = match IntValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_and(lhs, rhs, "tmpand").unwrap())
+                } else if lhs.is_vector_value() {
+                    let lhs = match VectorValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+                    let rhs = match VectorValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_and(lhs, rhs, "tmpand").unwrap())
+                }
+
+                panic!("Bitwise operations can only be performed on operands of integer type");
             },
             Ast::OrOp { lhs, rhs } => {
-                let lhs = match IntValue::try_from(self.visit_ast(lhs)) {
-                    Ok(val) => val,
-                    Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
-                };
-                let rhs = match IntValue::try_from(self.visit_ast(rhs)) {
-                    Ok(val) => val,
-                    Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
-                };
+                let lhs = self.visit_ast(lhs);
+                let rhs = self.visit_ast(rhs);
 
-                AnyValueEnum::from(self.builder.build_or(lhs, rhs, "tmpor").unwrap())
+                if lhs.is_int_value() {
+                    let lhs = match IntValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+                    };
+                    let rhs = match IntValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_or(lhs, rhs, "tmpor").unwrap());
+                } else if lhs.is_vector_value() {
+                    let lhs = match VectorValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+                    let rhs = match VectorValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_or(lhs, rhs, "tmpor").unwrap());
+                }
+
+                panic!("Bitwise operations can only be performed on operands of integer type");
             },
             Ast::NotOp { operand } => {
-                let val = match IntValue::try_from(self.visit_ast(operand)) {
-                    Ok(val) => val,
-                    Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
-                };
+                let operand = self.visit_ast(operand);
 
-                AnyValueEnum::from(self.builder.build_not(val, "tmpnot").unwrap())
+                if operand.is_int_value() {
+                    let val = match IntValue::try_from(operand) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Bitwise operations can only be performed on operands of integer type"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_not(val, "tmpnot").unwrap())
+                } else if operand.is_vector_value() {
+                    let val = match VectorValue::try_from(operand) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_not(val, "tmpnot").unwrap())
+                }
+
+                panic!("Bitwise operations can only be performed on operands of integer type");
             },
             Ast::AddOp { lhs, rhs } => {
                 let lhs = self.visit_ast(lhs);
@@ -500,6 +549,25 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     };
 
                     return AnyValueEnum::from(self.builder.build_float_add(lhs, rhs, "tmpadd").unwrap());
+                } else if lhs.is_vector_value() {
+                    let lhs = match VectorValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+                    let rhs = match VectorValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    let lhs_elem_type = lhs.get_type().get_element_type();
+                    let rhs_elem_type = rhs.get_type().get_element_type();
+                    if lhs_elem_type.is_int_type() {
+                        assert!(rhs_elem_type.is_int_type());
+                        return AnyValueEnum::from(self.builder.build_int_add(lhs, rhs, "tmpadd").unwrap());
+                    } else if lhs_elem_type.is_float_type() {
+                        assert!(rhs_elem_type.is_float_type());
+                        return AnyValueEnum::from(self.builder.build_float_add(lhs, rhs, "tmpadd").unwrap());
+                    }
                 }
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
@@ -530,6 +598,25 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     };
 
                     return AnyValueEnum::from(self.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap());
+                } else if lhs.is_vector_value() {
+                    let lhs = match VectorValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+                    let rhs = match VectorValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    let lhs_elem_type = lhs.get_type().get_element_type();
+                    let rhs_elem_type = rhs.get_type().get_element_type();
+                    if lhs_elem_type.is_int_type() {
+                        assert!(rhs_elem_type.is_int_type());
+                        return AnyValueEnum::from(self.builder.build_int_sub(lhs, rhs, "tmpsub").unwrap());
+                    } else if lhs_elem_type.is_float_type() {
+                        assert!(rhs_elem_type.is_float_type());
+                        return AnyValueEnum::from(self.builder.build_float_sub(lhs, rhs, "tmpsub").unwrap());
+                    }
                 }
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
@@ -560,21 +647,58 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     };
 
                     return AnyValueEnum::from(self.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap());
+                } else if lhs.is_vector_value() {
+                    let lhs = match VectorValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+                    let rhs = match VectorValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    let lhs_elem_type = lhs.get_type().get_element_type();
+                    let rhs_elem_type = rhs.get_type().get_element_type();
+                    if lhs_elem_type.is_int_type() {
+                        assert!(rhs_elem_type.is_int_type());
+                        return AnyValueEnum::from(self.builder.build_int_mul(lhs, rhs, "tmpmul").unwrap());
+                    } else if lhs_elem_type.is_float_type() {
+                        assert!(rhs_elem_type.is_float_type());
+                        return AnyValueEnum::from(self.builder.build_float_mul(lhs, rhs, "tmpmul").unwrap());
+                    }
                 }
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
             Ast::DivOp { lhs, rhs } => {
-                let lhs = match FloatValue::try_from(self.visit_ast(lhs)) {
-                    Ok(val) => val,
-                    Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-                };
-                let rhs = match FloatValue::try_from(self.visit_ast(rhs)) {
-                    Ok(val) => val,
-                    Err(_) => panic!("Arithmetic operations can only be performed on operands of float type"),
-                };
+                let lhs = self.visit_ast(lhs);
+                let rhs = self.visit_ast(rhs);
 
-                AnyValueEnum::from(self.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap())
+                if lhs.is_float_value() {
+                    let lhs = match FloatValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected FloatValue"),
+                    };
+                    let rhs = match FloatValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected FloatValue"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap())
+                } else if lhs.is_vector_value() {
+                    let lhs = match VectorValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+                    let rhs = match VectorValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    return AnyValueEnum::from(self.builder.build_float_div(lhs, rhs, "tmpdiv").unwrap())
+                }
+
+                panic!("Arithmetic operations can only be performed on operands of float type");
             },
             Ast::Relation { op, lhs, rhs } => {
                 let lhs = self.visit_ast(lhs);
@@ -620,6 +744,43 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     };
 
                     return AnyValueEnum::from(cmp);
+                } else if lhs.is_vector_value() {
+                    let lhs = match VectorValue::try_from(lhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+                    let rhs = match VectorValue::try_from(rhs) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    let lhs_elem_type = lhs.get_type().get_element_type();
+                    let rhs_elem_type = rhs.get_type().get_element_type();
+                    if lhs_elem_type.is_int_type() {
+                        assert!(rhs_elem_type.is_int_type());
+                        let cmp = match op {
+                            RelationOp::LT => self.builder.build_int_compare(IntPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::LTE => self.builder.build_int_compare(IntPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::GT => self.builder.build_int_compare(IntPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::GTE => self.builder.build_int_compare(IntPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::Eq => self.builder.build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::NotEq => self.builder.build_int_compare(IntPredicate::NE, lhs, rhs, "tmpcmp").unwrap(),
+                        };
+
+                        return AnyValueEnum::from(cmp);
+                    } else if lhs_elem_type.is_float_type() {
+                        assert!(rhs_elem_type.is_float_type());
+                        let cmp = match op {
+                            RelationOp::LT => self.builder.build_float_compare(FloatPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::LTE => self.builder.build_float_compare(FloatPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::GT => self.builder.build_float_compare(FloatPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::GTE => self.builder.build_float_compare(FloatPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::Eq => self.builder.build_float_compare(FloatPredicate::UEQ, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::NotEq => self.builder.build_float_compare(FloatPredicate::UNE, lhs, rhs, "tmpcmp").unwrap(),
+                        };
+
+                        return AnyValueEnum::from(cmp);
+                    }
                 }
                 // TODO: Strings
 
@@ -642,9 +803,22 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     };
 
                     return AnyValueEnum::from(self.builder.build_float_neg(val, "tmpneg").unwrap());
+                } else if val.is_vector_value() {
+                    let val = match VectorValue::try_from(val) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Expected VectorValue"),
+                    };
+
+                    let val_elem_type = val.get_type().get_element_type();
+                    if val_elem_type.is_int_type() {
+                        return AnyValueEnum::from(self.builder.build_int_neg(val, "tmpneg").unwrap());
+                    } else if val_elem_type.is_float_type() {
+                        return AnyValueEnum::from(self.builder.build_float_neg(val, "tmpneg").unwrap());
+                    }
                 }
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
+
             },
             Ast::SubscriptOp { array, index } => {
                 let array = match VectorValue::try_from(self.visit_ast(array)) {
