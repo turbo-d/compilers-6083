@@ -908,11 +908,19 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     None => panic!("Identifer name not found"),
                 }
             },
-            Ast::FloatToInt { .. } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            Ast::FloatToInt { operand } => {
+                let operand = match FloatValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected FloatValue"),
+                };
+                AnyValueEnum::from(self.builder.build_float_to_signed_int(operand, self.context.i64_type(), "tmpcast").unwrap())
             },
-            Ast::IntToFloat { .. } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            Ast::IntToFloat { operand } => {
+                let operand = match IntValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected IntValue"),
+                };
+                AnyValueEnum::from(self.builder.build_signed_int_to_float(operand, self.context.f64_type(), "tmpcast").unwrap())
             },
             Ast::BoolToInt { operand } => {
                 let operand = match IntValue::try_from(self.visit_ast(operand)) {
@@ -928,17 +936,37 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 };
                 AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.bool_type(), "tmpcast").unwrap())
             },
-            Ast::FloatArrayToIntArray { .. } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            Ast::FloatArrayToIntArray { operand } => {
+                let operand = match VectorValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected VectorValue"),
+                };
+                assert!(operand.get_type().get_element_type().is_float_type(), "Expected float vector");
+                AnyValueEnum::from(self.builder.build_float_to_signed_int(operand, self.context.i64_type().vec_type(operand.get_type().get_size()), "tmpcast").unwrap())
             },
-            Ast::IntArrayToFloatArray { .. } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            Ast::IntArrayToFloatArray { operand } => {
+                let operand = match VectorValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected VectorValue"),
+                };
+                assert!(operand.get_type().get_element_type().is_int_type(), "Expected integer vector");
+                AnyValueEnum::from(self.builder.build_signed_int_to_float(operand, self.context.f64_type().vec_type(operand.get_type().get_size()), "tmpcast").unwrap())
             },
-            Ast::BoolArrayToIntArray { .. } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            Ast::BoolArrayToIntArray { operand } => {
+                let operand = match VectorValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected VectorValue"),
+                };
+                assert!(operand.get_type().get_element_type().is_int_type(), "Expected bool vector");
+                AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.i64_type().vec_type(operand.get_type().get_size()), "tmpcast").unwrap())
             },
-            Ast::IntArrayToBoolArray { .. } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            Ast::IntArrayToBoolArray { operand } => {
+                let operand = match VectorValue::try_from(self.visit_ast(operand)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Expected VectorValue"),
+                };
+                assert!(operand.get_type().get_element_type().is_int_type(), "Expected integer vector");
+                AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.bool_type().vec_type(operand.get_type().get_size()), "tmpcast").unwrap())
             },
         }
     }

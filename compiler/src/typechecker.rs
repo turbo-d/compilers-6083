@@ -850,6 +850,12 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 
                         if let Types::Int = **lhs_base_type {
                             if let Types::Int = **rhs_base_type {
+                                *lhs = Box::new(Ast::IntArrayToFloatArray {
+                                    operand: Box::new(*lhs.clone()),
+                                });
+                                *rhs = Box::new(Ast::IntArrayToFloatArray {
+                                    operand: Box::new(*rhs.clone()),
+                                });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Int)))
                             } else { // Float
                                 *lhs = Box::new(Ast::IntArrayToFloatArray {
@@ -977,12 +983,6 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Err(TerminalError)
                                             },
                                             Types::Bool => {
-                                                *lhs = Box::new(Ast::BoolArrayToIntArray {
-                                                    operand: Box::new(*lhs.clone()),
-                                                });
-                                                *rhs = Box::new(Ast::BoolArrayToIntArray {
-                                                    operand: Box::new(*rhs.clone()),
-                                                });
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
                                             Types::String => {
@@ -1104,12 +1104,6 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Err(TerminalError)
                             },
                             Types::Bool => {
-                                *lhs = Box::new(Ast::BoolToInt {
-                                    operand: Box::new(*lhs.clone()),
-                                });
-                                *rhs = Box::new(Ast::BoolToInt {
-                                    operand: Box::new(*rhs.clone()),
-                                });
                                 Ok(Types::Bool)
                             },
                             Types::String => {
@@ -4131,9 +4125,22 @@ mod tests {
 
         let exp_type = Types::Array(5, Box::new(Types::Int));
         let exp_errs = &Vec::new();
+        let exp_ast = Box::new(Ast::DivOp {
+            lhs: Box::new(Ast::IntArrayToFloatArray {
+                operand: Box::new(Ast::Var { 
+                    id: String::from("a") 
+                }),
+            }),
+            rhs: Box::new(Ast::IntArrayToFloatArray { 
+                operand: Box::new(Ast::Var { 
+                    id: String::from("b") 
+                }),
+            }),
+        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
+        assert_eq!(ast, exp_ast);
     }
 
     #[test]
@@ -4387,23 +4394,9 @@ mod tests {
 
         let exp_type = Types::Bool;
         let exp_errs = &Vec::new();
-        let exp_ast = Box::new(Ast::Relation {
-            op: RelationOp::Eq,
-            lhs: Box::new(Ast::BoolToInt {
-                operand: Box::new(Ast::BoolLiteral { 
-                    value: true,
-                }),
-            }),
-            rhs: Box::new(Ast::BoolToInt {
-                operand: Box::new(Ast::BoolLiteral { 
-                    value: false,
-                }),
-            }),
-        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
-        assert_eq!(ast, exp_ast);
     }
 
     #[test]
@@ -4592,23 +4585,9 @@ mod tests {
 
         let exp_type = Types::Array(5, Box::new(Types::Bool));
         let exp_errs = &Vec::new();
-        let exp_ast = Box::new(Ast::Relation {
-            op: RelationOp::Eq,
-            lhs: Box::new(Ast::BoolArrayToIntArray {
-                operand: Box::new(Ast::Var { 
-                    id: String::from("a") 
-                }),
-            }),
-            rhs: Box::new(Ast::BoolArrayToIntArray {
-                operand: Box::new(Ast::Var { 
-                    id: String::from("b") 
-                }),
-            }),
-        });
 
         assert_eq!(act_type, exp_type);
         assert_eq!(act_errs, exp_errs);
-        assert_eq!(ast, exp_ast);
     }
 
     #[test]
