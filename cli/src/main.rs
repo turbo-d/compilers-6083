@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::io::Write;
 use std::path::Path;
-use std::process;
+use std::process::{self, Command};
 
 use compiler::codegen::CodeGen;
 use compiler::error::CompilerError;
@@ -122,9 +122,7 @@ fn main() {
         "reassociate",
         "gvn",
         "simplifycfg",
-        // "basic-aa",
         "mem2reg",
-        //"constmerge",
     ];
 
     module.run_passes(passes.join(",").as_str(), &target_machine, PassBuilderOptions::create()).unwrap();
@@ -133,8 +131,24 @@ fn main() {
         println!("{}", module.to_string());
     }
 
-    let path = Path::new("./out").with_extension("ll");
-    module.print_to_file(&path).expect("Error printing ll file");
+    let llvm_ir_path = Path::new("./out").with_extension("ll");
+    module.print_to_file(&llvm_ir_path).expect("Error printing ll file");
+
+    let runtime_path = Path::new("./target/debug/libruntime").with_extension("a");
+
+    let output = Command::new("clang")
+        .current_dir(env::current_dir().expect("failed to find current dir"))
+        .arg(&llvm_ir_path)
+        .arg(&runtime_path)
+        .output()
+        .expect("failed to execute linker");
+    let status = output.status;
+    if !status.success() {
+        println!("link error: {}", std::str::from_utf8(&output.stderr).unwrap());
+        process::exit(1);
+    }
+
+    fs::remove_file(llvm_ir_path).expect("failed to remove temporary ll file");
 
     println!("Done");
 }
