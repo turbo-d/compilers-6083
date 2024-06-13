@@ -9,7 +9,18 @@ use inkwell::FloatPredicate;
 use inkwell::IntPredicate;
 use inkwell::module::{Linkage, Module};
 use inkwell::types::{BasicMetadataTypeEnum, BasicTypeEnum};
-use inkwell::values::{AnyValueEnum, BasicMetadataValueEnum, BasicValue, BasicValueEnum, FloatValue, FunctionValue, IntValue, InstructionValue, PointerValue};
+use inkwell::values::{
+    AnyValueEnum,
+    BasicMetadataValueEnum,
+    BasicValue,
+    BasicValueEnum,
+    FloatValue,
+    FunctionValue,
+    IntValue,
+    InstructionValue,
+    PointerValue,
+    VectorValue
+};
 
 pub struct CodeGen<'a, 'ctx> {
     pub context: &'ctx Context,
@@ -106,10 +117,10 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
             Types::Array(size, base_type) => {
                 match *base_type {
-                    Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(size)),
-                    Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(size)),
-                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size)),
-                    Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(size)),
+                    Types::Int => BasicTypeEnum::from(self.context.i64_type().vec_type(size)),
+                    Types::Float => BasicTypeEnum::from(self.context.f64_type().vec_type(size)),
+                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).vec_type(size)),
+                    Types::Bool => BasicTypeEnum::from(self.context.bool_type().vec_type(size)),
                     _ => panic!("Unexpected base type for array type"),
                 }
             }
@@ -127,10 +138,10 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
             Types::Bool => Box::new(self.context.bool_type().const_zero()),
             Types::Array(size, base_type) => {
                 match **base_type {
-                    Types::Int => Box::new(self.context.i64_type().array_type(*size).const_zero()),
-                    Types::Float => Box::new(self.context.f64_type().array_type(*size).const_zero()),
-                    Types::String => Box::new(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(*size).const_zero()),
-                    Types::Bool => Box::new(self.context.bool_type().array_type(*size).const_zero()),
+                    Types::Int => Box::new(self.context.i64_type().vec_type(*size).const_zero()),
+                    Types::Float => Box::new(self.context.f64_type().vec_type(*size).const_zero()),
+                    Types::String => Box::new(self.context.i8_type().ptr_type(AddressSpace::default()).vec_type(*size).const_zero()),
+                    Types::Bool => Box::new(self.context.bool_type().vec_type(*size).const_zero()),
                     _ => panic!("No default value for {ty}"),
                 }
             }
@@ -170,10 +181,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
                     Types::Array(size, base_type) => {
                         match *base_type {
-                            Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(size)),
-                            Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(size)),
-                            Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size)),
-                            Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(size)),
+                            Types::Int => BasicTypeEnum::from(self.context.i64_type().vec_type(size)),
+                            Types::Float => BasicTypeEnum::from(self.context.f64_type().vec_type(size)),
+                            Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).vec_type(size)),
+                            Types::Bool => BasicTypeEnum::from(self.context.bool_type().vec_type(size)),
                             _ => panic!("Unexpected base type for arrary type"),
                         }
                     }
@@ -210,10 +221,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                             Types::Bool => BasicMetadataTypeEnum::from(self.context.bool_type()),
                             Types::Array(size, base_type) => {
                                 match *base_type {
-                                    Types::Int => BasicMetadataTypeEnum::from(self.context.i64_type().array_type(size)),
-                                    Types::Float => BasicMetadataTypeEnum::from(self.context.f64_type().array_type(size)),
-                                    Types::String => BasicMetadataTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size)),
-                                    Types::Bool => BasicMetadataTypeEnum::from(self.context.bool_type().array_type(size)),
+                                    Types::Int => BasicMetadataTypeEnum::from(self.context.i64_type().vec_type(size)),
+                                    Types::Float => BasicMetadataTypeEnum::from(self.context.f64_type().vec_type(size)),
+                                    Types::String => BasicMetadataTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).vec_type(size)),
+                                    Types::Bool => BasicMetadataTypeEnum::from(self.context.bool_type().vec_type(size)),
                                     _ => panic!("Unexpected base type for arrary type"),
                                 }
                             }
@@ -230,10 +241,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     Types::Bool => self.context.bool_type().fn_type(args_types, false),
                     Types::Array(size, base_type) => {
                         match *base_type {
-                            Types::Int => self.context.i64_type().array_type(size).fn_type(args_types, false),
-                            Types::Float => self.context.f64_type().array_type(size).fn_type(args_types, false),
-                            Types::String => self.context.i8_type().ptr_type(AddressSpace::default()).array_type(size).fn_type(args_types, false),
-                            Types::Bool => self.context.bool_type().array_type(size).fn_type(args_types, false),
+                            Types::Int => self.context.i64_type().vec_type(size).fn_type(args_types, false),
+                            Types::Float => self.context.f64_type().vec_type(size).fn_type(args_types, false),
+                            Types::String => self.context.i8_type().ptr_type(AddressSpace::default()).vec_type(size).fn_type(args_types, false),
+                            Types::Bool => self.context.bool_type().vec_type(size).fn_type(args_types, false),
                             _ => panic!("Unexpected base type for arrary type"),
                         }
                     }
@@ -290,18 +301,37 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             },
             Ast::AssignStmt { dest, expr } => {
                 let name = match **dest {
-                    Ast::Var { ref id } => id,
+                    Ast::Var { ref id } => id.clone(),
                     Ast::SubscriptOp { ref array, .. } => {
                         match **array {
-                            Ast::Var { ref id } => id,
+                            Ast::Var { ref id } => id.clone(),
                             _ => panic!("Expected Ast::Var for AST::SubscriptOp array"),
                         }
                     },
                     _ => panic!("Expected Ast::Var or Ast::SubscriptOp for AST::AssignStmt dest"),
                 };
 
-                let alloca = match self.var_st.get(name) {
-                    Some((var, _)) => var.clone(),
+                let (alloca, ty) = match self.var_st.get(&name) {
+                    Some((var, ty)) => {
+                        let ty = match ty {
+                            Types::Int => BasicTypeEnum::from(self.context.i64_type()),
+                            Types::Float => BasicTypeEnum::from(self.context.f64_type()),
+                            Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default())),
+                            Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
+                            Types::Array(size, base_type) => {
+                                match **base_type {
+                                    Types::Int => BasicTypeEnum::from(self.context.i64_type().vec_type(*size)),
+                                    Types::Float => BasicTypeEnum::from(self.context.f64_type().vec_type(*size)),
+                                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).vec_type(*size)),
+                                    Types::Bool => BasicTypeEnum::from(self.context.bool_type().vec_type(*size)),
+                                    _ => panic!("Unexpected base type for arrary type"),
+                                }
+                            }
+                            _ => panic!("Unexpected procedure return type"),
+                        };
+
+                        (var.clone(), ty)
+                    },
                     None => panic!("Identifer name not found"),
                 };
 
@@ -310,9 +340,23 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     Err(_) => panic!("Expected BasicValue in assignment."),
                 };
 
-                self.builder.build_store(alloca, val).unwrap();
-
-                AnyValueEnum::from(val)
+                if let Ast::SubscriptOp { ref mut index, .. } = &mut **dest {
+                    let array = AnyValueEnum::from(self.builder.build_load(ty, alloca, name.as_str()).unwrap());
+                    let array = match VectorValue::try_from(array) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Subscript operation can only be performed on array types"),
+                    };
+                    let index = match IntValue::try_from(self.visit_ast(index)) {
+                        Ok(val) => val,
+                        Err(_) => panic!("Subscript operation index must be an integer type"),
+                    };
+                    let vec_val = self.builder.build_insert_element(array, val, index, "tmpsubscript").unwrap();
+                    self.builder.build_store(alloca, vec_val).unwrap();
+                    AnyValueEnum::from(vec_val)
+                } else {
+                    self.builder.build_store(alloca, val).unwrap();
+                    AnyValueEnum::from(val)
+                }
             },
             Ast::IfStmt { cond, then_body, else_body } => {
                 let parent = self.var_st.get_local_proc_data().clone();
@@ -602,8 +646,16 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            Ast::SubscriptOp { .. } => {
-                AnyValueEnum::from(self.context.i64_type().const_int(0, false))
+            Ast::SubscriptOp { array, index } => {
+                let array = match VectorValue::try_from(self.visit_ast(array)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Subscript operation can only be performed on array types"),
+                };
+                let index = match IntValue::try_from(self.visit_ast(index)) {
+                    Ok(val) => val,
+                    Err(_) => panic!("Subscript operation index must be an integer type"),
+                };
+                AnyValueEnum::from(self.builder.build_extract_element(array, index, "tmpsubscript").unwrap())
             },
             Ast::ProcCall { proc, args } => {
                 let id = match **proc {
@@ -668,10 +720,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                             Types::Bool => BasicTypeEnum::from(self.context.bool_type()),
                             Types::Array(size, base_type) => {
                                 match **base_type {
-                                    Types::Int => BasicTypeEnum::from(self.context.i64_type().array_type(*size)),
-                                    Types::Float => BasicTypeEnum::from(self.context.f64_type().array_type(*size)),
-                                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).array_type(*size)),
-                                    Types::Bool => BasicTypeEnum::from(self.context.bool_type().array_type(*size)),
+                                    Types::Int => BasicTypeEnum::from(self.context.i64_type().vec_type(*size)),
+                                    Types::Float => BasicTypeEnum::from(self.context.f64_type().vec_type(*size)),
+                                    Types::String => BasicTypeEnum::from(self.context.i8_type().ptr_type(AddressSpace::default()).vec_type(*size)),
+                                    Types::Bool => BasicTypeEnum::from(self.context.bool_type().vec_type(*size)),
                                     _ => panic!("Unexpected base type for arrary type"),
                                 }
                             }
