@@ -120,6 +120,7 @@ pub enum Ast {
     },
     Var {
         id: String,
+        line: u32,
     },
     FloatToInt {
         operand: Box<Ast>
@@ -143,7 +144,7 @@ pub enum Ast {
         operand: Box<Ast>
     },
     IntArrayToBoolArray {
-        operand: Box<Ast>
+        operand: Box<Ast>,
     },
 }
 
@@ -331,7 +332,7 @@ impl Ast {
                 write!(buf, "{}string: {value}\n", c.repeat(width))?;
                 Ok(())
             },
-            Ast::Var { id } => {
+            Ast::Var { id, .. } => {
                 write!(buf, "{}var: {id}\n", c.repeat(width))?;
                 Ok(())
             },

@@ -307,10 +307,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             },
             Ast::AssignStmt { dest, expr } => {
                 let name = match **dest {
-                    Ast::Var { ref id } => id.clone(),
+                    Ast::Var { ref id, .. } => id.clone(),
                     Ast::SubscriptOp { ref array, .. } => {
                         match **array {
-                            Ast::Var { ref id } => id.clone(),
+                            Ast::Var { ref id, .. } => id.clone(),
                             _ => panic!("Expected Ast::Var for AST::SubscriptOp array"),
                         }
                     },
@@ -881,7 +881,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
             },
             Ast::ProcCall { proc, args } => {
                 let id = match **proc {
-                    Ast::Var { ref id } => id,
+                    Ast::Var { ref id, .. } => id,
                     _ => panic!("Expected Ast::Var for proc"),
                 };
 
@@ -934,7 +934,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     AnyValueEnum::from(self.builder.build_gep(val.get_type(), global.as_pointer_value(), &[base_index], "tmpgep").unwrap())
                 }
             },
-            Ast::Var { id } => {
+            Ast::Var { id, .. } => {
                 match self.var_st.get(&id.to_lowercase()) {
                     Some((var, ty)) => {
                         let ty = match ty {

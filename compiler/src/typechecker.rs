@@ -1200,7 +1200,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
             },
             Ast::ProcCall { proc, args } => {
                 let proc_name = 
-                    if let Ast::Var { ref id } = **proc {
+                    if let Ast::Var { ref id, .. } = **proc {
                         id.clone()
                     } else {
                         String::from("")
@@ -1244,11 +1244,11 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
             Ast::FloatLiteral { .. } => Ok(Types::Float),
             Ast::BoolLiteral { .. } => Ok(Types::Bool),
             Ast::StringLiteral { .. } => Ok(Types::String),
-            Ast::Var { id } => {
+            Ast::Var { id, line } => {
                 match self.st.get(&id.to_lowercase()) {
                     Some(types) => Ok(types.clone()),
                     None => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Missing declaration for {id}") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Missing declaration for {id}") });
                         Err(TerminalError)
                     },
                 }
@@ -1610,6 +1610,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
@@ -1633,6 +1634,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
@@ -1649,6 +1651,7 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntToFloat { 
                 operand: Box::new(Ast::IntLiteral { 
@@ -1667,6 +1670,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
@@ -1683,6 +1687,7 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntToBool { 
                 operand: Box::new(Ast::IntLiteral { 
@@ -1701,6 +1706,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
@@ -1724,6 +1730,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
@@ -1740,6 +1747,7 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::FloatToInt { 
                 operand: Box::new(Ast::FloatLiteral { 
@@ -1758,6 +1766,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
@@ -1774,6 +1783,7 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntToBool { 
                 operand: Box::new(Ast::FloatToInt { 
@@ -1794,6 +1804,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
@@ -1817,6 +1828,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
@@ -1833,6 +1845,7 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::BoolToInt { 
                 operand: Box::new(Ast::BoolLiteral { 
@@ -1851,6 +1864,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
@@ -1867,6 +1881,7 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntToFloat { 
                 operand: Box::new(Ast::BoolToInt { 
@@ -1887,6 +1902,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
@@ -1910,9 +1926,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -1934,9 +1952,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -1951,10 +1971,12 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntArrayToFloatArray { 
                 operand: Box::new(Ast::Var {
                     id: String::from("a"),
+                    line: 1,
                 }),
             }),
         });
@@ -1969,9 +1991,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -1986,10 +2010,12 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntArrayToBoolArray { 
                 operand: Box::new(Ast::Var {
                     id: String::from("a"),
+                    line: 1,
                 }),
             }),
         });
@@ -2004,9 +2030,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2028,9 +2056,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2045,10 +2075,12 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::FloatArrayToIntArray { 
                 operand: Box::new(Ast::Var {
                     id: String::from("a"),
+                    line: 1,
                 }),
             }),
         });
@@ -2063,9 +2095,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2080,11 +2114,13 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntArrayToBoolArray { 
                 operand: Box::new(Ast::FloatArrayToIntArray { 
                     operand: Box::new(Ast::Var {
                         id: String::from("a"),
+                        line: 1,
                     }),
                 }),
             }),
@@ -2100,9 +2136,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2124,9 +2162,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2141,10 +2181,12 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::BoolArrayToIntArray { 
                 operand: Box::new(Ast::Var {
                     id: String::from("a"),
+                    line: 1,
                 }),
             }),
         });
@@ -2159,9 +2201,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2176,11 +2220,13 @@ mod tests {
         let exp_ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("dest"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntArrayToFloatArray { 
                 operand: Box::new(Ast::BoolArrayToIntArray { 
                     operand: Box::new(Ast::Var {
                         id: String::from("a"),
+                        line: 1,
                     }),
                 }),
             }),
@@ -2196,9 +2242,11 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2220,6 +2268,7 @@ mod tests {
         let mut ast = Box::new(Ast::AssignStmt {
             dest: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
@@ -2690,10 +2739,12 @@ mod tests {
     fn typechecker_and_op_intarrayintarray() {
         let mut ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2736,10 +2787,12 @@ mod tests {
     fn typechecker_and_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2760,10 +2813,12 @@ mod tests {
     fn typechecker_and_op_err_mismatchedarraylengths() {
         let mut ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2787,7 +2842,8 @@ mod tests {
                 value: 5,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2829,10 +2885,12 @@ mod tests {
     fn typechecker_or_op_intarrayintarray() {
         let mut ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2875,10 +2933,12 @@ mod tests {
     fn typechecker_or_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2899,10 +2959,12 @@ mod tests {
     fn typechecker_or_op_err_mismatchedarraylengths() {
         let mut ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2926,7 +2988,8 @@ mod tests {
                 value: 5,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -2965,7 +3028,8 @@ mod tests {
     fn typechecker_not_op_intarray() {
         let mut ast = Box::new(Ast::NotOp {
             operand: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3004,7 +3068,8 @@ mod tests {
     fn typechecker_not_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::NotOp {
             operand: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3134,10 +3199,12 @@ mod tests {
     fn typechecker_add_op_intarrayintarray() {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3158,10 +3225,12 @@ mod tests {
     fn typechecker_add_op_floatarrayfloatarray() {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3182,10 +3251,12 @@ mod tests {
     fn typechecker_add_op_intarrayfloatarray() {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3200,11 +3271,13 @@ mod tests {
         let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("a") 
+                    id: String::from("a"),
+                line: 1,
                 }),
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
 
@@ -3217,10 +3290,12 @@ mod tests {
     fn typechecker_add_op_floatarrayintarray() {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3234,11 +3309,13 @@ mod tests {
         let exp_errs = &Vec::new();
         let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("b") 
+                    id: String::from("b"),
+                    line: 1,
                 }),
             }),
         });
@@ -3274,10 +3351,12 @@ mod tests {
     fn typechecker_add_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3298,10 +3377,12 @@ mod tests {
     fn typechecker_add_op_err_mismatchedarraylengths() {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3325,7 +3406,8 @@ mod tests {
                 value: 5,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3455,10 +3537,12 @@ mod tests {
     fn typechecker_sub_op_intarrayintarray() {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3479,10 +3563,12 @@ mod tests {
     fn typechecker_sub_op_floatarrayfloatarray() {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3503,10 +3589,12 @@ mod tests {
     fn typechecker_sub_op_intarrayfloatarray() {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3521,11 +3609,13 @@ mod tests {
         let exp_ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("a") 
+                    id: String::from("a"),
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
 
@@ -3538,10 +3628,12 @@ mod tests {
     fn typechecker_sub_op_floatarrayintarray() {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3555,11 +3647,13 @@ mod tests {
         let exp_errs = &Vec::new();
         let exp_ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("b") 
+                    id: String::from("b"),
+                    line: 1,
                 }),
             }),
         });
@@ -3595,10 +3689,12 @@ mod tests {
     fn typechecker_sub_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3619,10 +3715,12 @@ mod tests {
     fn typechecker_sub_op_err_mismatchedarraylengths() {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3646,7 +3744,8 @@ mod tests {
                 value: 5,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3776,10 +3875,12 @@ mod tests {
     fn typechecker_mul_op_intarrayintarray() {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3800,10 +3901,12 @@ mod tests {
     fn typechecker_mul_op_floatarrayfloatarray() {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3824,10 +3927,12 @@ mod tests {
     fn typechecker_mul_op_intarrayfloatarray() {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3842,11 +3947,13 @@ mod tests {
         let exp_ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("a") 
+                    id: String::from("a"),
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
 
@@ -3859,10 +3966,12 @@ mod tests {
     fn typechecker_mul_op_floatarrayintarray() {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3876,11 +3985,13 @@ mod tests {
         let exp_errs = &Vec::new();
         let exp_ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("b") 
+                    id: String::from("b"),
+                    line: 1,
                 }),
             }),
         });
@@ -3916,10 +4027,12 @@ mod tests {
     fn typechecker_mul_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3940,10 +4053,12 @@ mod tests {
     fn typechecker_mul_op_err_mismatchedarraylengths() {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -3967,7 +4082,8 @@ mod tests {
                 value: 5,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4110,10 +4226,12 @@ mod tests {
     fn typechecker_div_op_intarrayintarray() {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4128,12 +4246,14 @@ mod tests {
         let exp_ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("a") 
+                    id: String::from("a"),
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::IntArrayToFloatArray { 
                 operand: Box::new(Ast::Var { 
-                    id: String::from("b") 
+                    id: String::from("b"),
+                    line: 1,
                 }),
             }),
         });
@@ -4147,10 +4267,12 @@ mod tests {
     fn typechecker_div_op_floatarrayfloatarray() {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4171,10 +4293,12 @@ mod tests {
     fn typechecker_div_op_intarrayfloatarray() {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4189,11 +4313,13 @@ mod tests {
         let exp_ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("a") 
+                    id: String::from("a"),
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
 
@@ -4206,10 +4332,12 @@ mod tests {
     fn typechecker_div_op_floatarrayintarray() {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4223,11 +4351,13 @@ mod tests {
         let exp_errs = &Vec::new();
         let exp_ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("b") 
+                    id: String::from("b"),
+                    line: 1,
                 }),
             }),
         });
@@ -4263,10 +4393,12 @@ mod tests {
     fn typechecker_div_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4287,10 +4419,12 @@ mod tests {
     fn typechecker_div_op_err_mismatchedarraylengths() {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4314,7 +4448,8 @@ mod tests {
                 value: 5,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4520,10 +4655,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4545,10 +4682,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4570,10 +4709,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4595,10 +4736,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4620,10 +4763,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::NotEq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4645,10 +4790,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4663,11 +4810,13 @@ mod tests {
         let exp_ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::BoolArrayToIntArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("b") 
+                    id: String::from("b"),
+                    line: 1,
                 }),
             }),
         });
@@ -4682,10 +4831,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4701,11 +4852,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::BoolArrayToIntArray {
                 operand: Box::new(Ast::Var { 
-                    id: String::from("a") 
+                    id: String::from("a"),
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
 
@@ -4765,10 +4918,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4790,10 +4945,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4907,10 +5064,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::LT,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4932,10 +5091,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::LTE,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4957,10 +5118,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::GT,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -4982,10 +5145,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::GTE,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5053,10 +5218,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5078,10 +5245,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5107,6 +5276,7 @@ mod tests {
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5128,6 +5298,7 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
                 id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 5,
@@ -5152,9 +5323,11 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
                 id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5177,9 +5350,11 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
                 id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5201,10 +5376,12 @@ mod tests {
         let mut ast = Box::new(Ast::Relation {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("b") 
+                id: String::from("b"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5229,7 +5406,8 @@ mod tests {
                 value: 5,
             }),
             rhs: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5287,7 +5465,8 @@ mod tests {
     fn typechecker_negate_op_intarray() {
         let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5307,7 +5486,8 @@ mod tests {
     fn typechecker_negate_op_floatarray() {
         let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5346,7 +5526,8 @@ mod tests {
     fn typechecker_negate_op_err_invalidarraytype() {
         let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -5366,7 +5547,8 @@ mod tests {
     fn typechecker_subscript_op() {
         let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             index: Box::new(Ast::IntLiteral {
                 value: 0,
@@ -5389,7 +5571,8 @@ mod tests {
     fn typechecker_subscript_op_err_invalidbasetype() {
         let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             index: Box::new(Ast::IntLiteral {
                 value: 0,
@@ -5412,7 +5595,8 @@ mod tests {
     fn typechecker_subscript_op_err_invalidindextype() {
         let mut ast = Box::new(Ast::SubscriptOp { 
             array: Box::new(Ast::Var { 
-                id: String::from("a") 
+                id: String::from("a"),
+                line: 1,
             }),
             index: Box::new(Ast::FloatLiteral {
                 value: 1.0,
@@ -5435,7 +5619,8 @@ mod tests {
     fn typechecker_proc_call_noarg() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: Vec::new(),
         });
@@ -5456,7 +5641,8 @@ mod tests {
     fn typechecker_proc_call_singlearg() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: vec![
                 Box::new(Ast::IntLiteral { 
@@ -5481,7 +5667,8 @@ mod tests {
     fn typechecker_proc_call_multiarg() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: vec![
                 Box::new(Ast::IntLiteral { 
@@ -5509,7 +5696,8 @@ mod tests {
     fn typechecker_proc_call_recursion() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: Vec::new(),
         });
@@ -5531,7 +5719,8 @@ mod tests {
     fn typechecker_proc_call_shadowedrecursion() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: Vec::new(),
         });
@@ -5554,7 +5743,8 @@ mod tests {
     fn typechecker_proc_call_err_invalidtype() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: Vec::new(),
         });
@@ -5575,7 +5765,8 @@ mod tests {
     fn typechecker_proc_call_err_invalidargcount() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: Vec::new(),
         });
@@ -5596,7 +5787,8 @@ mod tests {
     fn typechecker_proc_call_err_mismatchedargtypes() {
         let mut ast = Box::new(Ast::ProcCall {
             proc: Box::new(Ast::Var { 
-                id: String::from("foo") 
+                id: String::from("foo"),
+                line: 1,
             }),
             args: vec![
                 Box::new(Ast::IntLiteral { 
@@ -5693,6 +5885,7 @@ mod tests {
     fn typechecker_var_global() {
         let mut ast = Box::new(Ast::Var {
             id: String::from("a"),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -5713,6 +5906,7 @@ mod tests {
     fn typechecker_var_local() {
         let mut ast = Box::new(Ast::Var {
             id: String::from("a"),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("a"), Types::String).expect("SymTable insertion failed. Unable to setup test.");
@@ -5735,6 +5929,7 @@ mod tests {
     fn typechecker_var_caseinsensitive() {
         let mut ast = Box::new(Ast::Var {
             id: String::from("TmP"),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("tmp"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -5753,6 +5948,7 @@ mod tests {
     fn typechecker_var_err_missingdecl() {
         let mut ast = Box::new(Ast::Var {
             id: String::from("a"),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5999,6 +6195,7 @@ mod tests {
         let mut ast = Box::new(Ast::FloatArrayToIntArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6019,6 +6216,7 @@ mod tests {
         let mut ast = Box::new(Ast::FloatArrayToIntArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6039,6 +6237,7 @@ mod tests {
         let mut ast = Box::new(Ast::FloatArrayToIntArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6059,6 +6258,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntArrayToFloatArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6079,6 +6279,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntArrayToFloatArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6099,6 +6300,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntArrayToFloatArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6119,6 +6321,7 @@ mod tests {
         let mut ast = Box::new(Ast::BoolArrayToIntArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6139,6 +6342,7 @@ mod tests {
         let mut ast = Box::new(Ast::BoolArrayToIntArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6159,6 +6363,7 @@ mod tests {
         let mut ast = Box::new(Ast::BoolArrayToIntArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6179,6 +6384,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntArrayToBoolArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6199,6 +6405,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntArrayToBoolArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6219,6 +6426,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntArrayToBoolArray {
             operand: Box::new(Ast::Var {
                 id: String::from("a"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
