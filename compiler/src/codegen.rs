@@ -418,24 +418,25 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 self.visit_ast(init);
 
-                // go from current block to loop block
+                let loopcond_bb = self.context.append_basic_block(parent, "loopcond");
                 let loop_bb = self.context.append_basic_block(parent, "loop");
-                self.builder.build_unconditional_branch(loop_bb).unwrap();
-                self.builder.position_at_end(loop_bb);
+                let after_bb = self.context.append_basic_block(parent, "afterloop");
 
-                // emit body
-                for stmt in body.iter_mut() {
-                    self.visit_ast(&mut *stmt);
-                }
+                self.builder.build_unconditional_branch(loopcond_bb).unwrap();
 
-                // compile end condition
+                self.builder.position_at_end(loopcond_bb);
                 let cond = match IntValue::try_from(self.visit_ast(cond)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected u1 type expression for loop stmt conditional"),
                 };
-
-                let after_bb = self.context.append_basic_block(parent, "afterloop");
                 self.builder.build_conditional_branch(cond, loop_bb, after_bb).unwrap();
+
+                self.builder.position_at_end(loop_bb);
+                for stmt in body.iter_mut() {
+                    self.visit_ast(&mut *stmt);
+                }
+                self.builder.build_unconditional_branch(loopcond_bb).unwrap();
+
                 self.builder.position_at_end(after_bb);
 
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
