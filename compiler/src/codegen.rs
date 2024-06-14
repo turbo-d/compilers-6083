@@ -722,10 +722,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     };
 
                     let cmp = match op {
-                        RelationOp::LT => self.builder.build_int_compare(IntPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
-                        RelationOp::LTE => self.builder.build_int_compare(IntPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
-                        RelationOp::GT => self.builder.build_int_compare(IntPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
-                        RelationOp::GTE => self.builder.build_int_compare(IntPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
+                        RelationOp::LT => self.builder.build_int_compare(IntPredicate::SLT, lhs, rhs, "tmpcmp").unwrap(),
+                        RelationOp::LTE => self.builder.build_int_compare(IntPredicate::SLE, lhs, rhs, "tmpcmp").unwrap(),
+                        RelationOp::GT => self.builder.build_int_compare(IntPredicate::SGT, lhs, rhs, "tmpcmp").unwrap(),
+                        RelationOp::GTE => self.builder.build_int_compare(IntPredicate::SGE, lhs, rhs, "tmpcmp").unwrap(),
                         RelationOp::Eq => self.builder.build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpcmp").unwrap(),
                         RelationOp::NotEq => self.builder.build_int_compare(IntPredicate::NE, lhs, rhs, "tmpcmp").unwrap(),
                     };
@@ -808,10 +808,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     if lhs_elem_type.is_int_type() {
                         assert!(rhs_elem_type.is_int_type());
                         let cmp = match op {
-                            RelationOp::LT => self.builder.build_int_compare(IntPredicate::ULT, lhs, rhs, "tmpcmp").unwrap(),
-                            RelationOp::LTE => self.builder.build_int_compare(IntPredicate::ULE, lhs, rhs, "tmpcmp").unwrap(),
-                            RelationOp::GT => self.builder.build_int_compare(IntPredicate::UGT, lhs, rhs, "tmpcmp").unwrap(),
-                            RelationOp::GTE => self.builder.build_int_compare(IntPredicate::UGE, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::LT => self.builder.build_int_compare(IntPredicate::SLT, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::LTE => self.builder.build_int_compare(IntPredicate::SLE, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::GT => self.builder.build_int_compare(IntPredicate::SGT, lhs, rhs, "tmpcmp").unwrap(),
+                            RelationOp::GTE => self.builder.build_int_compare(IntPredicate::SGE, lhs, rhs, "tmpcmp").unwrap(),
                             RelationOp::Eq => self.builder.build_int_compare(IntPredicate::EQ, lhs, rhs, "tmpcmp").unwrap(),
                             RelationOp::NotEq => self.builder.build_int_compare(IntPredicate::NE, lhs, rhs, "tmpcmp").unwrap(),
                         };
