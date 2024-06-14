@@ -198,13 +198,13 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 };
 
                 if *is_global || self.var_st.is_in_global_scope() {
-                    let global = self.module.add_global(basic_type, Some(AddressSpace::default()), name.as_str());
+                    let global = self.module.add_global(basic_type, Some(AddressSpace::default()), name.to_lowercase().as_str());
                     global.set_initializer(&(*self.get_default_value(ty)));
-                    let _  = self.var_st.insert_global(name.clone(), (global.as_pointer_value(), ty.clone()));
+                    let _  = self.var_st.insert_global(name.clone().to_lowercase(), (global.as_pointer_value(), ty.clone()));
                     return AnyValueEnum::from(global.as_pointer_value())
                 } else {
-                    let alloca = self.create_entry_block_alloca(&parent_fn, name.as_str(), ty.clone());
-                    let _ = self.var_st.insert(name.clone(), (alloca, ty.clone()));
+                    let alloca = self.create_entry_block_alloca(&parent_fn, name.to_lowercase().as_str(), ty.clone());
+                    let _ = self.var_st.insert(name.clone().to_lowercase(), (alloca, ty.clone()));
                     return AnyValueEnum::from(alloca)
                 }
             },
@@ -317,7 +317,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     _ => panic!("Expected Ast::Var or Ast::SubscriptOp for AST::AssignStmt dest"),
                 };
 
-                let (alloca, ty) = match self.var_st.get(&name) {
+                let (alloca, ty) = match self.var_st.get(&name.to_lowercase()) {
                     Some((var, ty)) => {
                         let ty = match ty {
                             Types::Int => BasicTypeEnum::from(self.context.i64_type()),
@@ -338,7 +338,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                         (var.clone(), ty)
                     },
-                    None => panic!("Identifer name not found"),
+                    None => panic!("Identifier {name} not found"),
                 };
 
                 let val = match BasicValueEnum::try_from(self.visit_ast(expr)) {
@@ -934,7 +934,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 }
             },
             Ast::Var { id } => {
-                match self.var_st.get(id) {
+                match self.var_st.get(&id.to_lowercase()) {
                     Some((var, ty)) => {
                         let ty = match ty {
                             Types::Int => BasicTypeEnum::from(self.context.i64_type()),
@@ -954,7 +954,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                         };
                         AnyValueEnum::from(self.builder.build_load(ty, *var, id.as_str()).unwrap())
                     }
-                    None => panic!("Identifer name not found"),
+                    None => panic!("Identifier {id} not found"),
                 }
             },
             Ast::FloatToInt { operand } => {
