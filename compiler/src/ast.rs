@@ -37,6 +37,7 @@ pub enum Ast {
         is_global: bool,
         name: String,
         ty: Types,
+        line: u32,
     },
     ProcDecl {
         is_global: bool,
@@ -174,7 +175,7 @@ impl Ast {
                 }
                 Ok(())
             },
-            Ast::VarDecl { is_global, name, ty } => {
+            Ast::VarDecl { is_global, name, ty, .. } => {
                 write!(buf, "{}{name}: {{ty: {ty}, is_global: {is_global}}}\n", c.repeat(width))?;
                 Ok(())
             },

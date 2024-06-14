@@ -50,15 +50,15 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 
                 Ok(Types::Unknown)
             }
-            Ast::VarDecl { is_global, name, ty } => {
+            Ast::VarDecl { is_global, name, ty, line } => {
                 if *is_global {
                     if let Err(_) = self.st.insert_global(name.clone().to_lowercase(), ty.clone()) {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in the global scope", name.to_lowercase()) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Duplicate declaration. {} is already declared in the global scope", name.to_lowercase()) });
                         return Err(TerminalError);
                     }
                 } else {
                     if let Err(_) = self.st.insert(name.clone().to_lowercase(), ty.clone()) {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in this scope", name.to_lowercase()) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Duplicate declaration. {} is already declared in this scope", name.to_lowercase()) });
                         return Err(TerminalError);
                     }
                 }
@@ -1380,6 +1380,7 @@ mod tests {
             is_global: true,
             name: String::from("a"),
             ty: Types::Int,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -1402,6 +1403,7 @@ mod tests {
             is_global: false,
             name: String::from("a"),
             ty: Types::Int,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -1424,6 +1426,7 @@ mod tests {
             is_global: true,
             name: String::from("a"),
             ty: Types::Int,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -1446,6 +1449,7 @@ mod tests {
             is_global: false,
             name: String::from("a"),
             ty: Types::Int,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -1468,6 +1472,7 @@ mod tests {
             is_global: false,
             name: String::from("TmP"),
             ty: Types::Int,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("tmp"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");

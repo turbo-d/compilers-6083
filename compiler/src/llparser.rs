@@ -281,6 +281,7 @@ impl LLParser {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing variable keyword") });
             return Err(TerminalError);
         }
+        let line = self.s.line();
         self.consume_tok();
 
         let (identifier, _) = self.identifier()?;
@@ -317,6 +318,7 @@ impl LLParser {
             is_global: is_global,
             name: identifier,
             ty: parsed_type.clone(),
+            line,
         });
 
         Ok((parsed_type, var_decl_node))
@@ -1150,6 +1152,7 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_stmts = Vec::new();
@@ -1187,11 +1190,13 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
             Box::new(Ast::VarDecl { 
                 is_global: false,
                 name: String::from("b"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_stmts = Vec::new();
@@ -1320,11 +1325,13 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
             Box::new(Ast::VarDecl { 
                 is_global: false,
                 name: String::from("b"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_stmts = vec![
@@ -1518,6 +1525,7 @@ mod tests {
             is_global: false,
             name: String::from("a"),
             ty: Types::Int,
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -1544,6 +1552,7 @@ mod tests {
             is_global: true,
             name: String::from("a"),
             ty: Types::Int,
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -1666,11 +1675,13 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
             Box::new(Ast::VarDecl { 
                 is_global: false,
                 name: String::from("b"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -1873,6 +1884,7 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -1917,16 +1929,19 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
             Box::new(Ast::VarDecl { 
                 is_global: false,
                 name: String::from("b"),
                 ty: Types::Int,
+                line: 1,
             }),
             Box::new(Ast::VarDecl { 
                 is_global: false,
                 name: String::from("c"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -1979,6 +1994,7 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_stmts = Vec::new();
@@ -2016,11 +2032,13 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
             Box::new(Ast::VarDecl { 
                 is_global: false,
                 name: String::from("b"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_stmts = Vec::new();
@@ -2149,11 +2167,13 @@ mod tests {
                 is_global: false,
                 name: String::from("a"),
                 ty: Types::Int,
+                line: 1,
             }),
             Box::new(Ast::VarDecl { 
                 is_global: false,
                 name: String::from("b"),
                 ty: Types::Int,
+                line: 1,
             }),
         ];
         let exp_stmts = vec![
@@ -2283,6 +2303,7 @@ mod tests {
             is_global: false,
             name: String::from("a"),
             ty: Types::Int,
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2313,6 +2334,7 @@ mod tests {
             is_global: false,
             name: String::from("a"),
             ty: Types::Array(5, Box::new(Types::Int)),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
