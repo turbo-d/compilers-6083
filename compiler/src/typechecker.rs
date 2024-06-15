@@ -65,15 +65,15 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 
                 Ok(ty.clone())
             },
-            Ast::ProcDecl { is_global, name, ty, params, decls, body } => {
+            Ast::ProcDecl { is_global, name, ty, params, decls, body, line } => {
                 if *is_global {
                     if let Err(_) = self.st.insert_global(name.clone().to_lowercase(), ty.clone()) {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in the global scope", name.to_lowercase()) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Duplicate declaration. {} is already declared in the global scope", name.to_lowercase()) });
                         return Err(TerminalError);
                     }
                 } else {
                     if let Err(_) = self.st.insert(name.clone().to_lowercase(), ty.clone()) {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Duplicate declaration. {} is already declared in this scope", name.to_lowercase()) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Duplicate declaration. {} is already declared in this scope", name.to_lowercase()) });
                         return Err(TerminalError);
                     }
                 }
@@ -96,7 +96,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 
                 Ok(ty.clone())
             },
-            Ast::AssignStmt { dest, expr } => {
+            Ast::AssignStmt { dest, expr, line } => {
                 let dest_type = self.visit_ast(dest)?;
                 let expr_type = self.visit_ast(expr)?;
 
@@ -121,7 +121,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -144,7 +144,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -169,7 +169,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -180,7 +180,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                 return Err(TerminalError);
                             },
                         }
@@ -189,7 +189,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         match expr_type {
                             Types::Array(expr_size, ref expr_base_type) => {
                                 if dest_size != expr_size {
-                                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                     return Err(TerminalError);
                                 }
                                 match **dest_base_type {
@@ -211,7 +211,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Ok(Types::Unknown)
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                                 Err(TerminalError)
                                             },
                                         }
@@ -236,7 +236,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Ok(Types::Unknown)
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                                 Err(TerminalError)
                                             },
                                         }
@@ -261,7 +261,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Ok(Types::Unknown)
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                                 Err(TerminalError)
                                             },
                                         }
@@ -272,7 +272,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Ok(Types::Unknown)
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                                 return Err(TerminalError);
                                             },
                                         }
@@ -281,7 +281,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 }
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the destination type of the assignment. Expected {}, found {}", dest_type, expr_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -289,7 +289,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     _ => panic!("INTERNAL ERROR: Expected destination type of assignment statment to be integer, float, bool, string, integer array, float array, bool array, or string array, found {}", dest_type),
                 }
             },
-            Ast::IfStmt { cond, then_body, else_body } => {
+            Ast::IfStmt { cond, then_body, else_body, .. } => {
                 let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
                     self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
@@ -308,7 +308,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 }
                 Ok(Types::Unknown)
             },
-            Ast::LoopStmt { init, cond, body } => {
+            Ast::LoopStmt { init, cond, body, .. } => {
                 self.visit_ast(init)?;
                 let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
@@ -325,7 +325,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 }
                 Ok(Types::Unknown)
             },
-            Ast::ReturnStmt { expr } => {
+            Ast::ReturnStmt { expr, line } => {
                 let expr_type = self.visit_ast(expr)?;
                 let owning_proc_type = self.st.get_local_proc_data();
                 let return_type = match owning_proc_type {
@@ -354,7 +354,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -377,7 +377,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -402,7 +402,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -413,7 +413,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Unknown)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Expression type does not match the return type of the owning procedure. Expected {}, found {}", **return_type, expr_type) });
                                 return Err(TerminalError);
                             },
                         }
@@ -1496,6 +1496,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -1521,6 +1522,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
@@ -1546,6 +1548,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
@@ -1571,6 +1574,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -1596,6 +1600,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
@@ -1620,6 +1625,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -1644,6 +1650,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
@@ -1663,6 +1670,7 @@ mod tests {
                     value: 5,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -1680,6 +1688,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Bool).expect("SymTable insertion failed. Unable to setup test.");
@@ -1699,6 +1708,7 @@ mod tests {
                     value: 5,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -1716,6 +1726,7 @@ mod tests {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
@@ -1740,6 +1751,7 @@ mod tests {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -1759,6 +1771,7 @@ mod tests {
                     value: 5.3,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -1776,6 +1789,7 @@ mod tests {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Bool).expect("SymTable insertion failed. Unable to setup test.");
@@ -1797,6 +1811,7 @@ mod tests {
                     }),
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -1814,6 +1829,7 @@ mod tests {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
@@ -1838,6 +1854,7 @@ mod tests {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -1857,6 +1874,7 @@ mod tests {
                     value: true,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -1874,6 +1892,7 @@ mod tests {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Float).expect("SymTable insertion failed. Unable to setup test.");
@@ -1895,6 +1914,7 @@ mod tests {
                     }),
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -1912,6 +1932,7 @@ mod tests {
             expr: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::String).expect("SymTable insertion failed. Unable to setup test.");
@@ -1937,6 +1958,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -1963,6 +1985,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -1984,6 +2007,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2002,6 +2026,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2023,6 +2048,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2041,6 +2067,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2067,6 +2094,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2088,6 +2116,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2106,6 +2135,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2129,6 +2159,7 @@ mod tests {
                     }),
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2147,6 +2178,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2173,6 +2205,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2194,6 +2227,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2212,6 +2246,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2235,6 +2270,7 @@ mod tests {
                     }),
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2253,6 +2289,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("dest"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -2278,6 +2315,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::String).expect("SymTable insertion failed. Unable to setup test.");
@@ -2300,6 +2338,7 @@ mod tests {
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -2321,6 +2360,7 @@ mod tests {
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -2337,6 +2377,7 @@ mod tests {
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2352,6 +2393,7 @@ mod tests {
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -2375,6 +2417,7 @@ mod tests {
                 value: true,
             }),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -2398,6 +2441,7 @@ mod tests {
                 value: 5,
             }),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -2416,6 +2460,7 @@ mod tests {
                 }),
             }),
             body: Vec::new(),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2433,6 +2478,7 @@ mod tests {
                 value: 5.3,
             }),
             body: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -2452,6 +2498,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Int), Vec::new()));
@@ -2472,6 +2519,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
@@ -2487,6 +2535,7 @@ mod tests {
                     value: 5,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2500,6 +2549,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -2515,6 +2565,7 @@ mod tests {
                     value: 5,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2528,6 +2579,7 @@ mod tests {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
@@ -2548,6 +2600,7 @@ mod tests {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Int), Vec::new()));
@@ -2563,6 +2616,7 @@ mod tests {
                     value: 5.3,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2576,6 +2630,7 @@ mod tests {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -2593,6 +2648,7 @@ mod tests {
                     }),
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2606,6 +2662,7 @@ mod tests {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Bool), Vec::new()));
@@ -2626,6 +2683,7 @@ mod tests {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Int), Vec::new()));
@@ -2641,6 +2699,7 @@ mod tests {
                     value: true,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2654,6 +2713,7 @@ mod tests {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::Float), Vec::new()));
@@ -2671,6 +2731,7 @@ mod tests {
                     }),
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -2684,6 +2745,7 @@ mod tests {
             expr: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::String), Vec::new()));
@@ -2704,6 +2766,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.enter_scope(Types::Proc(Box::new(Types::String), Vec::new()));

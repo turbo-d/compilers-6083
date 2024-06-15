@@ -159,7 +159,7 @@ impl<'a, 'ctx> CodeGen<'a, 'ctx> {
 impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
     fn visit_ast(&mut self, ast: &mut Ast) -> AnyValueEnum<'ctx> {
         match ast {
-            Ast::Program { name, decls, body, } => {
+            Ast::Program { name, decls, body, .. } => {
                 self.module.set_name(name.as_str());
 
                 let fn_val = self.module.get_function("main").expect("main function not found");
@@ -208,7 +208,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     return AnyValueEnum::from(alloca)
                 }
             },
-            Ast::ProcDecl { name, ty, params, decls, body, ..} => {
+            Ast::ProcDecl { name, ty, params, decls, body, .. } => {
                 let ret_type = match ty.clone() {
                     Types::Proc(ret, _) => ret,
                     _ => panic!("Expected Proc type"),
@@ -305,7 +305,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 AnyValueEnum::from(fn_val)
             },
-            Ast::AssignStmt { dest, expr } => {
+            Ast::AssignStmt { dest, expr, .. } => {
                 let name = match **dest {
                     Ast::Var { ref id, .. } => id.clone(),
                     Ast::SubscriptOp { ref array, .. } => {
@@ -364,7 +364,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     AnyValueEnum::from(val)
                 }
             },
-            Ast::IfStmt { cond, then_body, else_body } => {
+            Ast::IfStmt { cond, then_body, else_body, .. } => {
                 let parent = self.var_st.get_local_proc_data().clone();
 
                 let cond = match IntValue::try_from(self.visit_ast(cond)) {
@@ -413,7 +413,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 //AnyValueEnum::from(phi.as_basic_value().into_float_value())
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
-            Ast::LoopStmt { init, cond, body } => {
+            Ast::LoopStmt { init, cond, body, .. } => {
                 let parent = self.var_st.get_local_proc_data().clone();
 
                 self.visit_ast(init);
@@ -441,7 +441,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 AnyValueEnum::from(self.context.i64_type().const_int(0, false))
             },
-            Ast::ReturnStmt { expr } => {
+            Ast::ReturnStmt { expr, .. } => {
                 let val = match BasicValueEnum::try_from(self.visit_ast(expr)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected BasicValue in assignment."),

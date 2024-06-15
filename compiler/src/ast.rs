@@ -32,6 +32,7 @@ pub enum Ast {
         name: String,
         decls: Vec<Box<Ast>>,
         body: Vec<Box<Ast>>,
+        line: u32,
     },
     VarDecl {
         is_global: bool,
@@ -46,23 +47,28 @@ pub enum Ast {
         params: Vec<Box<Ast>>,
         decls: Vec<Box<Ast>>,
         body: Vec<Box<Ast>>,
+        line: u32,
     },
     AssignStmt {
         dest: Box<Ast>,
         expr: Box<Ast>,
+        line: u32,
     },
     IfStmt {
         cond: Box<Ast>,
         then_body: Vec<Box<Ast>>,
         else_body: Vec<Box<Ast>>,
+        line: u32,
     },
     LoopStmt {
         init: Box<Ast>,
         cond: Box<Ast>,
         body: Vec<Box<Ast>>,
+        line: u32,
     },
     ReturnStmt {
         expr: Box<Ast>,
+        line: u32,
     },
     AndOp {
         lhs: Box<Ast>,
@@ -160,7 +166,7 @@ impl Ast {
 
     fn fmt_string(&self, buf: &mut String, c: &str, width: usize) -> fmt::Result {
         match self {
-            Ast::Program { name, decls, body } => {
+            Ast::Program { name, decls, body, .. } => {
                 write!(buf, "{}program:\n", c.repeat(width))?;
                 write!(buf, "{}name: {name}\n", c.repeat(width+1))?;
 
@@ -179,7 +185,7 @@ impl Ast {
                 write!(buf, "{}{name}: {{ty: {ty}, is_global: {is_global}}}\n", c.repeat(width))?;
                 Ok(())
             },
-            Ast::ProcDecl { is_global, name, ty, params, decls, body } => {
+            Ast::ProcDecl { is_global, name, ty, params, decls, body, .. } => {
                 write!(buf, "{}{name}:\n", c.repeat(width))?;
                 write!(buf, "{}ty: {ty}\n", c.repeat(width+1))?;
                 write!(buf, "{}is_global: {is_global}\n", c.repeat(width+1))?;
@@ -200,7 +206,7 @@ impl Ast {
                 }
                 Ok(())
             },
-            Ast::AssignStmt { dest, expr } => {
+            Ast::AssignStmt { dest, expr, .. } => {
                 write!(buf, "{}assign:\n", c.repeat(width))?;
                 write!(buf, "{}dest:\n", c.repeat(width+1))?;
                 dest.fmt_string(buf, c, width+2)?;
@@ -208,7 +214,7 @@ impl Ast {
                 expr.fmt_string(buf, c, width+2)?;
                 Ok(())
             },
-            Ast::IfStmt { cond, then_body, else_body } => {
+            Ast::IfStmt { cond, then_body, else_body, .. } => {
                 write!(buf, "{}if:\n", c.repeat(width))?;
 
                 write!(buf, "{}cond:\n", c.repeat(width+1))?;
@@ -225,7 +231,7 @@ impl Ast {
                 }
                 Ok(())
             },
-            Ast::LoopStmt { init, cond, body } => {
+            Ast::LoopStmt { init, cond, body, .. } => {
                 write!(buf, "{}loop:\n", c.repeat(width))?;
 
                 write!(buf, "{}init:\n", c.repeat(width+1))?;
@@ -240,7 +246,7 @@ impl Ast {
                 }
                 Ok(())
             },
-            Ast::ReturnStmt { expr } => {
+            Ast::ReturnStmt { expr, .. } => {
                 write!(buf, "{}return:\n", c.repeat(width))?;
 
                 write!(buf, "{}expr:\n", c.repeat(width+1))?;

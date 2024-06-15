@@ -43,7 +43,7 @@ impl LLParser {
     }
 
     fn program(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let name = self.program_header()?;
+        let (name, line) = self.program_header()?;
 
         let (decls, body) = self.program_body()?;
 
@@ -53,17 +53,19 @@ impl LLParser {
         self.consume_tok();
 
         Ok(Box::new(Ast::Program {
-            name: name,
-            decls: decls,
-            body: body,
+            name,
+            decls,
+            body,
+            line,
         }))
     }
 
-    fn program_header(&mut self) -> Result<String, TerminalError> {
+    fn program_header(&mut self) -> Result<(String, u32), TerminalError> {
         if self.tok != Token::Program {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing program keyword") });
             return Err(TerminalError);
         }
+        let line = self.s.line();
         self.consume_tok();
 
         let (identifier, _) = self.identifier()?;
@@ -74,7 +76,7 @@ impl LLParser {
         }
         self.consume_tok();
 
-        Ok(identifier)
+        Ok((identifier, line))
     }
 
     // first(program_body): "global", "procedure", "variable", "begin"
@@ -140,24 +142,26 @@ impl LLParser {
     }
 
     fn procedure_declaration(&mut self, is_global: bool) -> Result<Box<Ast>, TerminalError> {
-        let (name, proc_type, params) = self.procedure_header()?;
+        let (name, proc_type, params, line) = self.procedure_header()?;
         let (decls, body) = self.procedure_body()?;
 
         Ok(Box::new(Ast::ProcDecl {
             is_global: is_global,
-            name: name,
+            name,
             ty: proc_type,
-            params: params,
-            decls: decls,
-            body: body,
+            params,
+            decls,
+            body,
+            line,
         }))
     }
 
-    fn procedure_header(&mut self) -> Result<(String, Types, Vec<Box<Ast>>), TerminalError> {
+    fn procedure_header(&mut self) -> Result<(String, Types, Vec<Box<Ast>>, u32), TerminalError> {
         if self.tok != Token::Procedure {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing procedure keyword") });
             return Err(TerminalError);
         }
+        let line = self.s.line();
         self.consume_tok();
 
         let (identifier, _) = self.identifier()?;
@@ -190,7 +194,7 @@ impl LLParser {
 
         let parsed_type = Types::Proc(Box::new(return_type), param_types);
 
-        Ok((identifier, parsed_type, param_nodes))
+        Ok((identifier, parsed_type, param_nodes, line))
     }
 
     fn type_mark(&mut self) -> Result<Types, TerminalError> {
@@ -339,7 +343,7 @@ impl LLParser {
     }
 
     fn assignment_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
-        let dest_node = self.destination()?;
+        let (dest_node, line) = self.destination()?;
 
         if self.tok != Token::Assign {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected :=, found {}", self.tok) });
@@ -352,10 +356,11 @@ impl LLParser {
         Ok(Box::new(Ast::AssignStmt {
             dest: dest_node,
             expr: expr_node,
+            line,
         }))
     }
 
-    fn destination(&mut self) -> Result<Box<Ast>, TerminalError> {
+    fn destination(&mut self) -> Result<(Box<Ast>, u32), TerminalError> {
         let (var_id, var_line) = self.identifier()?;
 
         let var_node = Box::new(Ast::Var {
@@ -364,7 +369,7 @@ impl LLParser {
         });
 
         if self.tok != Token::LSquare {
-            return Ok(var_node);
+            return Ok((var_node, var_line));
         }
         self.consume_tok();
 
@@ -376,10 +381,10 @@ impl LLParser {
         }
         self.consume_tok();
 
-        Ok(Box::new(Ast::SubscriptOp {
+        Ok((Box::new(Ast::SubscriptOp {
             array: var_node,
             index: expr_node,
-        }))
+        }), var_line))
     }
 
     fn if_statement(&mut self) -> Result<Box<Ast>, TerminalError> {
@@ -387,6 +392,7 @@ impl LLParser {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing if keyword") });
             return Err(TerminalError);
         }
+        let line = self.s.line();
         self.consume_tok();
 
         if self.tok != Token::LParen {
@@ -445,6 +451,7 @@ impl LLParser {
             cond: expr_node,
             then_body: then_body,
             else_body: else_body,
+            line,
         }))
     }
 
@@ -453,6 +460,7 @@ impl LLParser {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing for keyword") });
             return Err(TerminalError);
         }
+        let line = self.s.line();
         self.consume_tok();
 
         if self.tok != Token::LParen {
@@ -498,6 +506,7 @@ impl LLParser {
             init: assign_stmt_node,
             cond: expr_node,
             body: body,
+            line,
         }))
     }
 
@@ -506,12 +515,14 @@ impl LLParser {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: String::from("Missing return keyword") });
             return Err(TerminalError);
         }
+        let line = self.s.line();
         self.consume_tok();
 
         let expr_node = self.expr()?;
 
         Ok(Box::new(Ast::ReturnStmt {
             expr: expr_node,
+            line,
         }))
     }
 
@@ -959,6 +970,7 @@ mod tests {
             name: String::from("test_prgm"),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -987,6 +999,7 @@ mod tests {
             name: String::from("test_prgm"),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs =  &vec![
             CompilerError::Warning { line: 1, msg: String::from("Extraneous trailing characters") }
@@ -1016,6 +1029,7 @@ mod tests {
             name: String::from("test_prgm"),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -1043,6 +1057,7 @@ mod tests {
             name: String::from("test_prgm"),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs =  &vec![
             CompilerError::Warning { line: 1, msg: String::from("Missing . after end program keyword") }
@@ -1062,7 +1077,7 @@ mod tests {
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
 
-        let act_name = p.program_header().expect("Parse failed");
+        let (act_name, _) = p.program_header().expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_errs = &Vec::new();
@@ -1233,6 +1248,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
                 }),
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -1272,6 +1288,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
                 }),
+                line: 1,
             }),
             Box::new(Ast::AssignStmt {
                 dest: Box::new(Ast::Var {
@@ -1281,6 +1298,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
                 }),
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -1343,6 +1361,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
                 }),
+                line: 1,
             }),
             Box::new(Ast::AssignStmt {
                 dest: Box::new(Ast::Var {
@@ -1352,6 +1371,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
                 }),
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -1467,6 +1487,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -1500,6 +1521,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -1603,6 +1625,7 @@ mod tests {
             params: Vec::new(),
             decls: Vec::new(),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -1623,7 +1646,7 @@ mod tests {
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
 
-        let (act_name, act_ty, act_params) = p.procedure_header().expect("Parse failed");
+        let (act_name, act_ty, act_params, _) = p.procedure_header().expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_name = String::from("foo");
@@ -1659,7 +1682,7 @@ mod tests {
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
 
-        let (act_name, act_ty, act_params) = p.procedure_header().expect("Parse failed");
+        let (act_name, act_ty, act_params, _) = p.procedure_header().expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_name = String::from("foo");
@@ -2075,6 +2098,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
                 }),
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -2114,6 +2138,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
                 }),
+                line: 1,
             }),
             Box::new(Ast::AssignStmt {
                 dest: Box::new(Ast::Var {
@@ -2123,6 +2148,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
                 }),
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -2185,6 +2211,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
                 }),
+                line: 1,
             }),
             Box::new(Ast::AssignStmt {
                 dest: Box::new(Ast::Var {
@@ -2194,6 +2221,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
                 }),
+                line: 1,
             }),
         ];
         let exp_errs = &Vec::new();
@@ -2449,6 +2477,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral { 
                 value: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2478,6 +2507,7 @@ mod tests {
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2513,11 +2543,13 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral {
                     value: 5,
                 }),
+                line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral {
                 value: true,
             }),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2542,6 +2574,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2588,6 +2621,7 @@ mod tests {
             expr: Box::new(Ast::IntLiteral {
                 value: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2622,7 +2656,7 @@ mod tests {
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
 
-        let act_ast = p.destination().expect("Parse failed");
+        let (act_ast, _) = p.destination().expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var {
@@ -2646,7 +2680,7 @@ mod tests {
         let s = TestScanner::new(toks);
         let mut p = LLParser::new(Box::new(s));
 
-        let act_ast = p.destination().expect("Parse failed");
+        let (act_ast, _) = p.destination().expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::SubscriptOp {
@@ -2707,6 +2741,7 @@ mod tests {
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2747,9 +2782,11 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
                     }),
+                    line: 1,
                 }),
             ],
             else_body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2794,6 +2831,7 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
                     }),
+                    line: 1,
                 }),
                 Box::new(Ast::AssignStmt {
                     dest: Box::new(Ast::Var {
@@ -2803,9 +2841,11 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral { 
                         value: 2,
                     }),
+                    line: 1,
                 }),
             ],
             else_body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2836,6 +2876,7 @@ mod tests {
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2878,8 +2919,10 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
                     }),
+                    line: 1,
                 }),
             ],
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2926,6 +2969,7 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
                     }),
+                    line: 1,
                 }),
                 Box::new(Ast::AssignStmt {
                     dest: Box::new(Ast::Var {
@@ -2935,8 +2979,10 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral { 
                         value: 2,
                     }),
+                    line: 1,
                 }),
             ],
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3128,11 +3174,13 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral { 
                     value: 5,
                 }),
+                line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
             }),
             body: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3172,6 +3220,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral {
                     value: 5,
                 }),
+                line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral {
                 value: true,
@@ -3185,8 +3234,10 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral {
                         value: 1,
                     }),
+                    line: 1,
                 }),
             ],
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3230,6 +3281,7 @@ mod tests {
                 expr: Box::new(Ast::IntLiteral {
                     value: 5,
                 }),
+                line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral {
                 value: true,
@@ -3243,6 +3295,7 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral {
                         value: 1,
                     }),
+                    line: 1,
                 }),
                 Box::new(Ast::AssignStmt {
                     dest: Box::new(Ast::Var {
@@ -3252,8 +3305,10 @@ mod tests {
                     expr: Box::new(Ast::IntLiteral {
                         value: 2,
                     }),
+                    line: 1,
                 }),
             ],
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3418,6 +3473,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
