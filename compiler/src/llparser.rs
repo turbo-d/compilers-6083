@@ -384,6 +384,7 @@ impl LLParser {
         Ok((Box::new(Ast::SubscriptOp {
             array: var_node,
             index: expr_node,
+            line: var_line,
         }), var_line))
     }
 
@@ -639,6 +640,7 @@ impl LLParser {
         }
 
         let op = self.tok.clone();
+        let line = self.s.line();
         self.consume_tok();
 
         let rhs_node = self.term()?;
@@ -656,6 +658,7 @@ impl LLParser {
             op: rel_op,
             lhs: lhs_node,
             rhs: rhs_node,
+            line,
         });
 
         self.relation_prime(rel_node)
@@ -712,27 +715,31 @@ impl LLParser {
                 });
 
                 if self.tok == Token::LParen {
-                    Ok(self.procedure_call_prime(var)?)
+                    Ok(self.procedure_call_prime(var, id_line)?)
                 } else {
-                    Ok(self.name_prime(var)?)
+                    Ok(self.name_prime(var, id_line)?)
                 }
             }
             Token::Sub => {
+                let line = self.s.line();
                 self.consume_tok();
 
                 let tok = self.tok.clone();
                 let negate_operand_node = match tok {
                     Token::Identifier(_) | Token::Invalid(_) => self.name()?,
                     Token::IntLiteral(val) => {
+                        let line = self.s.line();
                         self.consume_tok();
                         Box::new(Ast::IntLiteral {
                             value: val,
+                            line,
                         })
                     }
                     Token::FloatLiteral(val) => {
                         self.consume_tok();
                         Box::new(Ast::FloatLiteral {
                             value: val,
+                            line,
                         })
                     }
                     tok => {
@@ -743,18 +750,23 @@ impl LLParser {
 
                 Ok(Box::new(Ast::NegateOp {
                     operand: negate_operand_node,
+                    line,
                 }))
             }
             Token::IntLiteral(val) => {
+                let line = self.s.line();
                 self.consume_tok();
                 Ok(Box::new(Ast::IntLiteral {
                     value: val,
+                    line,
                 }))
             }
             Token::FloatLiteral(val) => {
+                let line = self.s.line();
                 self.consume_tok();
                 Ok(Box::new(Ast::FloatLiteral {
                     value: val,
+                    line,
                 }))
             }
             Token::LParen => {
@@ -771,21 +783,27 @@ impl LLParser {
                 Ok(factor_node)
             }
             Token::String(val) => {
+                let line = self.s.line();
                 self.consume_tok();
                 Ok(Box::new(Ast::StringLiteral {
                     value: val.clone(),
+                    line,
                 }))
             }
             Token::True => {
+                let line = self.s.line();
                 self.consume_tok();
                 Ok(Box::new(Ast::BoolLiteral {
                     value: true,
+                    line,
                 }))
             }
             Token::False => {
+                let line = self.s.line();
                 self.consume_tok();
                 Ok(Box::new(Ast::BoolLiteral {
                     value: false,
+                    line,
                 }))
             }
             tok => {
@@ -795,7 +813,7 @@ impl LLParser {
         }
     }
 
-    fn procedure_call_prime(&mut self, var_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
+    fn procedure_call_prime(&mut self, var_node: Box<Ast>, var_line: u32) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::LParen {
             self.errs.push(CompilerError::Error { line: self.s.line(), msg: format!("Expected (, found {}", self.tok) });
             return Err(TerminalError);
@@ -825,6 +843,7 @@ impl LLParser {
         Ok(Box::new(Ast::ProcCall {
             proc: var_node,
             args: args,
+            line: var_line,
         }))
     }
 
@@ -851,10 +870,10 @@ impl LLParser {
             line: var_line,
         });
 
-        self.name_prime(var)
+        self.name_prime(var, var_line)
     }
 
-    fn name_prime(&mut self, var_node: Box<Ast>) -> Result<Box<Ast>, TerminalError> {
+    fn name_prime(&mut self, var_node: Box<Ast>, var_line: u32) -> Result<Box<Ast>, TerminalError> {
         if self.tok != Token::LSquare {
             return Ok(var_node);
         }
@@ -871,6 +890,7 @@ impl LLParser {
         let sub_node = Box::new(Ast::SubscriptOp {
             array: var_node,
             index: expr_node,
+            line: var_line,
         });
 
         Ok(sub_node)
@@ -1259,6 +1279,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -1299,6 +1320,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -1309,6 +1331,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -1372,6 +1395,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -1382,6 +1406,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -2109,6 +2134,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -2149,6 +2175,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -2159,6 +2186,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -2222,6 +2250,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 1,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -2232,6 +2261,7 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 2,
+                    line: 1,
                 }),
                 line: 1,
             }),
@@ -2488,6 +2518,7 @@ mod tests {
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 1,
+                line: 1,
             }),
             line: 1,
         });
@@ -2516,6 +2547,7 @@ mod tests {
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
@@ -2554,11 +2586,13 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral {
                     value: 5,
+                    line: 1,
                 }),
                 line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral {
                 value: true,
+                line: 1,
             }),
             body: Vec::new(),
             line: 1,
@@ -2632,6 +2666,7 @@ mod tests {
             }),
             expr: Box::new(Ast::IntLiteral {
                 value: 1,
+                line: 1,
             }),
             line: 1,
         });
@@ -2702,7 +2737,9 @@ mod tests {
             }),
             index: Box::new(Ast::IntLiteral {
                 value: 1,
+                line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -2750,6 +2787,7 @@ mod tests {
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
@@ -2784,6 +2822,7 @@ mod tests {
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: vec![
                 Box::new(Ast::AssignStmt {
@@ -2793,6 +2832,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -2833,6 +2873,7 @@ mod tests {
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: vec![
                 Box::new(Ast::AssignStmt {
@@ -2842,6 +2883,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -2852,6 +2894,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral { 
                         value: 2,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -2885,6 +2928,7 @@ mod tests {
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
@@ -2920,6 +2964,7 @@ mod tests {
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: vec![
@@ -2930,6 +2975,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -2970,6 +3016,7 @@ mod tests {
         let exp_ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: vec![
@@ -2980,6 +3027,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral { 
                         value: 1,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -2990,6 +3038,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral { 
                         value: 2,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -3185,11 +3234,13 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
                 line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             body: Vec::new(),
             line: 1,
@@ -3231,11 +3282,13 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral {
                     value: 5,
+                    line: 1,
                 }),
                 line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral {
                 value: true,
+                line: 1,
             }),
             body: vec![
                 Box::new(Ast::AssignStmt {
@@ -3245,6 +3298,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral {
                         value: 1,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -3292,11 +3346,13 @@ mod tests {
                 }),
                 expr: Box::new(Ast::IntLiteral {
                     value: 5,
+                    line: 1,
                 }),
                 line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral {
                 value: true,
+                line: 1,
             }),
             body: vec![
                 Box::new(Ast::AssignStmt {
@@ -3306,6 +3362,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral {
                         value: 1,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -3316,6 +3373,7 @@ mod tests {
                     }),
                     expr: Box::new(Ast::IntLiteral {
                         value: 2,
+                        line: 1,
                     }),
                     line: 1,
                 }),
@@ -4184,6 +4242,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4222,11 +4281,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4261,6 +4322,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4299,11 +4361,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4338,6 +4402,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4376,11 +4441,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4415,6 +4482,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4453,11 +4521,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4492,6 +4562,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4530,11 +4601,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4569,6 +4642,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4607,11 +4681,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4946,6 +5022,7 @@ mod tests {
                 line: 1,
             }),
             args: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4970,6 +5047,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4992,7 +5070,9 @@ mod tests {
         let exp_ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5015,7 +5095,9 @@ mod tests {
         let exp_ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::FloatLiteral { 
                 value: 5.0,
+                line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5036,6 +5118,7 @@ mod tests {
 
         let exp_ast = Box::new(Ast::IntLiteral { 
             value: 5,
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5056,6 +5139,7 @@ mod tests {
 
         let exp_ast = Box::new(Ast::FloatLiteral { 
             value: 5.0,
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5076,6 +5160,7 @@ mod tests {
 
         let exp_ast = Box::new(Ast::StringLiteral { 
             value: String::from("test"),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5096,6 +5181,7 @@ mod tests {
 
         let exp_ast = Box::new(Ast::BoolLiteral { 
             value: true,
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5116,6 +5202,7 @@ mod tests {
 
         let exp_ast = Box::new(Ast::BoolLiteral { 
             value: false,
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5217,7 +5304,7 @@ mod tests {
             line: 1,
         });
 
-        let act_ast = p.procedure_call_prime(in_ast).expect("Parse failed");
+        let act_ast = p.procedure_call_prime(in_ast, 1).expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcCall {
@@ -5226,6 +5313,7 @@ mod tests {
                 line: 1,
             }),
             args: Vec::new(),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5250,7 +5338,7 @@ mod tests {
             line: 1,
         });
 
-        let act_ast = p.procedure_call_prime(in_ast).expect("Parse failed");
+        let act_ast = p.procedure_call_prime(in_ast, 1).expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::ProcCall {
@@ -5268,6 +5356,7 @@ mod tests {
                     line: 1,
                 }),
             ],
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5288,7 +5377,7 @@ mod tests {
             line: 1,
         });
 
-        p.procedure_call_prime(in_ast).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        p.procedure_call_prime(in_ast, 1).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
         let act_errs = p.get_errors();
 
         let exp_errs =  &vec![
@@ -5312,7 +5401,7 @@ mod tests {
             line: 1,
         });
 
-        p.procedure_call_prime(in_ast).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        p.procedure_call_prime(in_ast, 1).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
         let act_errs = p.get_errors();
 
         let exp_errs =  &vec![
@@ -5414,7 +5503,7 @@ mod tests {
             line: 1,
         });
 
-        let act_ast = p.name_prime(in_ast).expect("Parse failed");
+        let act_ast = p.name_prime(in_ast, 1).expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::Var { 
@@ -5442,7 +5531,7 @@ mod tests {
             line: 1,
         });
 
-        let act_ast = p.name_prime(in_ast).expect("Parse failed");
+        let act_ast = p.name_prime(in_ast, 1).expect("Parse failed");
         let act_errs = p.get_errors();
 
         let exp_ast = Box::new(Ast::SubscriptOp { 
@@ -5452,7 +5541,9 @@ mod tests {
             }),
             index: Box::new(Ast::IntLiteral {
                 value: 1,
+                line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -5475,7 +5566,7 @@ mod tests {
             line: 1,
         });
 
-        p.name_prime(in_ast).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
+        p.name_prime(in_ast, 1).expect_err(format!("Parse successful. Expected {:?}, found", TerminalError).as_str());
         let act_errs = p.get_errors();
 
         let exp_errs =  &vec![

@@ -707,7 +707,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Arithmetic operations can only be performed on operands of float type");
             },
-            Ast::Relation { op, lhs, rhs } => {
+            Ast::Relation { op, lhs, rhs, .. } => {
                 let lhs = self.visit_ast(lhs);
                 let rhs = self.visit_ast(rhs);
 
@@ -834,7 +834,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Relational operators not supported on these operands");
             },
-            Ast::NegateOp { operand } => {
+            Ast::NegateOp { operand, .. } => {
                 let val = self.visit_ast(operand);
 
                 if val.is_int_value() {
@@ -868,7 +868,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
 
             },
-            Ast::SubscriptOp { array, index } => {
+            Ast::SubscriptOp { array, index, .. } => {
                 let array = match VectorValue::try_from(self.visit_ast(array)) {
                     Ok(val) => val,
                     Err(_) => panic!("Subscript operation can only be performed on array types"),
@@ -879,7 +879,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 };
                 AnyValueEnum::from(self.builder.build_extract_element(array, index, "tmpsubscript").unwrap())
             },
-            Ast::ProcCall { proc, args } => {
+            Ast::ProcCall { proc, args, .. } => {
                 let id = match **proc {
                     Ast::Var { ref id, .. } => id,
                     _ => panic!("Expected Ast::Var for proc"),
@@ -919,10 +919,10 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     None => panic!("Unknown function {id}."),
                 }
             },
-            Ast::IntLiteral { value } => AnyValueEnum::from(self.context.i64_type().const_int(*value as u64, false)),
-            Ast::FloatLiteral { value } => AnyValueEnum::from(self.context.f64_type().const_float(*value as f64)),
-            Ast::BoolLiteral { value } => AnyValueEnum::from(self.context.bool_type().const_int(*value as u64, false)),
-            Ast::StringLiteral { value } => {
+            Ast::IntLiteral { value, .. } => AnyValueEnum::from(self.context.i64_type().const_int(*value as u64, false)),
+            Ast::FloatLiteral { value, .. } => AnyValueEnum::from(self.context.f64_type().const_float(*value as f64)),
+            Ast::BoolLiteral { value, .. } => AnyValueEnum::from(self.context.bool_type().const_int(*value as u64, false)),
+            Ast::StringLiteral { value, .. } => {
                 let val = self.context.const_string(value.as_bytes(), true);
                 let global = self.module.add_global(val.get_type(), Some(AddressSpace::default()), "str");
                 global.set_constant(true);

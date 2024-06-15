@@ -912,7 +912,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     }
                 }
             },
-            Ast::Relation { op, lhs, rhs } => {
+            Ast::Relation { op, lhs, rhs, line } => {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
@@ -921,7 +921,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         match rhs_type {
                             Types::Array(rhs_size, ref rhs_base_type) => {
                                 if lhs_size != rhs_size {
-                                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on array types with matching sizes. {} != {}", lhs_type, rhs_type) });
+                                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Relational operations can only be performed on array types with matching sizes. {} != {}", lhs_type, rhs_type) });
                                     return Err(TerminalError);
                                 }
                                 match **lhs_base_type {
@@ -931,7 +931,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
                                             Types::Float => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             Types::Bool => {
@@ -941,11 +941,11 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
                                             Types::String => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                         }
@@ -953,19 +953,19 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                     Types::Float => {
                                         match **rhs_base_type {
                                             Types::Int | Types::Bool => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             Types::Float => {
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
                                             Types::String => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                         }
@@ -979,18 +979,18 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
                                             Types::Float => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             Types::Bool => {
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
                                             Types::String => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                         }
@@ -998,12 +998,12 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                     Types::String => {
                                         match **rhs_base_type {
                                             Types::Int | Types::Bool => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             Types::Float => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float array types can only be compared with other float array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                             Types::String => {
@@ -1015,25 +1015,25 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                         Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                                     },
                                                     _ => {
-                                                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string array types, found {}", op) });
+                                                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Only == and != are supported for string array types, found {}", op) });
                                                         Err(TerminalError)
                                                     },
                                                 }
                                             },
                                             _ => {
-                                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string array types can only be compared with other string array types in relational operators. {} != {}", lhs_type, rhs_type) });
                                                 Err(TerminalError)
                                             },
                                         }
                                     },
                                     _ => {
-                                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
                                         Err(TerminalError)
                                     },
                                 }
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -1044,7 +1044,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Bool)
                             },
                             Types::Float => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::Bool => {
@@ -1054,15 +1054,15 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Bool)
                             },
                             Types::String => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::Array(_, _) => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -1070,23 +1070,23 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     Types::Float => {
                         match rhs_type {
                             Types::Int | Types::Bool => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::Float => {
                                 Ok(Types::Bool)
                             },
                             Types::String => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::Array(_, _) => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -1100,22 +1100,22 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 Ok(Types::Bool)
                             },
                             Types::Float => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::Bool => {
                                 Ok(Types::Bool)
                             },
                             Types::String => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::Array(_, _) => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                         }
@@ -1123,12 +1123,12 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     Types::String => {
                         match rhs_type {
                             Types::Int | Types::Bool => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::Float => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("float types can only be compared with other float types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             Types::String => {
@@ -1140,28 +1140,28 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                         Ok(Types::Bool)
                                     },
                                     _ => {
-                                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Only == and != are supported for string types, found {}", op) });
+                                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Only == and != are supported for string types, found {}", op) });
                                         Err(TerminalError)
                                     },
                                 }
                             },
                             Types::Array(_, _) => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in relational operations, found {} and {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                             _ => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("string types can only be compared with other string types in relational operators. {} != {}", lhs_type, rhs_type) });
                                 Err(TerminalError)
                             },
                         }
                     },
                     _ => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Relational operations can only be performed on integer, bool, float, string, integer array, bool array, float array or string array types, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::NegateOp { operand } => {
+            Ast::NegateOp { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Int => Ok(Types::Int),
                     Types::Float => Ok(Types::Float),
@@ -1170,22 +1170,22 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
                             Types::Float => Ok(Types::Array(size, Box::new(Types::Float))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Negation of an array can only be performed on integer or float arrays, found {ty} array") });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Negation of an array can only be performed on integer or float arrays, found {ty} array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Negation can only be performed on integer, float, integer array, or float array types, found {ty} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Negation can only be performed on integer, float, integer array, or float array types, found {ty} type") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::SubscriptOp { array, index } => {
+            Ast::SubscriptOp { array, index, line } => {
                 match self.visit_ast(index)? {
                     Types::Int => (),
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Array index must be of integer type, found {ty} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Array index must be of integer type, found {ty} type") });
                         return Err(TerminalError);
                     },
                 }
@@ -1193,12 +1193,12 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 match self.visit_ast(array)? {
                     Types::Array(_, base_type) => Ok(*base_type),
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Indexing can only be performed on array types, found {ty} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Indexing can only be performed on array types, found {ty} type") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::ProcCall { proc, args } => {
+            Ast::ProcCall { proc, args, line } => {
                 let proc_name = 
                     if let Ast::Var { ref id, .. } = **proc {
                         id.clone()
@@ -1216,14 +1216,14 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         let n_args = arg_types.len();
                         let n_params = param_types.len();
                         if n_args != n_params {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Incorrect number of arguments for procedure {proc_name}. Expected {n_params}, found {n_args}.") });
+                            self.errs.push(CompilerError::Error { line: *line, msg: format!("Incorrect number of arguments for procedure {proc_name}. Expected {n_params}, found {n_args}.") });
                             return Err(TerminalError);
                         }
 
                         let mut is_type_mismatch = false;
                         for (i, (arg_type, param_type)) in arg_types.iter().zip(param_types.iter()).enumerate() {
                             if arg_type != param_type {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Type mismatch for argument {i} (0-indexed) in procedure call {proc_name}") });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Type mismatch for argument {i} (0-indexed) in procedure call {proc_name}") });
                                 is_type_mismatch = true;
                             }
                         }
@@ -1235,7 +1235,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         Ok(*out_type)
                     }
                     _ => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("{proc_name} is not a procedure") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("{proc_name} is not a procedure") });
                         return Err(TerminalError);
                     },
                 }
@@ -1624,6 +1624,7 @@ mod tests {
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -1649,6 +1650,7 @@ mod tests {
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -1668,6 +1670,7 @@ mod tests {
             expr: Box::new(Ast::IntToFloat { 
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -1687,6 +1690,7 @@ mod tests {
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -1706,6 +1710,7 @@ mod tests {
             expr: Box::new(Ast::IntToBool { 
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -1725,6 +1730,7 @@ mod tests {
             }),
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -1750,6 +1756,7 @@ mod tests {
             }),
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -1769,6 +1776,7 @@ mod tests {
             expr: Box::new(Ast::FloatToInt { 
                 operand: Box::new(Ast::FloatLiteral { 
                     value: 5.3,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -1788,6 +1796,7 @@ mod tests {
             }),
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -1808,6 +1817,7 @@ mod tests {
                 operand: Box::new(Ast::FloatToInt { 
                     operand: Box::new(Ast::FloatLiteral { 
                         value: 5.3,
+                        line: 1,
                     }),
                 }),
             }),
@@ -1828,6 +1838,7 @@ mod tests {
             }),
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             line: 1,
         });
@@ -1853,6 +1864,7 @@ mod tests {
             }),
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             line: 1,
         });
@@ -1872,6 +1884,7 @@ mod tests {
             expr: Box::new(Ast::BoolToInt { 
                 operand: Box::new(Ast::BoolLiteral { 
                     value: true,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -1891,6 +1904,7 @@ mod tests {
             }),
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             line: 1,
         });
@@ -1911,6 +1925,7 @@ mod tests {
                 operand: Box::new(Ast::BoolToInt { 
                     operand: Box::new(Ast::BoolLiteral { 
                         value: true,
+                        line: 1,
                     }),
                 }),
             }),
@@ -1931,6 +1946,7 @@ mod tests {
             }),
             expr: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -2314,6 +2330,7 @@ mod tests {
             }),
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -2335,6 +2352,7 @@ mod tests {
         let mut ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
@@ -2357,6 +2375,7 @@ mod tests {
         let mut ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
@@ -2373,6 +2392,7 @@ mod tests {
             cond: Box::new(Ast::IntToBool { 
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             then_body: Vec::new(),
@@ -2390,6 +2410,7 @@ mod tests {
         let mut ast = Box::new(Ast::IfStmt { 
             cond: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
@@ -2412,9 +2433,11 @@ mod tests {
         let mut ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             cond: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             body: Vec::new(),
             line: 1,
@@ -2436,9 +2459,11 @@ mod tests {
         let mut ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             cond: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             body: Vec::new(),
             line: 1,
@@ -2453,10 +2478,12 @@ mod tests {
         let exp_ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             cond: Box::new(Ast::IntToBool { 
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             body: Vec::new(),
@@ -2473,9 +2500,11 @@ mod tests {
         let mut ast = Box::new(Ast::LoopStmt { 
             init: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             cond: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             body: Vec::new(),
             line: 1,
@@ -2497,6 +2526,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -2518,6 +2548,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -2533,6 +2564,7 @@ mod tests {
             expr: Box::new(Ast::IntToFloat { 
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -2548,6 +2580,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -2563,6 +2596,7 @@ mod tests {
             expr: Box::new(Ast::IntToBool { 
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -2578,6 +2612,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -2599,6 +2634,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -2614,6 +2650,7 @@ mod tests {
             expr: Box::new(Ast::FloatToInt { 
                 operand: Box::new(Ast::FloatLiteral { 
                     value: 5.3,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -2629,6 +2666,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::FloatLiteral { 
                 value: 5.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -2645,6 +2683,7 @@ mod tests {
                 operand: Box::new(Ast::FloatToInt { 
                     operand: Box::new(Ast::FloatLiteral { 
                         value: 5.3,
+                        line: 1,
                     }),
                 }),
             }),
@@ -2661,6 +2700,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             line: 1,
         });
@@ -2682,6 +2722,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             line: 1,
         });
@@ -2697,6 +2738,7 @@ mod tests {
             expr: Box::new(Ast::BoolToInt { 
                 operand: Box::new(Ast::BoolLiteral { 
                     value: true,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -2712,6 +2754,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             line: 1,
         });
@@ -2728,6 +2771,7 @@ mod tests {
                 operand: Box::new(Ast::BoolToInt { 
                     operand: Box::new(Ast::BoolLiteral { 
                         value: true,
+                        line: 1,
                     }),
                 }),
             }),
@@ -2744,6 +2788,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -2765,6 +2810,7 @@ mod tests {
         let mut ast = Box::new(Ast::ReturnStmt {
             expr: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -2786,9 +2832,11 @@ mod tests {
         let mut ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -2836,9 +2884,11 @@ mod tests {
         let mut ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -2913,6 +2963,7 @@ mod tests {
         let mut ast = Box::new(Ast::AndOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("a"),
@@ -2938,9 +2989,11 @@ mod tests {
         let mut ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -2988,9 +3041,11 @@ mod tests {
         let mut ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -3065,6 +3120,7 @@ mod tests {
         let mut ast = Box::new(Ast::OrOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("a"),
@@ -3090,6 +3146,7 @@ mod tests {
         let mut ast = Box::new(Ast::NotOp {
             operand: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             line: 1,
         });
@@ -3132,6 +3189,7 @@ mod tests {
         let mut ast = Box::new(Ast::NotOp {
             operand: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -3174,9 +3232,11 @@ mod tests {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -3197,9 +3257,11 @@ mod tests {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3220,9 +3282,11 @@ mod tests {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3237,10 +3301,12 @@ mod tests {
             lhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3255,9 +3321,11 @@ mod tests {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -3271,10 +3339,12 @@ mod tests {
         let exp_ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 4,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -3426,9 +3496,11 @@ mod tests {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -3503,6 +3575,7 @@ mod tests {
         let mut ast = Box::new(Ast::AddOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("a"),
@@ -3528,9 +3601,11 @@ mod tests {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -3551,9 +3626,11 @@ mod tests {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3574,9 +3651,11 @@ mod tests {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3591,10 +3670,12 @@ mod tests {
             lhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3609,9 +3690,11 @@ mod tests {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -3625,9 +3708,11 @@ mod tests {
         let exp_ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
+                    line: 1,
                     value: 4,
                 }),
             }),
@@ -3780,9 +3865,11 @@ mod tests {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -3857,6 +3944,7 @@ mod tests {
         let mut ast = Box::new(Ast::SubOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("a"),
@@ -3882,9 +3970,11 @@ mod tests {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -3905,9 +3995,11 @@ mod tests {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3928,9 +4020,11 @@ mod tests {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3945,10 +4039,12 @@ mod tests {
             lhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -3963,9 +4059,11 @@ mod tests {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -3979,10 +4077,12 @@ mod tests {
         let exp_ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 4,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -4134,9 +4234,11 @@ mod tests {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -4211,6 +4313,7 @@ mod tests {
         let mut ast = Box::new(Ast::MulOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("a"),
@@ -4236,9 +4339,11 @@ mod tests {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -4253,11 +4358,13 @@ mod tests {
             lhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 4,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -4273,9 +4380,11 @@ mod tests {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -4296,9 +4405,11 @@ mod tests {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -4313,10 +4424,12 @@ mod tests {
             lhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
             line: 1,
         });
@@ -4331,9 +4444,11 @@ mod tests {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
             line: 1,
         });
@@ -4347,10 +4462,12 @@ mod tests {
         let exp_ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 4,
+                    line: 1,
                 }),
             }),
             line: 1,
@@ -4518,9 +4635,11 @@ mod tests {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
             line: 1,
         });
@@ -4595,6 +4714,7 @@ mod tests {
         let mut ast = Box::new(Ast::DivOp {
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("a"),
@@ -4621,10 +4741,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4644,10 +4767,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4667,10 +4793,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             rhs: Box::new(Ast::BoolLiteral { 
                 value: false,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4690,10 +4819,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string2"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4713,10 +4845,13 @@ mod tests {
             op: RelationOp::NotEq,
             lhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string2"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4736,10 +4871,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4752,12 +4890,15 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::BoolToInt {
                 operand: Box::new(Ast::BoolLiteral { 
                     value: true,
+                    line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4771,10 +4912,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::BoolLiteral { 
                 value: true,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4788,11 +4932,14 @@ mod tests {
             lhs: Box::new(Ast::BoolToInt {
                 operand: Box::new(Ast::BoolLiteral { 
                     value: true,
+                    line: 1,
                 }),
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4812,6 +4959,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4839,6 +4987,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4866,6 +5015,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4893,6 +5043,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4920,6 +5071,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4947,6 +5099,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4969,6 +5122,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4988,6 +5142,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5010,6 +5165,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -5023,10 +5179,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5046,10 +5205,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::FloatLiteral { 
                 value: 5.2,
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5075,6 +5237,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5102,6 +5265,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5123,10 +5287,13 @@ mod tests {
             op: RelationOp::LT,
             lhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string2"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5146,10 +5313,13 @@ mod tests {
             op: RelationOp::LTE,
             lhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string2"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5169,10 +5339,13 @@ mod tests {
             op: RelationOp::GT,
             lhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string2"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5192,10 +5365,13 @@ mod tests {
             op: RelationOp::GTE,
             lhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string2"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5221,6 +5397,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5248,6 +5425,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5275,6 +5453,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5302,6 +5481,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5323,10 +5503,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5346,10 +5529,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::StringLiteral { 
                 value: String::from("string1"),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5375,6 +5561,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5402,6 +5589,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5423,11 +5611,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("b"), Types::Unknown).expect("SymTable insertion failed. Unable to setup test.");
@@ -5452,7 +5642,9 @@ mod tests {
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Unknown).expect("SymTable insertion failed. Unable to setup test.");
@@ -5479,6 +5671,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5506,6 +5699,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Unknown))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5533,6 +5727,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5554,11 +5749,13 @@ mod tests {
             op: RelationOp::Eq,
             lhs: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5578,7 +5775,9 @@ mod tests {
         let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::IntLiteral { 
                 value: 5,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5597,7 +5796,9 @@ mod tests {
         let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::FloatLiteral { 
                 value: 5.0,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5618,6 +5819,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5639,6 +5841,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5658,7 +5861,9 @@ mod tests {
         let mut ast = Box::new(Ast::NegateOp {
             operand: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5679,6 +5884,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5702,7 +5908,9 @@ mod tests {
             }),
             index: Box::new(Ast::IntLiteral {
                 value: 0,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5726,7 +5934,9 @@ mod tests {
             }),
             index: Box::new(Ast::IntLiteral {
                 value: 0,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -5750,7 +5960,9 @@ mod tests {
             }),
             index: Box::new(Ast::FloatLiteral {
                 value: 1.0,
+                line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -5773,6 +5985,7 @@ mod tests {
                 line: 1,
             }),
             args: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
@@ -5797,8 +6010,10 @@ mod tests {
             args: vec![
                 Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
             ],
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Int])).expect("SymTable insertion failed. Unable to setup test.");
@@ -5823,11 +6038,14 @@ mod tests {
             args: vec![
                 Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
                 Box::new(Ast::BoolLiteral { 
                     value: true,
+                    line: 1,
                 }),
             ],
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Int, Types::Bool])).expect("SymTable insertion failed. Unable to setup test.");
@@ -5850,6 +6068,7 @@ mod tests {
                 line: 1,
             }),
             args: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
@@ -5873,6 +6092,7 @@ mod tests {
                 line: 1,
             }),
             args: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert_global(String::from("foo"), Types::Proc(Box::new(Types::Int), Vec::new())).expect("SymTable insertion failed. Unable to setup test.");
@@ -5897,6 +6117,7 @@ mod tests {
                 line: 1,
             }),
             args: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("foo"), Types::Int).expect("SymTable insertion failed. Unable to setup test.");
@@ -5919,6 +6140,7 @@ mod tests {
                 line: 1,
             }),
             args: Vec::new(),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Int, Types::Bool])).expect("SymTable insertion failed. Unable to setup test.");
@@ -5943,11 +6165,14 @@ mod tests {
             args: vec![
                 Box::new(Ast::IntLiteral { 
                     value: 5,
+                    line: 1,
                 }),
                 Box::new(Ast::BoolLiteral { 
                     value: true,
+                    line: 1,
                 }),
             ],
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("foo"), Types::Proc(Box::new(Types::Int), vec![Types::Bool, Types::Int])).expect("SymTable insertion failed. Unable to setup test.");
@@ -5967,6 +6192,7 @@ mod tests {
     fn typechecker_int_literal() {
         let mut ast = Box::new(Ast::IntLiteral {
             value: 5,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -5984,6 +6210,7 @@ mod tests {
     fn typechecker_float_literal() {
         let mut ast = Box::new(Ast::FloatLiteral {
             value: 9.3,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6001,6 +6228,7 @@ mod tests {
     fn typechecker_bool_literal() {
         let mut ast = Box::new(Ast::BoolLiteral {
             value: true,
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6018,6 +6246,7 @@ mod tests {
     fn typechecker_string_literal() {
         let mut ast = Box::new(Ast::StringLiteral {
             value: String::from("this is a string"),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6117,6 +6346,7 @@ mod tests {
         let mut ast = Box::new(Ast::FloatToInt {
             operand: Box::new(Ast::IntLiteral {
                 value: 5,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6136,6 +6366,7 @@ mod tests {
         let mut ast = Box::new(Ast::FloatToInt {
             operand: Box::new(Ast::FloatLiteral {
                 value: 5.3,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6155,6 +6386,7 @@ mod tests {
         let mut ast = Box::new(Ast::FloatToInt {
             operand: Box::new(Ast::StringLiteral {
                 value: String::from("this is a string"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6174,6 +6406,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntToFloat {
             operand: Box::new(Ast::IntLiteral {
                 value: 5,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6193,6 +6426,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntToFloat {
             operand: Box::new(Ast::FloatLiteral {
                 value: 5.3,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6212,6 +6446,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntToFloat {
             operand: Box::new(Ast::StringLiteral {
                 value: String::from("this is a string"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6231,6 +6466,7 @@ mod tests {
         let mut ast = Box::new(Ast::BoolToInt {
             operand: Box::new(Ast::IntLiteral {
                 value: 5,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6250,6 +6486,7 @@ mod tests {
         let mut ast = Box::new(Ast::BoolToInt {
             operand: Box::new(Ast::BoolLiteral {
                 value: true,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6269,6 +6506,7 @@ mod tests {
         let mut ast = Box::new(Ast::BoolToInt {
             operand: Box::new(Ast::StringLiteral {
                 value: String::from("this is a string"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6288,6 +6526,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntToBool {
             operand: Box::new(Ast::IntLiteral {
                 value: 5,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6307,6 +6546,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntToBool {
             operand: Box::new(Ast::BoolLiteral {
                 value: true,
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();
@@ -6326,6 +6566,7 @@ mod tests {
         let mut ast = Box::new(Ast::IntToBool {
             operand: Box::new(Ast::StringLiteral {
                 value: String::from("this is a string"),
+                line: 1,
             }),
         });
         let mut tc = TypeChecker::new();

@@ -108,29 +108,37 @@ pub enum Ast {
         op: RelationOp,
         lhs: Box<Ast>,
         rhs: Box<Ast>,
+        line: u32,
     },
     NegateOp {
         operand: Box<Ast>,
+        line: u32,
     },
     SubscriptOp {
         array: Box<Ast>,
         index: Box<Ast>,
+        line: u32,
     },
     ProcCall {
         proc: Box<Ast>,
         args: Vec<Box<Ast>>,
+        line: u32,
     },
     IntLiteral {
         value: u32,
+        line: u32,
     },
     FloatLiteral {
         value: f32,
+        line: u32,
     },
     BoolLiteral {
         value: bool,
+        line: u32,
     },
     StringLiteral {
         value: String,
+        line: u32,
     },
     Var {
         id: String,
@@ -301,18 +309,18 @@ impl Ast {
                 rhs.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::Relation { op, lhs, rhs } => {
+            Ast::Relation { op, lhs, rhs, .. } => {
                 write!(buf, "{}{op}:\n", c.repeat(width))?;
                 lhs.fmt_string(buf, c, width+1)?;
                 rhs.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::NegateOp { operand } => {
+            Ast::NegateOp { operand, .. } => {
                 write!(buf, "{}neg:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::SubscriptOp { array, index } => {
+            Ast::SubscriptOp { array, index, .. } => {
                 write!(buf, "{}subscript:\n", c.repeat(width))?;
                 write!(buf, "{}base:\n", c.repeat(width+1))?;
                 array.fmt_string(buf, c, width+2)?;
@@ -320,7 +328,7 @@ impl Ast {
                 index.fmt_string(buf, c, width+2)?;
                 Ok(())
             },
-            Ast::ProcCall { proc, args } => {
+            Ast::ProcCall { proc, args, .. } => {
                 write!(buf, "{}proc_call:\n", c.repeat(width))?;
                 write!(buf, "{}proc:\n", c.repeat(width+1))?;
                 proc.fmt_string(buf, c, width+2)?;
@@ -330,19 +338,19 @@ impl Ast {
                 }
                 Ok(())
             },
-            Ast::IntLiteral { value } => {
+            Ast::IntLiteral { value, .. } => {
                 write!(buf, "{}int: {value}\n", c.repeat(width))?;
                 Ok(())
             },
-            Ast::FloatLiteral { value } => {
+            Ast::FloatLiteral { value, .. } => {
                 write!(buf, "{}float: {value}\n", c.repeat(width))?;
                 Ok(())
             },
-            Ast::BoolLiteral { value } => {
+            Ast::BoolLiteral { value, .. } => {
                 write!(buf, "{}bool: {value}\n", c.repeat(width))?;
                 Ok(())
             },
-            Ast::StringLiteral { value } => {
+            Ast::StringLiteral { value, .. } => {
                 write!(buf, "{}string: {value}\n", c.repeat(width))?;
                 Ok(())
             },
