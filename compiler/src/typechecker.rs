@@ -106,6 +106,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => {
                                 *expr = Box::new(Ast::IntToBool {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -113,7 +114,9 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 *expr = Box::new(Ast::IntToBool {
                                     operand: Box::new(Ast::FloatToInt {
                                         operand: Box::new(*expr.clone()),
+                                        line: expr.line(),
                                     }),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -134,12 +137,14 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Float => {
                                 *expr = Box::new(Ast::FloatToInt {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
                             Types::Bool => {
                                 *expr = Box::new(Ast::BoolToInt {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -154,6 +159,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => {
                                 *expr = Box::new(Ast::IntToFloat {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -164,7 +170,9 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 *expr = Box::new(Ast::IntToFloat {
                                     operand: Box::new(Ast::BoolToInt {
                                         operand: Box::new(*expr.clone()),
+                                        line: expr.line(),
                                     }),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -201,12 +209,14 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                             Types::Float => {
                                                 *expr = Box::new(Ast::FloatArrayToIntArray {
                                                     operand: Box::new(*expr.clone()),
+                                                    line: expr.line(),
                                                 });
                                                 Ok(Types::Unknown)
                                             },
                                             Types::Bool => {
                                                 *expr = Box::new(Ast::BoolArrayToIntArray {
                                                     operand: Box::new(*expr.clone()),
+                                                    line: expr.line(),
                                                 });
                                                 Ok(Types::Unknown)
                                             },
@@ -221,6 +231,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                             Types::Int => {
                                                 *expr = Box::new(Ast::IntArrayToFloatArray {
                                                     operand: Box::new(*expr.clone()),
+                                                    line: expr.line(),
                                                 });
                                                 Ok(Types::Unknown)
                                             },
@@ -231,7 +242,9 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 *expr = Box::new(Ast::IntArrayToFloatArray {
                                                     operand: Box::new(Ast::BoolArrayToIntArray {
                                                         operand: Box::new(*expr.clone()),
+                                                        line: expr.line(),
                                                     }),
+                                                    line: expr.line(),
                                                 });
                                                 Ok(Types::Unknown)
                                             },
@@ -246,6 +259,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                             Types::Int => {
                                                 *expr = Box::new(Ast::IntArrayToBoolArray {
                                                     operand: Box::new(*expr.clone()),
+                                                    line: expr.line(),
                                                 });
                                                 Ok(Types::Unknown)
                                             },
@@ -253,7 +267,9 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                                 *expr = Box::new(Ast::IntArrayToBoolArray {
                                                     operand: Box::new(Ast::FloatArrayToIntArray {
                                                         operand: Box::new(*expr.clone()),
+                                                        line: expr.line(),
                                                     }),
+                                                    line: expr.line(),
                                                 });
                                                 Ok(Types::Unknown)
                                             },
@@ -292,12 +308,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
             Ast::IfStmt { cond, then_body, else_body, .. } => {
                 let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
+                    self.errs.push(CompilerError::Error { line: cond.line(), msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
                     return Err(TerminalError);
                 }
                 if cond_expr_type == Types::Int {
                     *cond = Box::new(Ast::IntToBool {
                         operand: Box::new(*cond.clone()),
+                        line: cond.line(),
                     });
                 }
                 for stmt in then_body.iter_mut() {
@@ -312,12 +329,13 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 self.visit_ast(init)?;
                 let cond_expr_type = self.visit_ast(cond)?;
                 if cond_expr_type != Types::Bool && cond_expr_type != Types::Int {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
+                    self.errs.push(CompilerError::Error { line: cond.line(), msg: format!("The conditional expression must be of bool or integer type, found {} type", cond_expr_type) });
                     return Err(TerminalError);
                 }
                 if cond_expr_type == Types::Int {
                     *cond = Box::new(Ast::IntToBool {
                         operand: Box::new(*cond.clone()),
+                        line: cond.line(),
                     });
                 }
                 for stmt in body.iter_mut() {
@@ -339,6 +357,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => {
                                 *expr = Box::new(Ast::IntToBool {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -346,7 +365,9 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 *expr = Box::new(Ast::IntToBool {
                                     operand: Box::new(Ast::FloatToInt {
                                         operand: Box::new(*expr.clone()),
+                                        line: expr.line(),
                                     }),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -367,12 +388,14 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Float => {
                                 *expr = Box::new(Ast::FloatToInt {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
                             Types::Bool => {
                                 *expr = Box::new(Ast::BoolToInt {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -387,6 +410,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => {
                                 *expr = Box::new(Ast::IntToFloat {
                                     operand: Box::new(*expr.clone()),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -397,7 +421,9 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                 *expr = Box::new(Ast::IntToFloat {
                                     operand: Box::new(Ast::BoolToInt {
                                         operand: Box::new(*expr.clone()),
+                                        line: expr.line(),
                                     }),
+                                    line: expr.line(),
                                 });
                                 Ok(Types::Unknown)
                             },
@@ -593,6 +619,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             } else { // Float
                                 *lhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*lhs.clone()),
+                                    line: lhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             }
@@ -600,6 +627,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             if let Types::Int = **rhs_base_type {
                                 *rhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*rhs.clone()),
+                                    line: rhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             } else { // Float
@@ -619,6 +647,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     } else if let Types::Float = rhs_type {
                         *lhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*lhs.clone()),
+                            line: lhs.line(),
                         });
                         Ok(Types::Float)
                     } else { // Array
@@ -629,6 +658,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     if let Types::Int = rhs_type {
                         *rhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*rhs.clone()),
+                            line: rhs.line(),
                         });
                         Ok(Types::Float)
                     } else if let Types::Float = rhs_type {
@@ -680,6 +710,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             } else { // Float
                                 *lhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*lhs.clone()),
+                                    line: lhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             }
@@ -687,6 +718,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             if let Types::Int = **rhs_base_type {
                                 *rhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*rhs.clone()),
+                                    line: rhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             } else { // Float
@@ -706,6 +738,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     } else if let Types::Float = rhs_type {
                         *lhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*lhs.clone()),
+                            line: lhs.line(),
                         });
                         Ok(Types::Float)
                     } else { // Array
@@ -716,6 +749,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     if let Types::Int = rhs_type {
                         *rhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*rhs.clone()),
+                            line: rhs.line(),
                         });
                         Ok(Types::Float)
                     } else if let Types::Float = rhs_type {
@@ -767,6 +801,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             } else { // Float
                                 *lhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*lhs.clone()),
+                                    line: lhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             }
@@ -774,6 +809,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             if let Types::Int = **rhs_base_type {
                                 *rhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*rhs.clone()),
+                                    line: rhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             } else { // Float
@@ -793,6 +829,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     } else if let Types::Float = rhs_type {
                         *lhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*lhs.clone()),
+                            line: lhs.line(),
                         });
                         Ok(Types::Float)
                     } else { // Array
@@ -803,6 +840,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     if let Types::Int = rhs_type {
                         *rhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*rhs.clone()),
+                            line: rhs.line(),
                         });
                         Ok(Types::Float)
                     } else if let Types::Float = rhs_type {
@@ -852,14 +890,17 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             if let Types::Int = **rhs_base_type {
                                 *lhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*lhs.clone()),
+                                    line: lhs.line(),
                                 });
                                 *rhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*rhs.clone()),
+                                    line: rhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Int)))
                             } else { // Float
                                 *lhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*lhs.clone()),
+                                    line: lhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             }
@@ -867,6 +908,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             if let Types::Int = **rhs_base_type {
                                 *rhs = Box::new(Ast::IntArrayToFloatArray {
                                     operand: Box::new(*rhs.clone()),
+                                    line: rhs.line(),
                                 });
                                 Ok(Types::Array(lhs_size, Box::new(Types::Float)))
                             } else { // Float
@@ -884,14 +926,17 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     if let Types::Int = rhs_type {
                         *lhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*lhs.clone()),
+                            line: lhs.line(),
                         });
                         *rhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*rhs.clone()),
+                            line: rhs.line(),
                         });
                         Ok(Types::Float)
                     } else if let Types::Float = rhs_type {
                         *lhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*lhs.clone()),
+                            line: lhs.line(),
                         });
                         Ok(Types::Float)
                     } else { // Array
@@ -902,6 +947,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     if let Types::Int = rhs_type {
                         *rhs = Box::new(Ast::IntToFloat {
                             operand: Box::new(*rhs.clone()),
+                            line: rhs.line(),
                         });
                         Ok(Types::Float)
                     } else if let Types::Float = rhs_type {
@@ -937,6 +983,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                             Types::Bool => {
                                                 *rhs = Box::new(Ast::BoolArrayToIntArray {
                                                     operand: Box::new(*rhs.clone()),
+                                                    line: rhs.line(),
                                                 });
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
@@ -975,6 +1022,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                                             Types::Int => {
                                                 *lhs = Box::new(Ast::BoolArrayToIntArray {
                                                     operand: Box::new(*lhs.clone()),
+                                                    line: lhs.line(),
                                                 });
                                                 Ok(Types::Array(lhs_size, Box::new(Types::Bool)))
                                             },
@@ -1050,6 +1098,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Bool => {
                                 *rhs = Box::new(Ast::BoolToInt {
                                     operand: Box::new(*rhs.clone()),
+                                    line: rhs.line(),
                                 });
                                 Ok(Types::Bool)
                             },
@@ -1096,6 +1145,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             Types::Int => {
                                 *lhs = Box::new(Ast::BoolToInt {
                                     operand: Box::new(*lhs.clone()),
+                                    line: lhs.line(),
                                 });
                                 Ok(Types::Bool)
                             },
@@ -1253,115 +1303,115 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     },
                 }
             },
-            Ast::FloatToInt { operand } => {
+            Ast::FloatToInt { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Int => Ok(Types::Int),
                     Types::Float => Ok(Types::Int),
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} to integer") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::IntToFloat { operand } => {
+            Ast::IntToFloat { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Int => Ok(Types::Float),
                     Types::Float => Ok(Types::Float),
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to float") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} to float") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::BoolToInt { operand } => {
+            Ast::BoolToInt { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Int => Ok(Types::Int),
                     Types::Bool => Ok(Types::Int),
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to integer") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} to integer") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::IntToBool { operand } => {
+            Ast::IntToBool { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Int => Ok(Types::Bool),
                     Types::Bool => Ok(Types::Bool),
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} to bool") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::FloatArrayToIntArray { operand } => {
+            Ast::FloatArrayToIntArray { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Array(size, base_type) => {
                         match *base_type {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
                             Types::Float => Ok(Types::Array(size, Box::new(Types::Int))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to integer array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to integer array") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::IntArrayToFloatArray { operand } => {
+            Ast::IntArrayToFloatArray { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Array(size, base_type) => {
                         match *base_type {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Float))),
                             Types::Float => Ok(Types::Array(size, Box::new(Types::Float))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to float array") });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to float array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to float array") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to float array") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::BoolArrayToIntArray { operand } => {
+            Ast::BoolArrayToIntArray { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Array(size, base_type) => {
                         match *base_type {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Int))),
                             Types::Bool => Ok(Types::Array(size, Box::new(Types::Int))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to integer array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to integer array") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to integer array") });
                         Err(TerminalError)
                     },
                 }
             },
-            Ast::IntArrayToBoolArray { operand } => {
+            Ast::IntArrayToBoolArray { operand, line } => {
                 match self.visit_ast(operand)? {
                     Types::Array(size, base_type) => {
                         match *base_type {
                             Types::Int => Ok(Types::Array(size, Box::new(Types::Bool))),
                             Types::Bool => Ok(Types::Array(size, Box::new(Types::Bool))),
                             ty => {
-                                self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to bool array") });
+                                self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to bool array") });
                                 Err(TerminalError)
                             },
                         }
                     },
                     ty => {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} array to bool array") });
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot convert {ty} to bool array") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} array to bool array") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot convert {ty} to bool array") });
                         Err(TerminalError)
                     },
                 }
@@ -1672,6 +1722,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -1712,6 +1763,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -1778,6 +1830,7 @@ mod tests {
                     value: 5.3,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -1819,7 +1872,9 @@ mod tests {
                         value: 5.3,
                         line: 1,
                     }),
+                    line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -1886,6 +1941,7 @@ mod tests {
                     value: true,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -1927,7 +1983,9 @@ mod tests {
                         value: true,
                         line: 1,
                     }),
+                    line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2022,6 +2080,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2063,6 +2122,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2131,6 +2191,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2173,7 +2234,9 @@ mod tests {
                         id: String::from("a"),
                         line: 1,
                     }),
+                    line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2242,6 +2305,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2284,7 +2348,9 @@ mod tests {
                         id: String::from("a"),
                         line: 1,
                     }),
+                    line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2394,6 +2460,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             then_body: Vec::new(),
             else_body: Vec::new(),
@@ -2485,6 +2552,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             body: Vec::new(),
             line: 1,
@@ -2566,6 +2634,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2598,6 +2667,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2652,6 +2722,7 @@ mod tests {
                     value: 5.3,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2685,7 +2756,9 @@ mod tests {
                         value: 5.3,
                         line: 1,
                     }),
+                    line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2740,6 +2813,7 @@ mod tests {
                     value: true,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -2773,7 +2847,9 @@ mod tests {
                         value: true,
                         line: 1,
                     }),
+                    line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -3303,6 +3379,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
@@ -3346,6 +3423,7 @@ mod tests {
                     value: 4,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -3435,8 +3513,9 @@ mod tests {
             lhs: Box::new(Ast::IntArrayToFloatArray {
                 operand: Box::new(Ast::Var { 
                     id: String::from("a"),
-                line: 1,
+                    line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
@@ -3482,6 +3561,7 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -3672,6 +3752,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
@@ -3715,6 +3796,7 @@ mod tests {
                     line: 1,
                     value: 4,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -3806,6 +3888,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
@@ -3851,6 +3934,7 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4041,6 +4125,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
@@ -4084,6 +4169,7 @@ mod tests {
                     value: 4,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4175,6 +4261,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
@@ -4220,6 +4307,7 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4360,12 +4448,14 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntToFloat {
                 operand: Box::new(Ast::IntLiteral { 
                     value: 4,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4426,6 +4516,7 @@ mod tests {
                     value: 5,
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
@@ -4469,6 +4560,7 @@ mod tests {
                     value: 4,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4506,12 +4598,14 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntArrayToFloatArray { 
                 operand: Box::new(Ast::Var { 
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4576,6 +4670,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
@@ -4621,6 +4716,7 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4897,6 +4993,7 @@ mod tests {
                     value: true,
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -4934,6 +5031,7 @@ mod tests {
                     value: true,
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
@@ -5121,6 +5219,7 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             line: 1,
         });
@@ -5160,6 +5259,7 @@ mod tests {
                     id: String::from("a"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("b"),
@@ -6348,6 +6448,7 @@ mod tests {
                 value: 5,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6368,6 +6469,7 @@ mod tests {
                 value: 5.3,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6388,6 +6490,7 @@ mod tests {
                 value: String::from("this is a string"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6408,6 +6511,7 @@ mod tests {
                 value: 5,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6428,6 +6532,7 @@ mod tests {
                 value: 5.3,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6448,6 +6553,7 @@ mod tests {
                 value: String::from("this is a string"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6468,6 +6574,7 @@ mod tests {
                 value: 5,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6488,6 +6595,7 @@ mod tests {
                 value: true,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6508,6 +6616,7 @@ mod tests {
                 value: String::from("this is a string"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6528,6 +6637,7 @@ mod tests {
                 value: 5,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6548,6 +6658,7 @@ mod tests {
                 value: true,
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6568,6 +6679,7 @@ mod tests {
                 value: String::from("this is a string"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -6588,6 +6700,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6609,6 +6722,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6630,6 +6744,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6651,6 +6766,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6672,6 +6788,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6693,6 +6810,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6714,6 +6832,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6735,6 +6854,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6756,6 +6876,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6777,6 +6898,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6798,6 +6920,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Bool))).expect("SymTable insertion failed. Unable to setup test.");
@@ -6819,6 +6942,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::String))).expect("SymTable insertion failed. Unable to setup test.");

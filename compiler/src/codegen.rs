@@ -958,35 +958,35 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                     None => panic!("Identifier {id} not found"),
                 }
             },
-            Ast::FloatToInt { operand } => {
+            Ast::FloatToInt { operand, .. } => {
                 let operand = match FloatValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected FloatValue"),
                 };
                 AnyValueEnum::from(self.builder.build_float_to_signed_int(operand, self.context.i64_type(), "tmpcast").unwrap())
             },
-            Ast::IntToFloat { operand } => {
+            Ast::IntToFloat { operand, .. } => {
                 let operand = match IntValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected IntValue"),
                 };
                 AnyValueEnum::from(self.builder.build_signed_int_to_float(operand, self.context.f64_type(), "tmpcast").unwrap())
             },
-            Ast::BoolToInt { operand } => {
+            Ast::BoolToInt { operand, .. } => {
                 let operand = match IntValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected IntValue"),
                 };
                 AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.i64_type(), "tmpcast").unwrap())
             },
-            Ast::IntToBool { operand } => {
+            Ast::IntToBool { operand, .. } => {
                 let operand = match IntValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected IntValue"),
                 };
                 AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.bool_type(), "tmpcast").unwrap())
             },
-            Ast::FloatArrayToIntArray { operand } => {
+            Ast::FloatArrayToIntArray { operand, .. } => {
                 let operand = match VectorValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected VectorValue"),
@@ -994,7 +994,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 assert!(operand.get_type().get_element_type().is_float_type(), "Expected float vector");
                 AnyValueEnum::from(self.builder.build_float_to_signed_int(operand, self.context.i64_type().vec_type(operand.get_type().get_size()), "tmpcast").unwrap())
             },
-            Ast::IntArrayToFloatArray { operand } => {
+            Ast::IntArrayToFloatArray { operand, .. } => {
                 let operand = match VectorValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected VectorValue"),
@@ -1002,7 +1002,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 assert!(operand.get_type().get_element_type().is_int_type(), "Expected integer vector");
                 AnyValueEnum::from(self.builder.build_signed_int_to_float(operand, self.context.f64_type().vec_type(operand.get_type().get_size()), "tmpcast").unwrap())
             },
-            Ast::BoolArrayToIntArray { operand } => {
+            Ast::BoolArrayToIntArray { operand, .. } => {
                 let operand = match VectorValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected VectorValue"),
@@ -1010,7 +1010,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
                 assert!(operand.get_type().get_element_type().is_int_type(), "Expected bool vector");
                 AnyValueEnum::from(self.builder.build_int_cast(operand, self.context.i64_type().vec_type(operand.get_type().get_size()), "tmpcast").unwrap())
             },
-            Ast::IntArrayToBoolArray { operand } => {
+            Ast::IntArrayToBoolArray { operand, .. } => {
                 let operand = match VectorValue::try_from(self.visit_ast(operand)) {
                     Ok(val) => val,
                     Err(_) => panic!("Expected VectorValue"),

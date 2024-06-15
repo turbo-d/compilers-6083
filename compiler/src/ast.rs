@@ -145,28 +145,36 @@ pub enum Ast {
         line: u32,
     },
     FloatToInt {
-        operand: Box<Ast>
+        operand: Box<Ast>,
+        line: u32,
     },
     IntToFloat {
-        operand: Box<Ast>
+        operand: Box<Ast>,
+        line: u32,
     },
     BoolToInt {
-        operand: Box<Ast>
+        operand: Box<Ast>,
+        line: u32,
     },
     IntToBool {
-        operand: Box<Ast>
+        operand: Box<Ast>,
+        line: u32,
     },
     FloatArrayToIntArray {
-        operand: Box<Ast>
+        operand: Box<Ast>,
+        line: u32,
     },
     IntArrayToFloatArray {
-        operand: Box<Ast>
+        operand: Box<Ast>,
+        line: u32,
     },
     BoolArrayToIntArray {
-        operand: Box<Ast>
+        operand: Box<Ast>,
+        line: u32,
     },
     IntArrayToBoolArray {
         operand: Box<Ast>,
+        line: u32,
     },
 }
 
@@ -177,6 +185,42 @@ pub trait AstVisitor<T> {
 impl Ast {
     pub fn accept<T>(&mut self, v: &mut impl AstVisitor<T>) -> T {
         v.visit_ast(self)
+    }
+
+    pub fn line(&self) -> u32 {
+        match self {
+            Ast::Program { line, .. } => *line,
+            Ast::VarDecl { line, .. } => *line,
+            Ast::ProcDecl { line, .. } => *line,
+            Ast::AssignStmt { line, .. } => *line,
+            Ast::IfStmt { line, .. } => *line,
+            Ast::LoopStmt { line, .. } => *line,
+            Ast::ReturnStmt { line, .. } => *line,
+            Ast::AndOp { line, .. } => *line,
+            Ast::OrOp { line, .. } => *line,
+            Ast::NotOp { line, .. } => *line,
+            Ast::AddOp { line, .. } => *line,
+            Ast::SubOp { line, .. } => *line,
+            Ast::MulOp { line, .. } => *line,
+            Ast::DivOp { line, .. } => *line,
+            Ast::Relation { line, .. } => *line,
+            Ast::NegateOp { line, .. } => *line,
+            Ast::SubscriptOp { line, .. } => *line,
+            Ast::ProcCall { line, .. } => *line,
+            Ast::IntLiteral { line, .. } => *line,
+            Ast::FloatLiteral { line, .. } => *line,
+            Ast::BoolLiteral { line, .. } => *line,
+            Ast::StringLiteral { line, .. } => *line,
+            Ast::Var { line, .. } => *line,
+            Ast::FloatToInt { line, .. } => *line,
+            Ast::IntToFloat { line, .. } => *line,
+            Ast::BoolToInt { line, .. } => *line,
+            Ast::IntToBool { line, .. } => *line,
+            Ast::FloatArrayToIntArray { line, .. } => *line,
+            Ast::IntArrayToFloatArray { line, .. } => *line,
+            Ast::BoolArrayToIntArray { line, .. } => *line,
+            Ast::IntArrayToBoolArray { line, .. } => *line,
+        }
     }
 
     fn fmt_string(&self, buf: &mut String, c: &str, width: usize) -> fmt::Result {
@@ -358,42 +402,42 @@ impl Ast {
                 write!(buf, "{}var: {id}\n", c.repeat(width))?;
                 Ok(())
             },
-            Ast::FloatToInt { operand } => {
+            Ast::FloatToInt { operand, .. } => {
                 write!(buf, "{}float_to_int:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::IntToFloat { operand } => {
+            Ast::IntToFloat { operand, .. } => {
                 write!(buf, "{}int_to_float:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::BoolToInt { operand } => {
+            Ast::BoolToInt { operand, .. } => {
                 write!(buf, "{}bool_to_int:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::IntToBool { operand } => {
+            Ast::IntToBool { operand, .. } => {
                 write!(buf, "{}int_to_bool:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::FloatArrayToIntArray { operand } => {
+            Ast::FloatArrayToIntArray { operand, .. } => {
                 write!(buf, "{}float_array_to_int_array:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::IntArrayToFloatArray { operand } => {
+            Ast::IntArrayToFloatArray { operand, .. } => {
                 write!(buf, "{}int_array_to_float_array:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::BoolArrayToIntArray { operand } => {
+            Ast::BoolArrayToIntArray { operand, .. } => {
                 write!(buf, "{}bool_array_to_int_array:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::IntArrayToBoolArray { operand } => {
+            Ast::IntArrayToBoolArray { operand, .. } => {
                 write!(buf, "{}int_array_to_bool_array:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
