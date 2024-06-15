@@ -449,7 +449,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 AnyValueEnum::from(self.builder.build_return(Some(&val)).unwrap())
             },
-            Ast::AndOp { lhs, rhs } => {
+            Ast::AndOp { lhs, rhs, .. } => {
                 let lhs = self.visit_ast(lhs);
                 let rhs = self.visit_ast(rhs);
 
@@ -479,7 +479,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Bitwise operations can only be performed on operands of integer type");
             },
-            Ast::OrOp { lhs, rhs } => {
+            Ast::OrOp { lhs, rhs, .. } => {
                 let lhs = self.visit_ast(lhs);
                 let rhs = self.visit_ast(rhs);
 
@@ -509,7 +509,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Bitwise operations can only be performed on operands of integer type");
             },
-            Ast::NotOp { operand } => {
+            Ast::NotOp { operand, .. } => {
                 let operand = self.visit_ast(operand);
 
                 if operand.is_int_value() {

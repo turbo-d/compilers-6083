@@ -73,13 +73,16 @@ pub enum Ast {
     AndOp {
         lhs: Box<Ast>,
         rhs: Box<Ast>,
+        line: u32,
     },
     OrOp {
         lhs: Box<Ast>,
         rhs: Box<Ast>,
+        line: u32,
     },
     NotOp {
         operand: Box<Ast>,
+        line: u32,
     },
     AddOp {
         lhs: Box<Ast>,
@@ -253,19 +256,19 @@ impl Ast {
                 expr.fmt_string(buf, c, width+2)?;
                 Ok(())
             },
-            Ast::AndOp { lhs, rhs } => {
+            Ast::AndOp { lhs, rhs, .. } => {
                 write!(buf, "{}and:\n", c.repeat(width))?;
                 lhs.fmt_string(buf, c, width+1)?;
                 rhs.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::OrOp { lhs, rhs } => {
+            Ast::OrOp { lhs, rhs, .. } => {
                 write!(buf, "{}or:\n", c.repeat(width))?;
                 lhs.fmt_string(buf, c, width+1)?;
                 rhs.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::NotOp { operand } => {
+            Ast::NotOp { operand, .. } => {
                 write!(buf, "{}not:\n", c.repeat(width))?;
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())

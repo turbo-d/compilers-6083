@@ -528,8 +528,10 @@ impl LLParser {
 
     // first(expr): "not", "(", "identifier", "-", "number", "string", "true", "false"
     fn expr(&mut self) -> Result<Box<Ast>, TerminalError> {
+        let mut line = 0;
         let do_complement =
             if self.tok == Token::Not {
+                line = self.s.line();
                 self.consume_tok();
                 true
             } else {
@@ -543,6 +545,7 @@ impl LLParser {
         if do_complement {
             Ok(Box::new(Ast::NotOp {
                 operand: expr_node,
+                line,
             }))
         } else {
             Ok(expr_node)
@@ -555,6 +558,7 @@ impl LLParser {
         }
 
         let op = self.tok.clone();
+        let line = self.s.line();
         self.consume_tok();
 
         let rhs_node = self.arith_op()?;
@@ -564,12 +568,14 @@ impl LLParser {
                 Box::new(Ast::AndOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
+                    line,
                 })
             }
             _ => {
                 Box::new(Ast::OrOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
+                    line,
                 })
             }
         };
@@ -3537,6 +3543,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3596,6 +3603,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3632,11 +3640,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var {
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3670,6 +3680,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3706,11 +3717,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3747,11 +3760,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3788,11 +3803,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
