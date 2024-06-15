@@ -596,6 +596,7 @@ impl LLParser {
         }
 
         let op = self.tok.clone();
+        let line = self.s.line();
         self.consume_tok();
 
         let rhs_node = self.relation()?;
@@ -605,12 +606,14 @@ impl LLParser {
                 Box::new(Ast::AddOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
+                    line,
                 })
             }
             _ => {
                 Box::new(Ast::SubOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
+                    line,
                 })
             }
         };
@@ -671,6 +674,7 @@ impl LLParser {
         }
 
         let op = self.tok.clone();
+        let line = self.s.line();
         self.consume_tok();
 
         let rhs_node = self.factor()?;
@@ -680,12 +684,14 @@ impl LLParser {
                 Box::new(Ast::MulOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
+                    line,
                 })
             }
             _ => {
                 Box::new(Ast::DivOp {
                     lhs: lhs_node,
                     rhs: rhs_node,
+                    line,
                 })
             }
         };
@@ -3890,6 +3896,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3926,11 +3933,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -3964,6 +3973,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4000,11 +4010,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4041,11 +4053,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4082,11 +4096,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4676,6 +4692,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4712,11 +4729,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4750,6 +4769,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4786,11 +4806,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4827,11 +4849,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 
@@ -4868,11 +4892,13 @@ mod tests {
                     id: String::from("b"),
                     line: 1,
                 }),
+                line: 1,
             }),
             rhs: Box::new(Ast::Var { 
                 id: String::from("c"),
                 line: 1,
             }),
+            line: 1,
         });
         let exp_errs = &Vec::new();
 

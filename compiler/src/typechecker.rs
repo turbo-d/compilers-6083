@@ -552,30 +552,30 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
 
                 Ok(operand_type)
             },
-            Ast::AddOp { lhs, rhs } => {
+            Ast::AddOp { lhs, rhs, line } => {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float && !matches!(lhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = lhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float && !matches!(rhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = rhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
@@ -583,7 +583,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 if let Types::Array(lhs_size, ref lhs_base_type) = lhs_type {
                     if let Types::Array(rhs_size, ref rhs_base_type) = rhs_type {
                         if lhs_size != rhs_size {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
+                            self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
                             return Err(TerminalError);
                         }
 
@@ -607,10 +607,10 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             }
                         }
                     } else if let Types::Int = rhs_type {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     } else { // Float
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else if let Types::Int = lhs_type {
@@ -622,7 +622,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         });
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else { // Float
@@ -634,35 +634,35 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     } else if let Types::Float = rhs_type {
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 }
             },
-            Ast::SubOp { lhs, rhs } => {
+            Ast::SubOp { lhs, rhs, line } => {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float && !matches!(lhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = lhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float && !matches!(rhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = rhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
@@ -670,7 +670,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 if let Types::Array(lhs_size, ref lhs_base_type) = lhs_type {
                     if let Types::Array(rhs_size, ref rhs_base_type) = rhs_type {
                         if lhs_size != rhs_size {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
+                            self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
                             return Err(TerminalError);
                         }
 
@@ -694,10 +694,10 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             }
                         }
                     } else if let Types::Int = rhs_type {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     } else { // Float
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else if let Types::Int = lhs_type {
@@ -709,7 +709,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         });
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else { // Float
@@ -721,35 +721,35 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     } else if let Types::Float = rhs_type {
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 }
             },
-            Ast::MulOp { lhs, rhs } => {
+            Ast::MulOp { lhs, rhs, line } => {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float && !matches!(lhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = lhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float && !matches!(rhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = rhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
@@ -757,7 +757,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 if let Types::Array(lhs_size, ref lhs_base_type) = lhs_type {
                     if let Types::Array(rhs_size, ref rhs_base_type) = rhs_type {
                         if lhs_size != rhs_size {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
+                            self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
                             return Err(TerminalError);
                         }
 
@@ -781,10 +781,10 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             }
                         }
                     } else if let Types::Int = rhs_type {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     } else { // Float
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else if let Types::Int = lhs_type {
@@ -796,7 +796,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         });
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else { // Float
@@ -808,35 +808,35 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     } else if let Types::Float = rhs_type {
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 }
             },
-            Ast::DivOp { lhs, rhs } => {
+            Ast::DivOp { lhs, rhs, line } => {
                 let lhs_type = self.visit_ast(lhs)?;
                 let rhs_type = self.visit_ast(rhs)?;
 
                 if lhs_type != Types::Int && lhs_type != Types::Float && !matches!(lhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = lhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {lhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
 
                 if rhs_type != Types::Int && rhs_type != Types::Float && !matches!(rhs_type, Types::Array(_, _)) {
-                    self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                    self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                     return Err(TerminalError);
                 }
 
                 if let Types::Array(_, ref base_type) = rhs_type {
                     if **base_type != Types::Int && **base_type != Types::Float {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer, float, integer array, or float array types, found {rhs_type} type") });
                         return Err(TerminalError);
                     }
                 }
@@ -844,7 +844,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                 if let Types::Array(lhs_size, ref lhs_base_type) = lhs_type {
                     if let Types::Array(rhs_size, ref rhs_base_type) = rhs_type {
                         if lhs_size != rhs_size {
-                            self.errs.push(CompilerError::Error { line: 1, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
+                            self.errs.push(CompilerError::Error { line: *line, msg: format!("Arithmetic operations can only be performed on integer array or float array types with matching sizes. {} != {}", lhs_type, rhs_type) });
                             return Err(TerminalError);
                         }
 
@@ -874,10 +874,10 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                             }
                         }
                     } else if let Types::Int = rhs_type {
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     } else { // Float
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else if let Types::Int = lhs_type {
@@ -895,7 +895,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                         });
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 } else { // Float
@@ -907,7 +907,7 @@ impl AstVisitor<Result<Types, TerminalError>> for TypeChecker {
                     } else if let Types::Float = rhs_type {
                         Ok(Types::Float)
                     } else { // Array
-                        self.errs.push(CompilerError::Error { line: 1, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
+                        self.errs.push(CompilerError::Error { line: *line, msg: format!("Cannot mix scalar and array operands in arithmetic operations, found {} and {}", lhs_type, rhs_type) });
                         Err(TerminalError)
                     }
                 }
@@ -3178,6 +3178,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3200,6 +3201,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3222,6 +3224,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3239,6 +3242,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3255,6 +3259,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3272,6 +3277,7 @@ mod tests {
                     value: 4,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3290,6 +3296,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3316,6 +3323,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3342,6 +3350,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3363,6 +3372,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3381,6 +3391,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3402,6 +3413,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3418,6 +3430,7 @@ mod tests {
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3442,6 +3455,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3468,6 +3482,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3493,6 +3508,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3516,6 +3532,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3538,6 +3555,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3560,6 +3578,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3577,6 +3596,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3593,6 +3613,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3610,6 +3631,7 @@ mod tests {
                     value: 4,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3628,6 +3650,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3654,6 +3677,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3680,6 +3704,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3701,6 +3726,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3719,6 +3745,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3740,6 +3767,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3756,6 +3784,7 @@ mod tests {
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3780,6 +3809,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3806,6 +3836,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3831,6 +3862,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3854,6 +3886,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3876,6 +3909,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3898,6 +3932,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3915,6 +3950,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3931,6 +3967,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -3948,6 +3985,7 @@ mod tests {
                     value: 4,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -3966,6 +4004,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -3992,6 +4031,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4018,6 +4058,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4039,6 +4080,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4057,6 +4099,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4078,6 +4121,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4094,6 +4138,7 @@ mod tests {
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4118,6 +4163,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4144,6 +4190,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4169,6 +4216,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4192,6 +4240,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4211,6 +4260,7 @@ mod tests {
                     value: 4,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4227,6 +4277,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4249,6 +4300,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4266,6 +4318,7 @@ mod tests {
             rhs: Box::new(Ast::FloatLiteral { 
                 value: 4.3,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4282,6 +4335,7 @@ mod tests {
             rhs: Box::new(Ast::IntLiteral { 
                 value: 4,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4299,6 +4353,7 @@ mod tests {
                     value: 4,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4317,6 +4372,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4340,6 +4396,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4358,6 +4415,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4384,6 +4442,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4405,6 +4464,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4423,6 +4483,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Float))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4444,6 +4505,7 @@ mod tests {
                     line: 1,
                 }),
             }),
+            line: 1,
         });
 
         assert_eq!(act_type, exp_type);
@@ -4460,6 +4522,7 @@ mod tests {
             rhs: Box::new(Ast::StringLiteral { 
                 value: String::from("this is a string"),
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
 
@@ -4484,6 +4547,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4510,6 +4574,7 @@ mod tests {
                 id: String::from("b"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");
@@ -4535,6 +4600,7 @@ mod tests {
                 id: String::from("a"),
                 line: 1,
             }),
+            line: 1,
         });
         let mut tc = TypeChecker::new();
         tc.st.insert(String::from("a"), Types::Array(5, Box::new(Types::Int))).expect("SymTable insertion failed. Unable to setup test.");

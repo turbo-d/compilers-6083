@@ -87,18 +87,22 @@ pub enum Ast {
     AddOp {
         lhs: Box<Ast>,
         rhs: Box<Ast>,
+        line: u32,
     },
     SubOp {
         lhs: Box<Ast>,
         rhs: Box<Ast>,
+        line: u32,
     },
     MulOp {
         lhs: Box<Ast>,
         rhs: Box<Ast>,
+        line: u32,
     },
     DivOp {
         lhs: Box<Ast>,
         rhs: Box<Ast>,
+        line: u32,
     },
     Relation {
         op: RelationOp,
@@ -273,25 +277,25 @@ impl Ast {
                 operand.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::AddOp { lhs, rhs } => {
+            Ast::AddOp { lhs, rhs, .. } => {
                 write!(buf, "{}add:\n", c.repeat(width))?;
                 lhs.fmt_string(buf, c, width+1)?;
                 rhs.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::SubOp { lhs, rhs } => {
+            Ast::SubOp { lhs, rhs, .. } => {
                 write!(buf, "{}sub:\n", c.repeat(width))?;
                 lhs.fmt_string(buf, c, width+1)?;
                 rhs.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::MulOp { lhs, rhs } => {
+            Ast::MulOp { lhs, rhs, .. } => {
                 write!(buf, "{}mul:\n", c.repeat(width))?;
                 lhs.fmt_string(buf, c, width+1)?;
                 rhs.fmt_string(buf, c, width+1)?;
                 Ok(())
             },
-            Ast::DivOp { lhs, rhs } => {
+            Ast::DivOp { lhs, rhs, .. } => {
                 write!(buf, "{}div:\n", c.repeat(width))?;
                 lhs.fmt_string(buf, c, width+1)?;
                 rhs.fmt_string(buf, c, width+1)?;

@@ -530,7 +530,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Bitwise operations can only be performed on operands of integer type");
             },
-            Ast::AddOp { lhs, rhs } => {
+            Ast::AddOp { lhs, rhs, .. } => {
                 let lhs = self.visit_ast(lhs);
                 let rhs = self.visit_ast(rhs);
 
@@ -579,7 +579,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            Ast::SubOp { lhs, rhs } => {
+            Ast::SubOp { lhs, rhs, .. } => {
                 let lhs = self.visit_ast(lhs);
                 let rhs = self.visit_ast(rhs);
 
@@ -628,7 +628,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            Ast::MulOp { lhs, rhs } => {
+            Ast::MulOp { lhs, rhs, .. } => {
                 let lhs = self.visit_ast(lhs);
                 let rhs = self.visit_ast(rhs);
 
@@ -677,7 +677,7 @@ impl<'a, 'ctx> AstVisitor<AnyValueEnum<'ctx>> for CodeGen<'a, 'ctx> {
 
                 panic!("Arithmetic operations can only be performed on operands of integer and float type");
             },
-            Ast::DivOp { lhs, rhs } => {
+            Ast::DivOp { lhs, rhs, .. } => {
                 let lhs = self.visit_ast(lhs);
                 let rhs = self.visit_ast(rhs);
 
