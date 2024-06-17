@@ -5,7 +5,14 @@ University of Cincinnati in the spring semester of 2024.
 - The compiled language spec can be found [here](./projectLanguage.pdf)
 
 # Building and Running
-To build this project you must have Rust installed. You can find instuctions for installation [here](https://www.rust-lang.org/tools/install).
+## Dependencies
+To build this project you must have Rust 1.56+ installed. You can find instuctions for installation [here](https://www.rust-lang.org/tools/install).
+You must also have LLVM 17 installed. You can find downloads [here](https://releases.llvm.org/download.html).
+
+To install the Rust crate dependencies, navigate to the root of the repo and run:
+```
+cargo install
+```
 
 ## Build
 To build the project, navigate to the root of the repo and run:
