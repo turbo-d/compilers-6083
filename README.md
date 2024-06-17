@@ -88,6 +88,18 @@ to resync errors where the parser attempted to guess how to continue. Although a
 the tree may be incorrect and code generation should not be performed. In the case of a terminal error during the parse, the
 parser encountered an error and was unable to proceed, therefore no ast is produced. A call to get_errors will produce the list
 of any warnings and resync errors that occured before the terminal error, as well as the description of the terminal error itself.
+Some interesting points to note:
+- The grammar had to be modified to be LL(1). This included eliminating left-recursion in certain productions. The modfied productions
+are defined in [grammar.txt](./grammar.txt).
+- One resync on error point was implemented in the parser. This was in the case of an invalid identifier. In the language spec
+an identifier can never be followed by an identifier, because of this we can look for chains of Identifier and/or Invalid tokens, and
+bundle them all into a single identifier by concatenating the identifier and invalid char strings of each individual token. While
+this error handling is not full-proof - hence why we still error - this allows us to continue the parse, and it catches common typo
+errors like invalid chars or whitespace in an identifier. It also allow us to capture and report a more specific syntax error, which
+is that identifiers can contain underscores, but cannot start with underscores. This was implemented by modifying the grammar for
+identifiers. This change is defined in [grammar.txt](./grammar.txt).
+    - Personal notes on error handling, as well as additional candidates for future resync points are included in [errors.txt](./errors.txt).
+- The unit test suite for the parser is also included in [llparser.rs](./compiler/src/llparser.rs).
 ## runtime
 The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
 language spec are implemented, as well as an addition function strcmp, used for testing equality of strings. These
