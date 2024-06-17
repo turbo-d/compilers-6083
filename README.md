@@ -73,6 +73,21 @@ reserved words map, and if it did return the corresponding keyword token instead
 returns an Invalid token with the associated character stream stored on the token itself. The parser can then make a more
 informed decision about error handling.
 - The unit test suite for the scanner is also included in [scanner.rs](./compiler/src/scanner.rs).
+## llparser
+The implementation of the LL(1) parser can be found in [llparser.rs](./compiler/src/llparser.rs). The parser takes
+tokens produced by the scanner, defined in [token.rs](./compiler/src/token.rs), and either produces a valid abstract
+syntax tree (ast) or a terminal error. The ast nodes are defined in [ast.rs](./compiler/src/ast.rs). The error type,
+which includes both errors and warnings is defined in [error.rs](./compiler/src/error.rs). The parser is created with
+the new function, and the parse occurs with call to the parse function. The parse function performs a recursive descent
+parse, with a private function corresponding to each non-terminal. The parse function either returns a valid ast, or it
+returns a terminal error. This is accomplished using the Rust Result type. In either case the parse may produce an error
+log which can be accessed via the get_errors function. If the parse was successful, a valid ast will be producted, but
+there may still be errors logged corresponding to warnings and resync errors and the API user must check these errors.
+If only warnings are logged the user could continue with full code generation, but if errors are logged these correspond
+to resync errors where the parser attempted to guess how to continue. Although a valid ast was produced, the semantics of
+the tree may be incorrect and code generation should not be performed. In the case of a terminal error during the parse, the
+parser encountered an error and was unable to proceed, therefore no ast is produced. A call to get_errors will produce the list
+of any warnings and resync errors that occured before the terminal error, as well as the description of the terminal error itself.
 ## runtime
 The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
 language spec are implemented, as well as an addition function strcmp, used for testing equality of strings. These
