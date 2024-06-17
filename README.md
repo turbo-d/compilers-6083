@@ -52,9 +52,30 @@ passes and formats and displays them to the user. Depending on the severity of e
 phases the errors occur, the command line program may halt executution. If the compilation is successful, the
 command line program will produce a temporary .ll file containin the LLVM IR of the compiled source file. It will
 then run clang directly to link the .ll file with the runtime static library and create an executable.
+## compiler
+The compiler directory contains the implementations for all of the compilation passes. This includes the scanner,
+the LL(1) parser, the semantic checker (aka typechecker), and the LLVM IR code generator. These APIs are bundled into
+the compiler library, which is used by the cli executable.
+### scanner
+The implementation for the scanner can be found in [scanner.rs](./compiler/src/scanner.rs) and the accompanying
+token definitions can be found in [token.rs](./compiler/src/token.rs). The scanner is implemented similar to
+what was discussed in class and in the book: based on a DFA but not rigorously defined. A scanner is created with
+the new function, and scanning of the input character stream is done by repeatedly calling the scan method. The scan method
+returns the next token found, terminating with an EOF token. Some interesting points to note:
+- We took advantage of the capabilities provided by Rust enums and stored any additional information associated with a token
+on the token itself. Identifier tokens contain the identifier string, IntLiteral and FloatLiteral tokens contain a numeric value,
+and String tokens contain the string literal
+- Numeric literals are checked and split into either an IntLiteral token or a FloatLiteral token by the scanner.
+- We used a hash map to keep track of reserved words in the language, mapping from the keyword string to the corresponding
+keyword token. Before returning an Identifier token from scan we would first check to see if the identifier existed in the
+reserved words map, and if it did return the corresponding keyword token instead.
+- The scanner does not have any knowledge of errors or warnings. Instead if the scanner encounters an unknown character it
+returns an Invalid token with the associated character stream stored on the token itself. The parser can then make a more
+informed decision about error handling.
+- The unit test suite for the scanner is also included in [scanner.rs](./compiler/src/scanner.rs).
 ## runtime
 The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
 language spec are implemented, as well as an addition function strcmp, used for testing equality of strings. These
-functions are implemented in Rust, and we use the extern keyword and the types provided in the [foreign function
-interface module of the standard library](https://doc.rust-lang.org/std/ffi/) to produce C-like object code. These
-runtime functions are compiled into a static library libruntime.a found in ./target/debug.
+functions are implemented in Rust in [./runtime/src/lib.rs](./runtime/src/lib.rs), and we use the extern keyword and
+the types provided in the [foreign function interface module of the standard library](https://doc.rust-lang.org/std/ffi/)
+to produce C-like object code. These runtime functions are compiled into a static library libruntime.a found in ./target/debug.
