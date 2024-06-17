@@ -119,6 +119,14 @@ methods search for the symbol by first iterating the stack of local scopes, star
 scope.
 *NOTE: I really don't love this symbol table design and API, and it probably isn't the easiest to follow if you look at the code, but for the time
 being it gets the job done. So sorry in advance for those who try to understand it!
+### semantic checking
+The semantic checking is performed by the TypeChecker, which is an AstVisitor defined in [typechecker.rs](./compiler/src/typechecker.rs). The typechecker
+uses a definition of types provided in [types.rs](./compiler/src/types.rs). The typechecker utilizes a symbol table instance that maps identifier strings
+to a Types type. The typechecker performs all of the scope-related semantic checks plus all of the type checks. The typechecker also mutates the ast in
+place by adding type coercion nodes where needed to convert operands to the correct type, for example an IntToFloat node to convert an operand of integer
+type to float type. Similar to the parser, the typechecker can generate a log or errors or warnings as it walks the ast, and again like the parser, you
+query these errors with a call to get_errors after the typechecker has completed its walk.
+- The unit test suite for the typechecker is also included in [typechecker.rs](./compiler/src/typechecker.rs).
 ## runtime
 The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
 language spec are implemented, as well as an addition function strcmp, used for testing equality of strings. These
