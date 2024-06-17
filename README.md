@@ -73,7 +73,7 @@ reserved words map, and if it did return the corresponding keyword token instead
 returns an Invalid token with the associated character stream stored on the token itself. The parser can then make a more
 informed decision about error handling.
 - The unit test suite for the scanner is also included in [scanner.rs](./compiler/src/scanner.rs).
-## llparser
+### llparser
 The implementation of the LL(1) parser can be found in [llparser.rs](./compiler/src/llparser.rs). The parser takes
 tokens produced by the scanner, defined in [token.rs](./compiler/src/token.rs), and either produces a valid abstract
 syntax tree (ast) or a terminal error. The ast nodes are defined in [ast.rs](./compiler/src/ast.rs). The error type,
@@ -100,6 +100,25 @@ is that identifiers can contain underscores, but cannot start with underscores. 
 identifiers. This change is defined in [grammar.txt](./grammar.txt).
     - Personal notes on error handling, as well as additional candidates for future resync points are included in [errors.txt](./errors.txt).
 - The unit test suite for the parser is also included in [llparser.rs](./compiler/src/llparser.rs).
+### abstract syntax tree (ast) and symbol table
+The ast nodes produced by the parse are defined in [ast.rs](./compiler/src/ast.rs). Analysis and transformation passes can be written
+for the ast. Defined in the ast file is the AstVisitor trait. Any Rust type that implements the AstVisitor trait can walk the ast
+and perform some operation. The walk is initiated by calling the accept method on the ast, and passing an instance of a visitor to the
+method. The visitor is reposonsible for implementing the logic of the traversal, whether pre-order, post-order, in-order, or some
+alternative. Right now, all visitors are able to mutate the ast at will. Maybe in the future we can distinguish between mutable visitors
+and read-only visitors.
+The ast is not explicitly linked to any symbol table or other external data structure. Instead the ast includes nodes for declarations, both
+variable declarations and procedure declarations. These declarations are listed in the tree structure in the same order that they are encountered
+in the source file. If a visitor needs to keep track of declarations with the scoping rules as defined in the language spec, a generic symbol table
+implementation has been provided in [symtable.rs](./compiler/src/symtable.rs). The SymTable type allows a visitor to associate a string (identifier)
+with some associated data. The associated data type is specified by the visitor when creating the SymTable and can vary based on the needs of the
+visitor. The symbol table manages a global scope of symbols as well as a stack of local scopes. To create or destroy a local scope the visitor
+must call the enter_scope and exit_scope methods respectively. To insert a symbol the visitor calls the insert method, to insert a global symbol
+(no matter the current scope) the visitor calls the insert_global method, and to lookup a symbol the visitor calls the get method. The insert and get
+methods search for the symbol by first iterating the stack of local scopes, starting with the most recent first, and then finally check the global
+scope.
+*NOTE: I really don't love this symbol table design and API, and it probably isn't the easiest to follow if you look at the code, but for the time
+being it gets the job done. So sorry in advance for those who try to understand it!
 ## runtime
 The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
 language spec are implemented, as well as an addition function strcmp, used for testing equality of strings. These
