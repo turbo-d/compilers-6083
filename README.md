@@ -49,4 +49,12 @@ The cli directory contains the source files to build the command line interface 
 reads the target source file, creates a scanner and parser to parse the file, then performs semantic checking,
 and code generation passes on the ast resulting from the parse. It also aggregates any errors from the compilation
 passes and formats and displays them to the user. Depending on the severity of errors, and during which compilation
-phases the errors occur, the command line program may halt executution.
+phases the errors occur, the command line program may halt executution. If the compilation is successful, the
+command line program will produce a temporary .ll file containin the LLVM IR of the compiled source file. It will
+then run clang directly to link the .ll file with the runtime static library and create an executable.
+## runtime
+The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
+language spec are implemented, as well as an addition function strcmp, used for testing equality of strings. These
+functions are implemented in Rust, and we use the extern keyword and the types provided in the [foreign function
+interface module of the standard library](https://doc.rust-lang.org/std/ffi/) to produce C-like object code. These
+runtime functions are compiled into a static library libruntime.a found in ./target/debug.
