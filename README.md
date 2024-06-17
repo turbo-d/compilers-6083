@@ -127,6 +127,17 @@ place by adding type coercion nodes where needed to convert operands to the corr
 type to float type. Similar to the parser, the typechecker can generate a log or errors or warnings as it walks the ast, and again like the parser, you
 query these errors with a call to get_errors after the typechecker has completed its walk.
 - The unit test suite for the typechecker is also included in [typechecker.rs](./compiler/src/typechecker.rs).
+### code generation
+The LLVM IR code generation is performed by the CodeGen, which is an AstVisitor defined in [codegen.rs](./compiler/src/codegen.rs). The codegen makes
+heavy use of the [Inkwell](https://crates.io/crates/inkwell) crate, which is a safe Rust wrapper around the LLVM C API. The CodeGen type wraps up a
+Builder, Context, and Module type from Inkwell, which correlate to the same objects in the LLVM API. Throughout its walk of the ast, the codegen uses
+the Builder to build up a valid LLVM IR Module, including a main function definition, all the function definitions in the source file, all the global
+variables in the source file, all the string constants in the source file, as well as function declarations for all the functions defined externally
+in the runtime library. The codegen utilizes two symbol table instances. One for variables that maps identifier strings to a PointerValue type. A PointerValue
+is used to reference variable locations on the stack or in the global segment. The other is for procedures and maps identifier strings to FunctionValue types.
+*NOTE: The Inkwell library is still in v0. It was highly recommended as the best available option for Rust projects, and it ultimately did get the job done,
+but it was very difficult to use. Easily more than half of my time spent on this project was on the code gen phase. In hindsight I would have just generated
+LLVM IR myself and then wrapped up command line calls to LLVM opt and clang. But hey, that's part of the learning process.
 ## runtime
 The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
 language spec are implemented, as well as an addition function strcmp, used for testing equality of strings. These
