@@ -1,8 +1,8 @@
 # Overview
 This compiler was completed as part of the coursework for EECE 6083: Compiler Theory and Practice at the
 University of Cincinnati in the spring semester of 2024.
-The project description can be found [here](./project.pdf)
-The compiled language spec can be found [here](./projectLanguage.pdf)
+- The project description can be found [here](./project.pdf)
+- The compiled language spec can be found [here](./projectLanguage.pdf)
 
 # Building and Running
 To build this project you must have Rust installed. You can find instuctions for installation [here](https://www.rust-lang.org/tools/install).
@@ -13,7 +13,7 @@ To build the project, navigate to the root of the repo and run:
 cargo build
 ```
 This will build the target executable "cli", located at ./target/debug/cli. To run the executable, pass
-in a single command line argument specifying a file to compile. Example programs can be found in the testPgms
+in a single command line argument specifying a source file to compile. Example programs can be found in the testPgms
 directory. Here is an example:
 ```
 ./target/debug/cli testPgms/correct/iterativeFib.src
@@ -37,8 +37,16 @@ cargo test
 
 ## Debug output
 To compile with additional debugging output add the debug command before the file to be compiled. This
-debug output is ad hoc, and was only added for my own use to quickly debug issues. Therefore it is not very
+debug output is ad hoc, and was only added for my own use to quickly debug issues. It's not very
 pretty.
 ```
 ./target/debug/cli debug testPgms/correct/iterativeFib.src
 ```
+# Structure
+## cli
+The cli directory contains the source files to build the command line interface executable.
+[main.rs](./cli/src/main.rs) contains all the code to define the cli. It parses input arguments,
+reads the target source file, creates a scanner and parser to parse the file, then performs semantic checking,
+and code generation passes on the ast resulting from the parse. It also aggregates any errors from the compilation
+passes and formats and displays them to the user. Depending on the severity of errors, and during which compilation
+phases the errors occur, the command line program may halt executution.
