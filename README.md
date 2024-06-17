@@ -136,7 +136,7 @@ variables in the source file, all the string constants in the source file, as we
 in the runtime library. The codegen utilizes two symbol table instances. One for variables that maps identifier strings to a PointerValue type. A PointerValue
 is used to reference variable locations on the stack or in the global segment. The other is for procedures and maps identifier strings to FunctionValue types.
 *NOTE: The Inkwell library is still in v0. It was highly recommended as the best available option for Rust projects, and it ultimately did get the job done,
-but it was very difficult to use. Easily more than half of my time spent on this project was on the code gen phase. In hindsight I would have just generated
+but it was very difficult to use. Easily half of my time spent on this project was on the code gen phase. In hindsight I would have just generated
 LLVM IR myself and then wrapped up command line calls to LLVM opt and clang. But hey, that's part of the learning process.
 ## runtime
 The runtime directory contains the implementation of the language runtime library. The 9 functions defined in the
@@ -144,3 +144,6 @@ language spec are implemented, as well as an addition function strcmp, used for 
 functions are implemented in Rust in [./runtime/src/lib.rs](./runtime/src/lib.rs), and we use the extern keyword and
 the types provided in the [foreign function interface module of the standard library](https://doc.rust-lang.org/std/ffi/)
 to produce C-like object code. These runtime functions are compiled into a static library libruntime.a found in ./target/debug.
+# Features
+All of the features specified in the language spec have been implemented.
+The only obvious thing that is missing - which I don't think is a hard requirement - is column numbers reported in error and warning messages.
