@@ -10,11 +10,6 @@ University of Cincinnati in the spring semester of 2024.
 - You must have LLVM 17 installed. You can find downloads [here](https://releases.llvm.org/download.html).
     - I have not tested with LLVM 18. Try at your own risk.
 
-To install the Rust crate dependencies, navigate to the root of the repo and run:
-```
-cargo install
-```
-
 ## Build
 To build the project, navigate to the root of the repo and run:
 ```
